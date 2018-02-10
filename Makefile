@@ -1,28 +1,28 @@
 OBJ_DIR=obj_dir
 
-PREFIX=alu
-VM_PREFIX=V$(PREFIX)
+ALU_PREFIX=alu
+ALU_VM_PREFIX=V$(ALU_PREFIX)
 
-TARGET=$(OBJ_DIR)/$(VM_PREFIX)
+ALU_DRIVER=$(OBJ_DIR)/$(ALU_VM_PREFIX)
 
 RM=rm
 RM_FLAGS=-rf
 
 .PHONY: all dirs test clean
 
-all: $(TARGET)
+all: $(ALU_DRIVER)
 
 dirs: $(OBJ_DIR)
 
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
-$(TARGET): dirs rtl/alu.v driver/main.cpp
-	verilator -Wall -O3 --x-assign fast --noassert -cc rtl/alu.v --exe driver/main.cpp
-	$(MAKE) -j -C $(OBJ_DIR) -f $(VM_PREFIX).mk
+$(ALU_DRIVER): dirs rtl/alu.sv sim/alu_driver.cpp
+	verilator -Wall -O3 --x-assign fast --noassert -cc rtl/alu.sv --exe sim/alu_driver.cpp
+	$(MAKE) -j -C $(OBJ_DIR) -f $(ALU_VM_PREFIX).mk
 
-test: $(TARGET)
-	$(TARGET)
+test: $(ALU_DRIVER)
+	$(ALU_DRIVER)
 
 clean:
 	$(RM) $(RM_FLAGS) $(OBJ_DIR)
