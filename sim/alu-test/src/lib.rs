@@ -108,14 +108,14 @@ impl Alu {
 }
 
 #[no_mangle]
-pub extern "C" fn run(env: *const Env) -> u32 {
+pub extern "C" fn run(env: *const Env) -> i32 {
     let mut alu = Alu {
         env: env,
     };
 
     alu.set_command(Command::Sra);
     alu.set_lhs(0xdeadbeef);
-    alu.set_rhs(4); // TODO: What happens with too big shift value?
+    alu.set_rhs(36);
     alu.eval();
     println!("res: 0x{:08x}", alu.res());
 

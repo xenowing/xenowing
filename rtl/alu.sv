@@ -23,6 +23,8 @@ module alu(
 
     output [31:0] res);
 
+    logic [4:0] shift_amt = rhs[4:0];
+
     always_comb begin
         case (command)
             ADD: res = lhs + rhs;
@@ -30,9 +32,9 @@ module alu(
             AND: res = lhs & rhs;
             OR: res = lhs | rhs;
             XOR: res = lhs ^ rhs;
-            SLL: res = lhs << rhs;
-            SRL: res = lhs >> rhs;
-            SRA: res = $signed(lhs) >>> $signed(rhs);
+            SLL: res = lhs << shift_amt;
+            SRL: res = lhs >> shift_amt;
+            SRA: res = $signed(lhs) >>> shift_amt;
             EQ: res = lhs == rhs ? 32'h1 : 32'h0;
             NE: res = lhs != rhs ? 32'h1 : 32'h0;
             LT: res = $signed(lhs) < $signed(rhs) ? 32'h1 : 32'h0;

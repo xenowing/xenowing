@@ -90,7 +90,7 @@ int main(int argc, char **argv)
         cout << "Failed to load library: " << libName << endl;
         exit(1);
     }
-    auto run = (uint32_t (*)(Env *))GetProcAddress(lib, "run");
+    auto run = (int32_t (*)(Env *))GetProcAddress(lib, "run");
     if (run == NULL)
     {
         cout << "Failed to get run proc address" << endl;
@@ -116,9 +116,9 @@ int main(int argc, char **argv)
         .final = final,
     };
 
-    run(&env);
+    auto ret = run(&env);
 
     delete top;
 
-    return 0;
+    return ret;
 }
