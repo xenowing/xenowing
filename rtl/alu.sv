@@ -1,19 +1,4 @@
-typedef enum [3:0] {
-    ADD,
-    SUB,
-    AND,
-    OR,
-    XOR,
-    SLL,
-    SRL,
-    SRA,
-    EQ,
-    NE,
-    LT,
-    LTU,
-    GE,
-    GEU
-} command_t;
+`include "rtl/command_t.vh"
 
 module alu(
     input command_t command,
