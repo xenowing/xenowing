@@ -23,28 +23,31 @@ RM_FLAGS=-rf
 
 .PHONY: all dirs test clean
 
-all: $(ALU_TEST) $(DDR3_TEST)
+all: dirs $(ALU_TEST) $(DDR3_TEST)
 
-dirs: $(OBJ_DIR)
+dirs: $(OBJ_DIR) $(TRACE_DIR)
 
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
-$(ALU_DRIVER): dirs rtl/cpu/alu.sv sim/alu_driver.cpp
+$(TRACE_DIR):
+	mkdir -p $(TRACE_DIR)
+
+$(ALU_DRIVER): rtl/cpu/alu.sv sim/alu_driver.cpp
 	verilator -Wall -O3 --x-assign fast --noassert -cc rtl/cpu/alu.sv --exe sim/alu_driver.cpp
 	$(MAKE) -j -C $(OBJ_DIR) -f $(ALU_VM_PREFIX).mk
 
 $(ALU_TEST): $(ALU_DRIVER) $(ALU_TEST_SRC)
 	cd $(ALU_TEST_DIR) && cargo build --release
 
-$(DDR3_TEST_DRIVER): dirs rtl/test/ddr3_test.sv sim/ddr3_test_driver.cpp
-	verilator -Wall -O3 --x-assign fast --noassert --trace -cc rtl/test/ddr3_test.sv rtl/test/led_clock_divider.sv --exe sim/ddr3_test_driver.cpp
+$(DDR3_TEST_DRIVER): rtl/test/ddr3_test.sv sim/ddr3_test_driver.cpp
+	verilator -Wall -O3 --x-assign fast --noassert --trace -cc rtl/test/ddr3_test.sv rtl/test/ddr3_test_read_checker.sv rtl/test/led_clock_divider.sv --exe sim/ddr3_test_driver.cpp
 	$(MAKE) -j -C $(OBJ_DIR) -f $(DDR3_TEST_VM_PREFIX).mk
 
 $(DDR3_TEST): $(DDR3_TEST_DRIVER) $(DDR3_TEST_SRC)
 	cd $(DDR3_TEST_DIR) && cargo build --release
 
-test: $(ALU_TEST) $(DDR3_TEST)
+test: dirs $(ALU_TEST) $(DDR3_TEST)
 	$(ALU_DRIVER) $(ALU_TEST)
 	$(DDR3_TEST_DRIVER) $(DDR3_TEST) $(DDR3_TRACE)
 
