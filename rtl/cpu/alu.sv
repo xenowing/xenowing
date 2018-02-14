@@ -1,7 +1,7 @@
-`include "rtl/cpu/command_t.vh"
+`include "rtl/cpu/alu_op_t.vh"
 
 module alu(
-    input command_t command,
+    input alu_op_t op,
 
     input [31:0] lhs,
     input [31:0] rhs,
@@ -11,7 +11,7 @@ module alu(
     logic [4:0] shift_amt = rhs[4:0];
 
     always_comb begin
-        case (command)
+        case (op)
             ADD: res = lhs + rhs;
             SUB: res = lhs - rhs;
             AND: res = lhs & rhs;

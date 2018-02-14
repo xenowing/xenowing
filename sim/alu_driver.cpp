@@ -8,8 +8,8 @@ using namespace std;
 
 typedef struct
 {
-    uint32_t (*get_command)();
-    void (*set_command)(uint32_t value);
+    uint32_t (*get_op)();
+    void (*set_op)(uint32_t value);
 
     uint32_t (*get_lhs)();
     void (*set_lhs)(uint32_t value);
@@ -25,14 +25,14 @@ typedef struct
 
 static Valu *top;
 
-uint32_t get_command()
+uint32_t get_op()
 {
-    return top->command;
+    return top->op;
 }
 
-void set_command(uint32_t value)
+void set_op(uint32_t value)
 {
-    top->command = value;
+    top->op = value;
 }
 
 uint32_t get_lhs()
@@ -101,8 +101,8 @@ int main(int argc, char **argv)
 
     Env env =
     {
-        .get_command = get_command,
-        .set_command = set_command,
+        .get_op = get_op,
+        .set_op = set_op,
 
         .get_lhs = get_lhs,
         .set_lhs = set_lhs,

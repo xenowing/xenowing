@@ -13,4 +13,4 @@ typedef enum [3:0] {
     LTU,
     GE,
     GEU
-} command_t;
+} alu_op_t;
