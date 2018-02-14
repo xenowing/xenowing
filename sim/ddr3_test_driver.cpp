@@ -50,8 +50,8 @@ typedef struct
     void (*trace_dump)(uint64_t time);
 } Env;
 
-static Vddr3_test *top;
-static VerilatedVcdC *trace;
+static Vddr3_test *top = nullptr;
+static VerilatedVcdC *trace = nullptr;
 
 uint32_t get_reset_n()
 {
@@ -225,12 +225,13 @@ void final()
 
 void trace_dump(uint64_t time)
 {
-    trace->dump(time);
+    if (trace)
+        trace->dump(time);
 }
 
 int main(int argc, char **argv)
 {
-    if (argc != 3)
+    if (argc != 2 && argc != 3)
     {
         cout << "Invalid number of arguments" << endl;
         exit(1);
@@ -252,10 +253,13 @@ int main(int argc, char **argv)
 
     top = new Vddr3_test();
 
-    Verilated::traceEverOn(true);
-    trace = new VerilatedVcdC();
-    top->trace(trace, 99); // TODO: What is this param?
-    trace->open(argv[2]);
+    if (argc == 3)
+    {
+        Verilated::traceEverOn(true);
+        trace = new VerilatedVcdC();
+        top->trace(trace, 99); // TODO: What is this param?
+        trace->open(argv[2]);
+    }
 
     Env env =
     {
@@ -301,10 +305,13 @@ int main(int argc, char **argv)
 
     auto ret = run(&env);
 
-    trace->close();
+    if (trace)
+    {
+        trace->close();
+        delete trace;
+    }
 
     delete top;
-    delete trace;
 
     return ret;
 }

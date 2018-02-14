@@ -8,7 +8,7 @@ module ddr3_test(
     input avl_rdata_valid,
     input [63:0] avl_rdata,
     output reg [63:0] avl_wdata,
-    output reg [11:0] avl_be,
+    output reg [7:0] avl_be,
     output reg avl_read_req,
     output reg avl_write_req,
     output reg [6:0] avl_size,
@@ -22,7 +22,7 @@ module ddr3_test(
     logic avl_burstbegin_next;
     logic [23:0] avl_addr_next;
     logic [63:0] avl_wdata_next;
-    logic [11:0] avl_be_next;
+    logic [7:0] avl_be_next;
     logic avl_read_req_next;
     logic avl_write_req_next;
     logic [6:0] avl_size_next;
@@ -105,7 +105,7 @@ module ddr3_test(
                 avl_burstbegin_next = 1;
                 avl_addr_next = test_counter[23:0];
                 avl_wdata_next = 64'hdeadfadebabebeef ^ {39'h0, test_counter};
-                avl_be_next = 12'hfff;
+                avl_be_next = 8'hff;
                 avl_write_req_next = 1;
                 avl_size_next = 7'h1;
 
@@ -121,7 +121,7 @@ module ddr3_test(
                     // Read 12 bytes
                     avl_burstbegin_next = 1;
                     avl_addr_next = test_counter[23:0];
-                    avl_be_next = 12'hfff;
+                    avl_be_next = 8'hff;
                     avl_read_req_next = 1;
                     avl_size_next = 7'h1;
 
@@ -136,13 +136,8 @@ module ddr3_test(
                     avl_read_req_next = 0;
 
                     if (test_counter[24]) begin
-                        if (read_checker_is_finished) begin
-                            if (read_checker_pass) begin
-                                state_next = STATE_FINISHED;
-                            end
-                            else if (read_checker_fail) begin
-                                state_next = STATE_ERROR;
-                            end
+                        if (read_checker_is_finished && read_checker_pass) begin
+                            state_next = STATE_FINISHED;
                         end
                     end
                     else begin
@@ -163,6 +158,11 @@ module ddr3_test(
                 state_next = STATE_ERROR;
             end
         endcase
+
+        // Transition to error state immediately if read checker fails
+        if (read_checker_is_finished && read_checker_fail) begin
+            state_next = STATE_ERROR;
+        end
     end
 
     always_ff @(posedge clk or negedge reset_n) begin
@@ -170,7 +170,7 @@ module ddr3_test(
             avl_burstbegin <= 0;
             avl_addr <= 24'h0;
             avl_wdata <= 64'h0;
-            avl_be <= 12'h0;
+            avl_be <= 8'h0;
             avl_read_req <= 0;
             avl_write_req <= 0;
             avl_size <= 7'h0;
