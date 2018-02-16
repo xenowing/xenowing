@@ -2,3 +2,6 @@ obj_dir/
 trace/
 target/
 Cargo.lock
+db/
+incremental_db/
+output_files/

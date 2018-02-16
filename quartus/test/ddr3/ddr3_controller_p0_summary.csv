@@ -1,0 +1,23 @@
+Core: ddr3_controller_p0 - Instance: ddr3_controller0|ddr3_controller_inst
+Path, Setup Margin, Hold Margin
+"Address Command (Slow 1200mV 85C Model)",0.918,0.893
+"Bus Turnaround Time (Slow 1200mV 85C Model)",4.699,--
+"Core (Slow 1200mV 85C Model)",-0.412,0.265
+"Core Recovery/Removal (Slow 1200mV 85C Model)",0.723,0.459
+"DQS vs CK (Slow 1200mV 85C Model)",1.723,1.582
+"Read Capture (Slow 1200mV 85C Model)",0.047,0.047
+"Write (Slow 1200mV 85C Model)",0.036,0.041
+"Address Command (Slow 1200mV 0C Model)",0.923,0.9
+"Bus Turnaround Time (Slow 1200mV 0C Model)",4.73,--
+"Core (Slow 1200mV 0C Model)",0.231,0.281
+"Core Recovery/Removal (Slow 1200mV 0C Model)",1.046,0.385
+"DQS vs CK (Slow 1200mV 0C Model)",1.715,1.62
+"Read Capture (Slow 1200mV 0C Model)",0.049,0.049
+"Write (Slow 1200mV 0C Model)",0.061,0.049
+"Address Command (Fast 1200mV 0C Model)",1.001,0.981
+"Bus Turnaround Time (Fast 1200mV 0C Model)",4.897,--
+"Core (Fast 1200mV 0C Model)",1.012,0.048
+"Core Recovery/Removal (Fast 1200mV 0C Model)",1.91,0.245
+"DQS vs CK (Fast 1200mV 0C Model)",1.028,1.68
+"Read Capture (Fast 1200mV 0C Model)",0.058,0.058
+"Write (Fast 1200mV 0C Model)",0.25,0.26
