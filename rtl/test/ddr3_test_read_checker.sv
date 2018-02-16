@@ -9,9 +9,9 @@ module ddr3_test_read_checker(
     input ddr3_cal_success,
     input ddr3_cal_fail,
 
-    output reg is_finished,
-    output reg pass,
-    output reg fail);
+    output logic is_finished,
+    output logic pass,
+    output logic fail);
 
     logic is_finished_next;
     logic pass_next;
