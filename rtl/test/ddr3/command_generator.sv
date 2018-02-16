@@ -33,10 +33,9 @@ module command_generator(
 
     localparam STATE_WAIT_FOR_INIT = 3'h0;
     localparam STATE_ERROR = 3'h1;
-    localparam STATE_WRITE_BYTES = 3'h2;
-    localparam STATE_READ_BYTES = 3'h3;
-    localparam STATE_FINISH_CYCLE = 3'h4;
-    localparam STATE_FINISHED = 3'h5;
+    localparam STATE_WRITE_COMMAND = 3'h2;
+    localparam STATE_READ_COMMAND = 3'h3;
+    localparam STATE_FINISHED = 3'h4;
     logic [2:0] state;
     logic [2:0] state_next;
 
@@ -64,7 +63,7 @@ module command_generator(
             STATE_WAIT_FOR_INIT: begin
                 if (ddr3_init_done) begin
                     if (ddr3_cal_success) begin
-                        state_next = STATE_WRITE_BYTES;
+                        state_next = STATE_WRITE_COMMAND;
                     end
                     else if (ddr3_cal_fail) begin
                         state_next = STATE_ERROR;
@@ -77,36 +76,7 @@ module command_generator(
                 fail_next = 1;
             end
 
-            STATE_WRITE_BYTES: begin
-                // Write 12 bytes
-                avl_burstbegin_next = 1;
-                avl_addr_next = test_counter[23:0];
-                avl_wdata_next = 64'hdeadfadebabebeef ^ {39'h0, test_counter};
-                avl_be_next = 8'hff;
-                avl_write_req_next = 1;
-                avl_size_next = 7'h1;
-
-                state_next = STATE_READ_BYTES;
-            end
-
-            STATE_READ_BYTES: begin
-                avl_burstbegin_next = 0;
-
-                if (avl_ready) begin
-                    avl_write_req_next = 0;
-
-                    // Read 12 bytes
-                    avl_burstbegin_next = 1;
-                    avl_addr_next = test_counter[23:0];
-                    avl_be_next = 8'hff;
-                    avl_read_req_next = 1;
-                    avl_size_next = 7'h1;
-
-                    state_next = STATE_FINISH_CYCLE;
-                end
-            end
-
-            STATE_FINISH_CYCLE: begin
+            STATE_WRITE_COMMAND: begin
                 avl_burstbegin_next = 0;
 
                 if (avl_ready) begin
@@ -116,10 +86,35 @@ module command_generator(
                         state_next = STATE_FINISHED;
                     end
                     else begin
-                        test_counter_next = test_counter + 25'h1;
+                        // Write word command
+                        avl_burstbegin_next = 1;
+                        avl_addr_next = test_counter[23:0];
+                        avl_wdata_next = 64'hdeadfadebabebeef ^ {39'h0, test_counter};
+                        avl_be_next = 8'hff;
+                        avl_write_req_next = 1;
+                        avl_size_next = 7'h1;
 
-                        state_next = STATE_WRITE_BYTES;
+                        state_next = STATE_READ_COMMAND;
                     end
+                end
+            end
+
+            STATE_READ_COMMAND: begin
+                avl_burstbegin_next = 0;
+
+                if (avl_ready) begin
+                    avl_write_req_next = 0;
+
+                    // Read word command
+                    avl_burstbegin_next = 1;
+                    avl_addr_next = test_counter[23:0];
+                    avl_be_next = 8'hff;
+                    avl_read_req_next = 1;
+                    avl_size_next = 7'h1;
+
+                    test_counter_next = test_counter + 25'h1;
+
+                    state_next = STATE_WRITE_COMMAND;
                 end
             end
 

@@ -19,7 +19,7 @@ module read_checker(
 
     localparam STATE_WAIT_FOR_INIT = 2'h0;
     localparam STATE_ERROR = 2'h1;
-    localparam STATE_READ_CHECK = 2'h2;
+    localparam STATE_CHECK = 2'h2;
     localparam STATE_FINISHED = 2'h3;
     logic [1:0] state;
     logic [1:0] state_next;
@@ -40,7 +40,7 @@ module read_checker(
             STATE_WAIT_FOR_INIT: begin
                 if (ddr3_init_done) begin
                     if (ddr3_cal_success) begin
-                        state_next = STATE_READ_CHECK;
+                        state_next = STATE_CHECK;
                     end
                     else if (ddr3_cal_fail) begin
                         state_next = STATE_ERROR;
@@ -53,15 +53,13 @@ module read_checker(
                 fail_next = 1;
             end
 
-            STATE_READ_CHECK: begin
-                if (avl_rdata_valid) begin
+            STATE_CHECK: begin
+                if (test_counter[24]) begin
+                    state_next = STATE_FINISHED;
+                end
+                else if (avl_rdata_valid) begin
                     if (avl_rdata == (64'hdeadfadebabebeef ^ {39'h0, test_counter})) begin
-                        if (test_counter[24]) begin
-                            state_next = STATE_FINISHED;
-                        end
-                        else begin
-                            test_counter_next = test_counter + 25'h1;
-                        end
+                        test_counter_next = test_counter + 25'h1;
                     end
                     else begin
                         state_next = STATE_ERROR;
