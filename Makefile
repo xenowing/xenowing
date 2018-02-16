@@ -7,7 +7,7 @@ ALU_DRIVER=$(OBJ_DIR)/$(ALU_VM_PREFIX)
 
 ALU_TEST_DIR=sim/alu-test
 ALU_TEST_SRC=$(wildcard $(ALU_TEST_DIR)/**/*.rs)
-ALU_TEST=$(ALU_TEST_DIR)/target/release/alu_test
+ALU_TEST=$(ALU_TEST_DIR)/target/release/alu_test.dll
 
 DDR3_TEST_PREFIX=ddr3_test
 DDR3_TEST_VM_PREFIX=V$(DDR3_TEST_PREFIX)
@@ -15,7 +15,7 @@ DDR3_TEST_DRIVER=$(OBJ_DIR)/$(DDR3_TEST_VM_PREFIX)
 
 DDR3_TEST_DIR=sim/ddr3-test
 DDR3_TEST_SRC=$(wildcard $(DDR3_TEST_DIR)/**/*.rs)
-DDR3_TEST=$(DDR3_TEST_DIR)/target/release/ddr3_test
+DDR3_TEST=$(DDR3_TEST_DIR)/target/release/ddr3_test.dll
 DDR3_TRACE=$(TRACE_DIR)/ddr3_test.vcd
 
 RM=rm
