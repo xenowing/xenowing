@@ -98,9 +98,25 @@ pub extern "C" fn run(env: *const Env) -> i32 {
     let mut current_command: Option<(ActiveCommand, u32)> = None;
     let mut cycles_since_last_refresh = 0;
 
-    let mut leds_n = 0;
+    let mut test_passed = false;
 
     for _ in 0..0xa000000 {
+        // Check test status
+        if ddr3_test.is_finished() {
+            let pass = ddr3_test.pass();
+            let fail = ddr3_test.fail();
+
+            if pass && fail {
+                panic!("Test module asserted both pass and fail");
+            } else if !pass && !fail {
+                panic!("Test module didn't assert pass or fail");
+            }
+
+            test_passed = pass;
+
+            break;
+        }
+
         // Rising edge
         ddr3_test.set_clk(true);
         ddr3_test.eval();
@@ -198,16 +214,6 @@ pub extern "C" fn run(env: *const Env) -> i32 {
             }
         }
 
-        if ddr3_test.leds_n() != leds_n {
-            leds_n = ddr3_test.leds_n();
-
-            println!(
-                "LEDS changed: {}{}{}",
-                if (leds_n & 0x04) == 0 { 1 } else { 0 },
-                if (leds_n & 0x02) == 0 { 1 } else { 0 },
-                if (leds_n & 0x01) == 0 { 1 } else { 0 });
-        }
-
         ddr3_test.eval();
 
         ddr3_test.trace_dump(time);
@@ -223,5 +229,5 @@ pub extern "C" fn run(env: *const Env) -> i32 {
 
     ddr3_test.final_();
 
-    0
+    if test_passed { 0 } else { 1 }
 }

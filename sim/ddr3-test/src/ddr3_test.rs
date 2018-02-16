@@ -35,8 +35,12 @@ pub struct Env {
     get_ddr3_cal_fail: extern "C" fn() -> u32,
     set_ddr3_cal_fail: extern "C" fn(value: u32),
 
-    get_leds_n: extern "C" fn() -> u32,
-    set_leds_n: extern "C" fn(value: u32),
+    get_is_finished: extern "C" fn() -> u32,
+    set_is_finished: extern "C" fn(value: u32),
+    get_pass: extern "C" fn() -> u32,
+    set_pass: extern "C" fn(value: u32),
+    get_fail: extern "C" fn() -> u32,
+    set_fail: extern "C" fn(value: u32),
 
     eval: extern "C" fn(),
     final_: extern "C" fn(),
@@ -204,13 +208,33 @@ impl Ddr3Test {
         }
     }
 
-    pub fn leds_n(&self) -> u32 {
-        unsafe { ((*self.env).get_leds_n)() }
+    pub fn is_finished(&self) -> bool {
+        unsafe { ((*self.env).get_is_finished)() != 0 }
     }
 
-    pub fn set_leds_n(&mut self, value: u32) {
+    pub fn set_is_finished(&mut self, value: bool) {
         unsafe {
-            ((*self.env).set_leds_n)(value);
+            ((*self.env).set_is_finished)(if value { 1 } else { 0 });
+        }
+    }
+
+    pub fn pass(&self) -> bool {
+        unsafe { ((*self.env).get_pass)() != 0 }
+    }
+
+    pub fn set_pass(&mut self, value: bool) {
+        unsafe {
+            ((*self.env).set_pass)(if value { 1 } else { 0 });
+        }
+    }
+
+    pub fn fail(&self) -> bool {
+        unsafe { ((*self.env).get_fail)() != 0 }
+    }
+
+    pub fn set_fail(&mut self, value: bool) {
+        unsafe {
+            ((*self.env).set_fail)(if value { 1 } else { 0 });
         }
     }
 

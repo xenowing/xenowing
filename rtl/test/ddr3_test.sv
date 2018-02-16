@@ -17,7 +17,9 @@ module ddr3_test(
     input ddr3_cal_success,
     input ddr3_cal_fail,
 
-    output [2:0] leds_n);
+    output logic is_finished,
+    output logic pass,
+    output logic fail);
 
     logic avl_burstbegin_next;
     logic [23:0] avl_addr_next;
@@ -27,9 +29,9 @@ module ddr3_test(
     logic avl_write_req_next;
     logic [6:0] avl_size_next;
 
-    logic [2:0] leds;
-    logic [2:0] leds_next;
-    assign leds_n = ~leds;
+    logic is_finished_next;
+    logic pass_next;
+    logic fail_next;
 
     localparam STATE_WAIT_FOR_INIT = 3'h0;
     localparam STATE_ERROR = 3'h1;
@@ -61,12 +63,6 @@ module ddr3_test(
         .pass(read_checker_pass),
         .fail(read_checker_fail));
 
-    logic led_clock_edge;
-    led_clock_divider led_clock_divider0(
-        .reset_n(reset_n),
-        .clk(clk),
-        .clock_edge(led_clock_edge));
-
     always_comb begin
         avl_burstbegin_next = avl_burstbegin;
         avl_addr_next = avl_addr;
@@ -76,7 +72,9 @@ module ddr3_test(
         avl_write_req_next = avl_write_req;
         avl_size_next = avl_size;
 
-        leds_next = leds;
+        is_finished_next = is_finished;
+        pass_next = pass;
+        fail_next = fail;
 
         state_next = state;
 
@@ -95,9 +93,8 @@ module ddr3_test(
             end
 
             STATE_ERROR: begin
-                if (led_clock_edge) begin
-                    leds_next = ~leds;
-                end
+                is_finished_next = 1;
+                fail_next = 1;
             end
 
             STATE_WRITE_BYTES: begin
@@ -149,9 +146,8 @@ module ddr3_test(
             end
 
             STATE_FINISHED: begin
-                if (led_clock_edge) begin
-                    leds_next = leds + 3'h1;
-                end
+                is_finished_next = 1;
+                pass_next = 1;
             end
 
             default: begin
@@ -175,7 +171,9 @@ module ddr3_test(
             avl_write_req <= 0;
             avl_size <= 7'h0;
 
-            leds <= 3'h0;
+            is_finished <= 0;
+            pass <= 0;
+            fail <= 0;
 
             state <= STATE_WAIT_FOR_INIT;
 
@@ -190,7 +188,9 @@ module ddr3_test(
             avl_write_req <= avl_write_req_next;
             avl_size <= avl_size_next;
 
-            leds <= leds_next;
+            is_finished <= is_finished_next;
+            pass <= pass_next;
+            fail <= fail_next;
 
             state <= state_next;
 

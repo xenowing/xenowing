@@ -42,8 +42,12 @@ typedef struct
     uint32_t (*get_ddr3_cal_fail)();
     void (*set_ddr3_cal_fail)(uint32_t value);
 
-    uint32_t (*get_leds_n)();
-    void (*set_leds_n)(uint32_t value);
+    uint32_t (*get_is_finished)();
+    void (*set_is_finished)(uint32_t value);
+    uint32_t (*get_pass)();
+    void (*set_pass)(uint32_t value);
+    uint32_t (*get_fail)();
+    void (*set_fail)(uint32_t value);
 
     void (*eval)();
     void (*final)();
@@ -203,14 +207,35 @@ void set_ddr3_cal_fail(uint32_t value)
     top->ddr3_cal_fail = value;
 }
 
-uint32_t get_leds_n()
+
+uint32_t get_is_finished()
 {
-    return top->leds_n;
+    return top->is_finished;
 }
 
-void set_leds_n(uint32_t value)
+void set_is_finished(uint32_t value)
 {
-    top->leds_n = value;
+    top->is_finished = value;
+}
+
+uint32_t get_pass()
+{
+    return top->pass;
+}
+
+void set_pass(uint32_t value)
+{
+    top->pass = value;
+}
+
+uint32_t get_fail()
+{
+    return top->fail;
+}
+
+void set_fail(uint32_t value)
+{
+    top->fail = value;
 }
 
 void eval()
@@ -295,8 +320,13 @@ int main(int argc, char **argv)
         .set_ddr3_cal_success = set_ddr3_cal_success,
         .get_ddr3_cal_fail = get_ddr3_cal_fail,
         .set_ddr3_cal_fail = set_ddr3_cal_fail,
-        .get_leds_n = get_leds_n,
-        .set_leds_n = set_leds_n,
+
+        .get_is_finished = get_is_finished,
+        .set_is_finished = set_is_finished,
+        .get_pass = get_pass,
+        .set_pass = set_pass,
+        .get_fail = get_fail,
+        .set_fail = set_fail,
 
         .eval = eval,
         .final = final,
