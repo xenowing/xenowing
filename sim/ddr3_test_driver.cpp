@@ -1,4 +1,4 @@
-#include "../obj_dir/Vddr3_test.h"
+#include "../obj_dir/Vtest.h"
 #include "verilated_vcd_c.h"
 
 #include <cinttypes>
@@ -54,7 +54,7 @@ typedef struct
     void (*trace_dump)(uint64_t time);
 } Env;
 
-static Vddr3_test *top = nullptr;
+static Vtest *top = nullptr;
 static VerilatedVcdC *trace = nullptr;
 
 uint32_t get_reset_n()
@@ -276,7 +276,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    top = new Vddr3_test();
+    top = new Vtest();
 
     if (argc == 3)
     {

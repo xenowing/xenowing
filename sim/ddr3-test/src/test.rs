@@ -47,13 +47,13 @@ pub struct Env {
     trace_dump: extern "C" fn(time: u64),
 }
 
-pub struct Ddr3Test {
+pub struct Test {
     env: *const Env,
 }
 
-impl Ddr3Test {
-    pub fn new(env: *const Env) -> Ddr3Test {
-        Ddr3Test {
+impl Test {
+    pub fn new(env: *const Env) -> Test {
+        Test {
             env: env,
         }
     }

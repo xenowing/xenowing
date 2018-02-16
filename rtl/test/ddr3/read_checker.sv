@@ -1,4 +1,4 @@
-module ddr3_test_read_checker(
+module read_checker(
     input reset_n,
     input clk,
 
@@ -17,12 +17,12 @@ module ddr3_test_read_checker(
     logic pass_next;
     logic fail_next;
 
-    localparam STATE_WAIT_FOR_INIT = 3'h0;
-    localparam STATE_ERROR = 3'h1;
-    localparam STATE_READ_CHECK = 3'h2;
-    localparam STATE_FINISHED = 3'h3;
-    logic [2:0] state;
-    logic [2:0] state_next;
+    localparam STATE_WAIT_FOR_INIT = 2'h0;
+    localparam STATE_ERROR = 2'h1;
+    localparam STATE_READ_CHECK = 2'h2;
+    localparam STATE_FINISHED = 2'h3;
+    logic [1:0] state;
+    logic [1:0] state_next;
 
     logic [24:0] test_counter;
     logic [24:0] test_counter_next;
@@ -72,10 +72,6 @@ module ddr3_test_read_checker(
             STATE_FINISHED: begin
                 is_finished_next = 1;
                 pass_next = 1;
-            end
-
-            default: begin
-                state_next = STATE_ERROR;
             end
         endcase
     end
