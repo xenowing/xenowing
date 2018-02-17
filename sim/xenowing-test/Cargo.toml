@@ -1,0 +1,10 @@
+[package]
+name = "xenowing-test"
+version = "0.1.0"
+authors = ["ferris <yupferris@gmail.com>"]
+
+[lib]
+name = "xenowing_test"
+crate-type = ["dylib"]
+
+[dependencies]

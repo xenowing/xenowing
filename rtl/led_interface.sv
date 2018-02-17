@@ -9,7 +9,7 @@ module led_interface(
     output [31:0] read_data,
     output logic read_data_valid,
 
-    output logic leds[2:0]);
+    output logic [2:0] leds);
 
     assign read_data = {29'h0, leds};
     logic read_data_valid_next;

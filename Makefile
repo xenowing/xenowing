@@ -2,6 +2,17 @@ OBJ_DIR=obj_dir
 TRACE_DIR=trace
 DOC_DIR=doc
 
+XENOWING_PREFIX=xenowing
+XENOWING_VM_PREFIX=V$(XENOWING_PREFIX)
+XENOWING_DRIVER=$(OBJ_DIR)/$(XENOWING_VM_PREFIX)
+XENOWING_DRIVER_RTL=rtl/xenowing.sv rtl/program_rom_interface.sv rtl/led_interface.sv rtl/mem_mapper.sv rtl/cpu/alu.sv rtl/cpu/cpu.sv
+XENOWING_DRIVER_SRC=sim/xenowing_driver.cpp
+
+XENOWING_TEST_DIR=sim/xenowing-test
+XENOWING_TEST_SRC=$(wildcard $(XENOWING_TEST_DIR)/**/*.rs)
+XENOWING_TEST=$(XENOWING_TEST_DIR)/target/release/xenowing_test.dll
+XENOWING_TRACE=$(TRACE_DIR)/xenowing_test.vcd
+
 ALU_PREFIX=alu
 ALU_VM_PREFIX=V$(ALU_PREFIX)
 ALU_DRIVER=$(OBJ_DIR)/$(ALU_VM_PREFIX)
@@ -24,14 +35,14 @@ DDR3_TEST=$(DDR3_TEST_DIR)/target/release/ddr3_test.dll
 DDR3_TRACE=$(TRACE_DIR)/ddr3_test.vcd
 
 VERILATOR=verilator
-VERILATOR_FLAGS=-Wall -O3 --x-assign fast --noassert
+VERILATOR_FLAGS=-Wall -Wno-fatal -O3 --x-assign fast --noassert --trace
 
 RM=rm
 RM_FLAGS=-rf
 
 .PHONY: all dirs test docs clean
 
-all: dirs $(ALU_DRIVER) $(ALU_TEST) $(DDR3_TEST_DRIVER) $(DDR3_TEST) docs
+all: dirs $(XENOWING_DRIVER) $(XENOWING_TEST) $(ALU_DRIVER) $(ALU_TEST) $(DDR3_TEST_DRIVER) $(DDR3_TEST) docs
 
 dirs: $(OBJ_DIR) $(TRACE_DIR)
 
@@ -41,6 +52,13 @@ $(OBJ_DIR):
 $(TRACE_DIR):
 	mkdir -p $(TRACE_DIR)
 
+$(XENOWING_DRIVER): $(XENOWING_DRIVER_RTL) $(XENOWING_DRIVER_SRC)
+	$(VERILATOR) $(VERILATOR_FLAGS) -cc $(XENOWING_DRIVER_RTL) --exe $(XENOWING_DRIVER_SRC)
+	$(MAKE) -j -C $(OBJ_DIR) -f $(XENOWING_VM_PREFIX).mk
+
+$(XENOWING_TEST): $(XENOWING_TEST_SRC)
+	cd $(XENOWING_TEST_DIR) && cargo build --release
+
 $(ALU_DRIVER): $(ALU_DRIVER_RTL) $(ALU_DRIVER_SRC)
 	$(VERILATOR) $(VERILATOR_FLAGS) -cc $(ALU_DRIVER_RTL) --exe $(ALU_DRIVER_SRC)
 	$(MAKE) -j -C $(OBJ_DIR) -f $(ALU_VM_PREFIX).mk
@@ -49,7 +67,7 @@ $(ALU_TEST): $(ALU_TEST_SRC)
 	cd $(ALU_TEST_DIR) && cargo build --release
 
 $(DDR3_TEST_DRIVER): $(DDR3_TEST_DRIVER_RTL) $(DDR3_TEST_DRIVER_SRC)
-	$(VERILATOR) $(VERILATOR_FLAGS) --trace -cc $(DDR3_TEST_DRIVER_RTL) --exe $(DDR3_TEST_DRIVER_SRC)
+	$(VERILATOR) $(VERILATOR_FLAGS) -cc $(DDR3_TEST_DRIVER_RTL) --exe $(DDR3_TEST_DRIVER_SRC)
 	$(MAKE) -j -C $(OBJ_DIR) -f $(DDR3_TEST_VM_PREFIX).mk
 
 $(DDR3_TEST): $(DDR3_TEST_SRC)
@@ -60,13 +78,15 @@ docs: $(DOC_DIR)/mem_topology.pdf
 $(DOC_DIR)/mem_topology.pdf: $(DOC_DIR)/mem_topology.dot
 	dot -Tpdf $(DOC_DIR)/mem_topology.dot -o $(DOC_DIR)/mem_topology.pdf
 
-test: dirs $(ALU_DRIVER) $(ALU_TEST) $(DDR3_TEST_DRIVER) $(DDR3_TEST)
-	$(ALU_DRIVER) $(ALU_TEST)
+test: dirs $(XENOWING_DRIVER) $(XENOWING_TEST) $(ALU_DRIVER) $(ALU_TEST) $(DDR3_TEST_DRIVER) $(DDR3_TEST)
+	$(XENOWING_DRIVER) $(XENOWING_TEST) $(XENOWING_TRACE)
+	#$(ALU_DRIVER) $(ALU_TEST)
 	#$(DDR3_TEST_DRIVER) $(DDR3_TEST) $(DDR3_TRACE)
-	$(DDR3_TEST_DRIVER) $(DDR3_TEST)
+	#$(DDR3_TEST_DRIVER) $(DDR3_TEST)
 
 clean:
 	$(RM) $(RM_FLAGS) $(OBJ_DIR)
 	$(RM) $(RM_FLAGS) $(TRACE_DIR)
+	cd $(XENOWING_TEST_DIR) && cargo clean
 	cd $(ALU_TEST_DIR) && cargo clean
 	cd $(DDR3_TEST_DIR) && cargo clean

@@ -55,6 +55,8 @@ pub extern "C" fn run(env: *const Env) -> i32 {
     let mut time = 0;
 
     // Reset
+    test.set_reset_n(true);
+    test.eval();
     test.set_reset_n(false);
     test.set_clk(false);
     test.eval();
