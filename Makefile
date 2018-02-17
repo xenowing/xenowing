@@ -1,5 +1,6 @@
 OBJ_DIR=obj_dir
 TRACE_DIR=trace
+DOC_DIR=doc
 
 ALU_PREFIX=alu
 ALU_VM_PREFIX=V$(ALU_PREFIX)
@@ -28,9 +29,9 @@ VERILATOR_FLAGS=-Wall -O3 --x-assign fast --noassert
 RM=rm
 RM_FLAGS=-rf
 
-.PHONY: all dirs test clean
+.PHONY: all dirs test docs clean
 
-all: dirs $(ALU_DRIVER) $(ALU_TEST) $(DDR3_TEST_DRIVER) $(DDR3_TEST)
+all: dirs $(ALU_DRIVER) $(ALU_TEST) $(DDR3_TEST_DRIVER) $(DDR3_TEST) docs
 
 dirs: $(OBJ_DIR) $(TRACE_DIR)
 
@@ -53,6 +54,11 @@ $(DDR3_TEST_DRIVER): $(DDR3_TEST_DRIVER_RTL) $(DDR3_TEST_DRIVER_SRC)
 
 $(DDR3_TEST): $(DDR3_TEST_SRC)
 	cd $(DDR3_TEST_DIR) && cargo build --release
+
+docs: $(DOC_DIR)/mem_topology.pdf
+
+$(DOC_DIR)/mem_topology.pdf: $(DOC_DIR)/mem_topology.dot
+	dot -Tpdf $(DOC_DIR)/mem_topology.dot -o $(DOC_DIR)/mem_topology.pdf
 
 test: dirs $(ALU_DRIVER) $(ALU_TEST) $(DDR3_TEST_DRIVER) $(DDR3_TEST)
 	$(ALU_DRIVER) $(ALU_TEST)
