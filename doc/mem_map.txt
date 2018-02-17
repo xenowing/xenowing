@@ -1,0 +1,17 @@
+High-level map
+
+0x10000000 - 0x1fffffff: Program ROM
+0x20000000 - 0x2fffffff: System regs(mirrors)
+0x30000000 - 0x3fffffff: DDR3 mem
+
+Detailed mem map
+
+0x10000000 - 0x1000ffff: Program ROM
+0x10010000 - 0x1fffffff: Program ROM (mirrors)
+
+0x20000000 - 0x20000003: System regs
+0x20000000 - 0x20000003: LED interface (only byte 0 used)
+0x20000004 - 0x2fffffff: System regs (mirrors)
+
+0x30000000 - 0x37ffffff: DDR3 mem
+0x38000000 - 0x3fffffff: DDR3 mem (mirror)
