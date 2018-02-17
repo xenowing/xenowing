@@ -1,4 +1,4 @@
-typedef enum [3:0] {
+typedef enum {
     ADD,
     SUB,
     AND,
@@ -23,7 +23,8 @@ module alu(
 
     output [31:0] res);
 
-    logic [4:0] shift_amt = rhs[4:0];
+    logic [4:0] shift_amt;
+    assign shift_amt = rhs[4:0];
 
     always_comb begin
         case (op)

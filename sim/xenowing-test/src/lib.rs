@@ -8,7 +8,7 @@ pub extern "C" fn run(env: *const Env) -> i32 {
 
     let rom = include_bytes!("../../../rom/rom.bin");
 
-    let mut rom_q_next = 0;
+    let mut rom_addr_next = 0;
 
     let mut leds = 0;
 
@@ -31,14 +31,14 @@ pub extern "C" fn run(env: *const Env) -> i32 {
         xenowing.set_clk(true);
         xenowing.eval();
 
-        xenowing.set_program_rom_q(rom_q_next);
-
-        let rom_addr = xenowing.program_rom_addr() as usize;
-        rom_q_next =
+        let rom_addr = (rom_addr_next << 2) as usize;
+        xenowing.set_program_rom_q(
             ((rom[rom_addr + 0] as u32) << 0) |
             ((rom[rom_addr + 1] as u32) << 8) |
             ((rom[rom_addr + 2] as u32) << 16) |
-            ((rom[rom_addr + 3] as u32) << 24);
+            ((rom[rom_addr + 3] as u32) << 24));
+
+        rom_addr_next = xenowing.program_rom_addr();
 
         if xenowing.leds() != leds {
             leds = xenowing.leds();

@@ -41,15 +41,25 @@ module cpu(
 
     logic [31:0] instruction;
     logic [31:0] instruction_next;
-    logic [6:0] opcode = instruction[6:0];
-    logic [4:0] rd = instruction[11:7];
-    logic [4:0] rs1 = instruction[19:15];
-    logic [4:0] rs2 = instruction[24:20];
-    logic [2:0] funct3 = instruction[14:12];
-    logic [31:0] store_offset = {{20{instruction[31]}}, {instruction[31:25], instruction[11:7]}};
-    logic [31:0] jump_offset = {{11{instruction[31]}}, {instruction[31], instruction[19:12], instruction[20], instruction[30:21]}, 1'b0};
-    logic [31:0] i_immediate = {{20{instruction[31]}}, instruction[31:20]};
-    logic [31:0] u_immediate = {instruction[31:12], 12'h0};
+
+    logic [6:0] opcode;
+    logic [4:0] rd;
+    logic [4:0] rs1;
+    logic [4:0] rs2;
+    logic [2:0] funct3;
+    logic [31:0] store_offset;
+    logic [31:0] jump_offset;
+    logic [31:0] i_immediate;
+    logic [31:0] u_immediate;
+    assign opcode = instruction[6:0];
+    assign rd = instruction[11:7];
+    assign rs1 = instruction[19:15];
+    assign rs2 = instruction[24:20];
+    assign funct3 = instruction[14:12];
+    assign store_offset = {{20{instruction[31]}}, {instruction[31:25], instruction[11:7]}};
+    assign jump_offset = {{11{instruction[31]}}, {instruction[31], instruction[19:12], instruction[20], instruction[30:21]}, 1'b0};
+    assign i_immediate = {{20{instruction[31]}}, instruction[31:20]};
+    assign u_immediate = {instruction[31:12], 12'h0};
 
     alu alu0(
         .op(alu_op),

@@ -7,10 +7,10 @@ module program_rom_interface(
     output [31:0] read_data,
     output logic read_data_valid,
 
-    output [13:0] program_rom_addr,
+    output [11:0] program_rom_addr,
     input [31:0] program_rom_q);
 
-    assign program_rom_addr = addr;
+    assign program_rom_addr = addr[13:2];
     assign read_data = program_rom_q;
 
     logic read_data_valid_next;

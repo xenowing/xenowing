@@ -1,6 +1,6 @@
 .PHONY: all
 
-all: rom.bin
+all: rom.bin rom.hex
 
 rom.o: rom.s
 	riscv-none-embed-as -o rom.o rom.s
@@ -10,3 +10,6 @@ rom.elf: rom.o link.ld
 
 rom.bin: rom.elf
 	riscv-none-embed-objcopy -O binary rom.elf rom.bin
+
+rom.hex: rom.elf
+	riscv-none-embed-objcopy -O ihex rom.elf rom.hex
