@@ -1,6 +1,10 @@
-.PHONY: all
+MIFFED_DIR=../misc/miffed
+MIFFED_SRC=$(wildcard $(MIFFED_DIR)/**/*.rs)
+MIFFED=$(MIFFED_DIR)/target/release/miffed.exe
 
-all: rom.bin rom.hex
+.PHONY: all clean
+
+all: rom.bin rom.mif
 
 rom.o: rom.s
 	riscv-none-embed-as -o rom.o rom.s
@@ -11,5 +15,11 @@ rom.elf: rom.o link.ld
 rom.bin: rom.elf
 	riscv-none-embed-objcopy -O binary rom.elf rom.bin
 
-rom.hex: rom.elf
-	riscv-none-embed-objcopy -O ihex rom.elf rom.hex
+rom.mif: rom.bin $(MIFFED)
+	$(MIFFED) rom.bin rom.mif
+
+$(MIFFED): $(MIFFED_SRC)
+	cd $(MIFFED_DIR) && cargo build --release
+
+clean:
+	cd $(MIFFED_DIR) && cargo clean
