@@ -45,9 +45,9 @@ pub extern "C" fn run(env: *const Env) -> i32 {
 
             println!(
                 "LEDS changed: {}{}{}",
-                if (leds & 0x04) == 0 { 1 } else { 0 },
-                if (leds & 0x02) == 0 { 1 } else { 0 },
-                if (leds & 0x01) == 0 { 1 } else { 0 });
+                if (leds & 0x04) == 0 { 0 } else { 1 },
+                if (leds & 0x02) == 0 { 0 } else { 1 },
+                if (leds & 0x01) == 0 { 0 } else { 1 });
         }
 
         xenowing.eval();
