@@ -257,9 +257,15 @@ module cpu(
                     endcase
 
                     // Set up instruction fetch state
-                    addr_next = pc_next;
-                    byte_enable_next = 4'hf;
-                    read_req_next = 1;
+                    if (pc_next[1:0] != 2'b0) begin
+                        // Misaligned PC
+                        state_next = STATE_ERROR;
+                    end
+                    else begin
+                        addr_next = pc_next;
+                        byte_enable_next = 4'hf;
+                        read_req_next = 1;
+                    end
                 end
             end
 
