@@ -23,9 +23,9 @@ module cpu(
     logic [31:0] regs[0:30];
     logic [31:0] regs_next[0:30];
 
-    localparam STATE_INSTRUCTION_FETCH = 3'h0;
+    localparam STATE_INITIAL_INSTRUCTION_FETCH_SETUP = 3'h0;
     localparam STATE_ERROR = 3'h1;
-    localparam STATE_INSTRUCTION_FETCH_WAIT = 3'h2;
+    localparam STATE_INSTRUCTION_FETCH = 3'h2;
     localparam STATE_INSTRUCTION_DECODE = 3'h3;
     localparam STATE_MEM_ACCESS = 3'h4;
     localparam STATE_WRITEBACK = 3'h5;
@@ -92,21 +92,22 @@ module cpu(
         instruction_next = instruction;
 
         case (state)
-            STATE_INSTRUCTION_FETCH: begin
-                // Fetch word at PC
+            STATE_INITIAL_INSTRUCTION_FETCH_SETUP: begin
+                // Set up instruction fetch state
                 addr_next = pc;
                 byte_enable_next = 4'hf;
                 read_req_next = 1;
 
-                state_next = STATE_INSTRUCTION_FETCH_WAIT;
+                state_next = STATE_INSTRUCTION_FETCH;
             end
 
             STATE_ERROR: begin
                 // TODO
             end
 
-            STATE_INSTRUCTION_FETCH_WAIT: begin
+            STATE_INSTRUCTION_FETCH: begin
                 if (ready) begin
+                    // Finish asserting read
                     read_req_next = 0;
 
                     if (read_data_valid) begin
@@ -237,6 +238,11 @@ module cpu(
                         // TODO: ecall/ebreak
                         // TODO: system regs
                     endcase
+
+                    // Set up instruction fetch state
+                    addr_next = pc_next;
+                    byte_enable_next = 4'hf;
+                    read_req_next = 1;
                 end
             end
 
@@ -256,7 +262,7 @@ module cpu(
 
             regs <= '{default:0};
 
-            state <= STATE_INSTRUCTION_FETCH;
+            state <= STATE_INITIAL_INSTRUCTION_FETCH_SETUP;
 
             alu_op <= ADD;
             alu_lhs <= 32'h0;
