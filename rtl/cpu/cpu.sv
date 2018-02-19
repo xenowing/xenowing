@@ -179,7 +179,10 @@ module cpu(
                         // register computation
                         //  default alu lhs/rhs are already correct; do nothing
                     end
-                    // TODO: fences
+                    7'b0001111: begin
+                        // fences (do nothing)
+                        //  Note that if we introduce an icache later, fence.i should flush it
+                    end
                     // TODO: ecall/ebreak
                     // TODO: system regs
                     default: state_next = STATE_ERROR;
@@ -233,8 +236,6 @@ module cpu(
                         // TODO: jalr
                         // TODO: branches
                         // TODO: loads
-                        // writes, do nothing
-                        // TODO: fences
                         // TODO: ecall/ebreak
                         // TODO: system regs
                     endcase
