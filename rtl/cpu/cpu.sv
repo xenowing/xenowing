@@ -183,8 +183,16 @@ module cpu(
                         // fences (do nothing)
                         //  Note that if we introduce an icache later, fence.i should flush it
                     end
-                    // TODO: ecall/ebreak
-                    // TODO: system regs
+                    7'b1110011: begin
+                        // system instr's
+                        case (funct3)
+                            3'b000: begin
+                                // ecall/ebreak (do nothing)
+                            end
+                            // TODO: system regs
+                            default: state_next = STATE_ERROR;
+                        endcase
+                    end
                     default: state_next = STATE_ERROR;
                 endcase
             end
@@ -236,8 +244,16 @@ module cpu(
                         // TODO: jalr
                         // TODO: branches
                         // TODO: loads
-                        // TODO: ecall/ebreak
-                        // TODO: system regs
+                        7'b1110011: begin
+                            // system instr's
+                            case (funct3)
+                                3'b000: begin
+                                    // ecall/ebreak (do nothing)
+                                end
+                                // TODO: system regs
+                                default: state_next = STATE_ERROR;
+                            endcase
+                        end
                     endcase
 
                     // Set up instruction fetch state
