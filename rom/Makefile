@@ -7,10 +7,10 @@ MIFFED=$(MIFFED_DIR)/target/release/miffed.exe
 all: rom.bin rom.mif
 
 rom.o: rom.s
-	riscv-none-embed-as -o rom.o rom.s
+	riscv-none-embed-as -march=rv32i -o rom.o rom.s
 
 rom.elf: rom.o link.ld
-	riscv-none-embed-gcc -o rom.elf -nostartfiles rom.o -Tlink.ld
+	riscv-none-embed-gcc -march=rv32i -o rom.elf -nostartfiles rom.o -Tlink.ld
 
 rom.bin: rom.elf
 	riscv-none-embed-objcopy -O binary rom.elf rom.bin

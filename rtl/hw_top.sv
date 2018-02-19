@@ -18,7 +18,7 @@ module hw_top(
 
     program_rom program_rom0(
         .clock(clk),
-        .address(xenowing_program_rom_addr[1:0]),
+        .address(xenowing_program_rom_addr),
         .q(xenowing_program_rom_q));
 
     assign leds_n = ~xenowing_leds;

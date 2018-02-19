@@ -23,6 +23,11 @@ module cpu(
     logic [31:0] regs[0:30];
     logic [31:0] regs_next[0:30];
 
+    logic [63:0] cycle;
+    logic [63:0] cycle_next;
+    logic [63:0] instret;
+    logic [63:0] instret_next;
+
     localparam STATE_INITIAL_INSTRUCTION_FETCH_SETUP = 3'h0;
     localparam STATE_ERROR = 3'h1;
     localparam STATE_INSTRUCTION_FETCH = 3'h2;
@@ -54,6 +59,7 @@ module cpu(
     logic [31:0] jump_offset;
     logic [31:0] i_immediate;
     logic [31:0] u_immediate;
+    logic [11:0] csr;
     assign opcode = instruction[6:0];
     assign rd = instruction[11:7];
     assign rs1 = instruction[19:15];
@@ -65,6 +71,7 @@ module cpu(
     assign jump_offset = {{11{instruction[31]}}, {instruction[31], instruction[19:12], instruction[20], instruction[30:21]}, 1'b0};
     assign i_immediate = {{20{instruction[31]}}, instruction[31:20]};
     assign u_immediate = {instruction[31:12], 12'h0};
+    assign csr = instruction[31:20];
 
     alu alu0(
         .op(alu_op),
@@ -83,6 +90,9 @@ module cpu(
 
         regs_next = regs;
 
+        cycle_next = cycle;
+        instret_next = instret;
+
         state_next = state;
 
         alu_op_next = alu_op;
@@ -90,6 +100,8 @@ module cpu(
         alu_rhs_next = alu_rhs;
 
         instruction_next = instruction;
+
+        cycle_next = cycle + 64'h1;
 
         case (state)
             STATE_INITIAL_INSTRUCTION_FETCH_SETUP: begin
@@ -193,7 +205,9 @@ module cpu(
                             3'b000: begin
                                 // ecall/ebreak (do nothing)
                             end
-                            // TODO: system regs
+                            3'b001, 3'b010, 3'b011, 3'b101, 3'b110, 3'b111: begin
+                                // csrrw, csrrs, csrrc, csrrwi, csrrsi, csrrci (do nothing)
+                            end
                             default: state_next = STATE_ERROR;
                         endcase
                     end
@@ -258,10 +272,18 @@ module cpu(
                         7'b1110011: begin
                             // system instr's
                             case (funct3)
-                                3'b000: begin
-                                    // ecall/ebreak (do nothing)
+                                3'b001, 3'b010, 3'b011, 3'b101, 3'b110, 3'b111: begin
+                                    // csrrw, csrrs, csrrc, csrrwi, csrrsi, csrrci
+                                    if (rd != 0) begin
+                                        case (csr)
+                                            12'hc00, 12'hc01: regs_next[rd - 1] = cycle[31:0]; // cycle, time
+                                            12'hc02: regs_next[rd - 1] = instret[31:0]; // instret
+                                            12'hc80, 12'hc81: regs_next[rd - 1] = cycle[63:32]; // cycleh, timeh
+                                            12'hc82: regs_next[rd - 1] = instret[63:32]; // instreth
+                                            default: state_next = STATE_ERROR;
+                                        endcase
+                                    end
                                 end
-                                // TODO: system regs
                                 default: state_next = STATE_ERROR;
                             endcase
                         end
@@ -276,6 +298,8 @@ module cpu(
                         addr_next = pc_next;
                         byte_enable_next = 4'hf;
                         read_req_next = 1;
+
+                        instret_next = instret + 64'h1;
                     end
                 end
             end
@@ -296,6 +320,9 @@ module cpu(
 
             regs <= '{default:0};
 
+            cycle <= 64'h0;
+            instret <= 64'h0;
+
             state <= STATE_INITIAL_INSTRUCTION_FETCH_SETUP;
 
             alu_op <= ADD;
@@ -314,6 +341,9 @@ module cpu(
             pc <= pc_next;
 
             regs <= regs_next;
+
+            cycle <= cycle_next;
+            instret <= instret_next;
 
             state <= state_next;
 

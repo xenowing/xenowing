@@ -20,6 +20,10 @@ fn main() {
         panic!("Input len ({} bytes) is not divisible by 4", input.len());
     }
 
+    if input.len() >= 0x10000 {
+        panic!("Input len ({} bytes) is too large", input.len());
+    }
+
     let mut output = File::create(output_file_name).expect("Couldn't open output file");
 
     writeln!(output, "DEPTH = {};", input.len() / 4).unwrap();
