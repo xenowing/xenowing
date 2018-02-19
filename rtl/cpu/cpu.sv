@@ -153,7 +153,11 @@ module cpu(
                         alu_lhs_next = jump_offset;
                         alu_rhs_next = pc;
                     end
-                    // TODO: jalr
+                    7'b1100111: begin
+                        // jalr
+                        alu_op_next = ADD;
+                        alu_rhs_next = i_immediate;
+                    end
                     // TODO: branches
                     // TODO: loads
                     7'b0100011: begin
@@ -241,7 +245,14 @@ module cpu(
 
                             pc_next = alu_res;
                         end
-                        // TODO: jalr
+                        7'b1100111: begin
+                            // jalr
+                            if (rd != 0) begin
+                                regs_next[rd - 1] = pc + 32'h4;
+                            end
+
+                            pc_next = {alu_res[31:1], 1'b0};
+                        end
                         // TODO: branches
                         // TODO: loads
                         7'b1110011: begin
