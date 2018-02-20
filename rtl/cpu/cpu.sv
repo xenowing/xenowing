@@ -57,6 +57,7 @@ module cpu(
     logic [2:0] funct3;
     logic [31:0] store_offset;
     logic [31:0] jump_offset;
+    logic [31:0] branch_offset;
     logic [31:0] i_immediate;
     logic [31:0] u_immediate;
     logic [11:0] csr;
@@ -69,6 +70,7 @@ module cpu(
     assign funct3 = instruction[14:12];
     assign store_offset = {{20{instruction[31]}}, {instruction[31:25], instruction[11:7]}};
     assign jump_offset = {{11{instruction[31]}}, {instruction[31], instruction[19:12], instruction[20], instruction[30:21]}, 1'b0};
+    assign branch_offset = {{20{instruction[31]}}, instruction[31], instruction[7], instruction[30:25], instruction[11:8], 1'b0};
     assign i_immediate = {{20{instruction[31]}}, instruction[31:20]};
     assign u_immediate = {instruction[31:12], 12'h0};
     assign csr = instruction[31:20];
@@ -170,7 +172,18 @@ module cpu(
                         alu_op_next = ADD;
                         alu_rhs_next = i_immediate;
                     end
-                    // TODO: branches
+                    7'b1100011: begin
+                        // branches
+                        case (funct3)
+                            3'b000: alu_op_next = EQ;
+                            3'b001: alu_op_next = NE;
+                            3'b100: alu_op_next = LT;
+                            3'b101: alu_op_next = GE;
+                            3'b110: alu_op_next = LTU;
+                            3'b111: alu_op_next = GEU;
+                            default: state_next = STATE_ERROR;
+                        endcase
+                    end
                     // TODO: loads
                     7'b0100011: begin
                         state_next = STATE_MEM_ACCESS;
@@ -267,7 +280,12 @@ module cpu(
 
                             pc_next = {alu_res[31:1], 1'b0};
                         end
-                        // TODO: branches
+                        7'b1100011: begin
+                            // branches
+                            if (alu_res[0]) begin
+                                pc_next = pc + branch_offset;
+                            end
+                        end
                         // TODO: loads
                         7'b1110011: begin
                             // system instr's
