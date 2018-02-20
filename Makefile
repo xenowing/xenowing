@@ -2,6 +2,20 @@ OBJ_DIR=obj_dir
 TRACE_DIR=trace
 DOC_DIR=doc
 
+ifeq ($(OS),Windows_NT)
+	DYNAMIC_LIB_PREFIX=
+	DYNAMIC_LIB_EXT=.dll
+else
+	DYNAMIC_LIB_PREFIX=lib
+
+	UNAME=$(shell uname)
+	ifeq ($(UNAME),Darwin)
+		DYNAMIC_LIB_EXT=.dylib
+	else
+		DYNAMIC_LIB_EXT=.so
+	endif
+endif
+
 XENOWING_PREFIX=xenowing
 XENOWING_VM_PREFIX=V$(XENOWING_PREFIX)
 XENOWING_DRIVER=$(OBJ_DIR)/$(XENOWING_VM_PREFIX)
@@ -10,7 +24,7 @@ XENOWING_DRIVER_SRC=sim/xenowing_driver.cpp
 
 XENOWING_TEST_DIR=sim/xenowing-test
 XENOWING_TEST_SRC=$(wildcard $(XENOWING_TEST_DIR)/**/*.rs)
-XENOWING_TEST=$(XENOWING_TEST_DIR)/target/release/xenowing_test.dll
+XENOWING_TEST=$(XENOWING_TEST_DIR)/target/release/$(DYNAMIC_LIB_PREFIX)xenowing_test$(DYNAMIC_LIB_EXT)
 XENOWING_TRACE=$(TRACE_DIR)/xenowing_test.vcd
 
 ALU_PREFIX=alu
@@ -21,7 +35,7 @@ ALU_DRIVER_SRC=sim/alu_driver.cpp
 
 ALU_TEST_DIR=sim/alu-test
 ALU_TEST_SRC=$(wildcard $(ALU_TEST_DIR)/**/*.rs)
-ALU_TEST=$(ALU_TEST_DIR)/target/release/alu_test.dll
+ALU_TEST=$(ALU_TEST_DIR)/target/release/$(DYNAMIC_LIB_PREFIX)alu_test$(DYNAMIC_LIB_EXT)
 
 DDR3_TEST_PREFIX=test
 DDR3_TEST_VM_PREFIX=V$(DDR3_TEST_PREFIX)
@@ -31,11 +45,11 @@ DDR3_TEST_DRIVER_SRC=sim/ddr3_test_driver.cpp
 
 DDR3_TEST_DIR=sim/ddr3-test
 DDR3_TEST_SRC=$(wildcard $(DDR3_TEST_DIR)/**/*.rs)
-DDR3_TEST=$(DDR3_TEST_DIR)/target/release/ddr3_test.dll
+DDR3_TEST=$(DDR3_TEST_DIR)/target/release/$(DYNAMIC_LIB_PREFIX)ddr3_test$(DYNAMIC_LIB_EXT)
 DDR3_TRACE=$(TRACE_DIR)/ddr3_test.vcd
 
 VERILATOR=verilator
-VERILATOR_FLAGS=-Wall -Wno-fatal -O3 --x-assign fast --noassert --trace
+VERILATOR_FLAGS=-Wall -Wno-fatal -O3 --x-assign fast --noassert -CFLAGS "-O3 -std=c++11" --trace
 
 RM=rm
 RM_FLAGS=-rf

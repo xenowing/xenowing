@@ -5,7 +5,11 @@
 #include <iostream>
 using namespace std;
 
+#ifdef _WIN32
 #include <Windows.h>
+#else
+#include <dlfcn.h>
+#endif
 
 typedef struct
 {
@@ -251,7 +255,7 @@ void final()
 void trace_dump(uint64_t time)
 {
     if (trace)
-        trace->dump(time);
+        trace->dump((vluint64_t)time);
 }
 
 int main(int argc, char **argv)
@@ -263,14 +267,25 @@ int main(int argc, char **argv)
     }
 
     auto libName = argv[1];
-    auto lib = LoadLibrary(libName);
-    if (lib == NULL)
+    auto lib =
+#ifdef _WIN32
+        LoadLibrary(libName);
+#else
+        dlopen(libName, RTLD_LAZY);
+#endif
+    if (!lib)
     {
         cout << "Failed to load library: " << libName << endl;
         exit(1);
     }
-    auto run = (int32_t (*)(Env *))GetProcAddress(lib, "run");
-    if (run == NULL)
+    auto run = (int32_t (*)(Env *))
+#ifdef _WIN32
+        GetProcAddress
+#else
+        dlsym
+#endif
+        (lib, "run");
+    if (!run)
     {
         cout << "Failed to get run proc address" << endl;
         exit(1);
