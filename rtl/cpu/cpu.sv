@@ -186,17 +186,11 @@ module cpu(
                     end
                     // TODO: loads
                     7'b0100011: begin
+                        // stores
                         state_next = STATE_MEM_ACCESS;
 
-                        case (funct3)
-                            // TODO: other stores
-                            3'b010: begin
-                                // sw
-                                alu_op_next = ADD;
-                                alu_rhs_next = store_offset;
-                            end
-                            default: state_next = STATE_ERROR;
-                        endcase
+                        alu_op_next = ADD;
+                        alu_rhs_next = store_offset;
                     end
                     7'b0010011: begin
                         // immediate computation
@@ -236,6 +230,29 @@ module cpu(
                     7'b0100011: begin
                         case (funct3)
                             // TODO: other stores
+                            3'b000: begin
+                                // sb
+                                addr_next = {alu_res[31:2], 2'b0};
+                                case (alu_res[1:0])
+                                    2'b00: begin
+                                        write_data_next = rs2_value;
+                                        byte_enable_next = 4'b0001;
+                                    end
+                                    2'b01: begin
+                                        write_data_next = {16'b0, rs2_value[7:0], 8'b0};
+                                        byte_enable_next = 4'b0010;
+                                    end
+                                    2'b10: begin
+                                        write_data_next = {8'b0, rs2_value[7:0], 16'b0};
+                                        byte_enable_next = 4'b0100;
+                                    end
+                                    2'b11: begin
+                                        write_data_next = {rs2_value[7:0], 24'b0};
+                                        byte_enable_next = 4'b1000;
+                                    end
+                                endcase
+                                write_req_next = 1;
+                            end
                             3'b010: begin
                                 // sw
                                 addr_next = alu_res;
