@@ -28,15 +28,18 @@ module cpu(
     logic [63:0] instret;
     logic [63:0] instret_next;
 
-    localparam STATE_INITIAL_INSTRUCTION_FETCH_SETUP = 3'h0;
-    localparam STATE_ERROR = 3'h1;
-    localparam STATE_INSTRUCTION_FETCH = 3'h2;
-    localparam STATE_INSTRUCTION_DECODE = 3'h3;
-    localparam STATE_MEM_ACCESS = 3'h4;
-    localparam STATE_MEM_ACCESS_2 = 3'h5;
-    localparam STATE_WRITEBACK = 3'h6;
-    logic [2:0] state;
-    logic [2:0] state_next;
+    localparam STATE_INITIAL_INSTRUCTION_FETCH_SETUP = 4'h0;
+    localparam STATE_ERROR = 4'h1;
+    localparam STATE_INSTRUCTION_FETCH = 4'h2;
+    localparam STATE_INSTRUCTION_DECODE = 4'h3;
+    localparam STATE_MEM_LOAD = 4'h4;
+    localparam STATE_MEM_LOAD_2 = 4'h5;
+    localparam STATE_MEM_LOAD_WAIT = 4'h6;
+    localparam STATE_MEM_STORE = 4'h7;
+    localparam STATE_MEM_STORE_2 = 4'h8;
+    localparam STATE_REG_WRITEBACK = 4'h9;
+    logic [3:0] state;
+    logic [3:0] state_next;
 
     alu_op_t alu_op;
     alu_op_t alu_op_next;
@@ -45,6 +48,9 @@ module cpu(
     logic [31:0] alu_rhs;
     logic [31:0] alu_rhs_next;
     logic [31:0] alu_res;
+
+    logic read_buffer_clear;
+    logic read_buffer_clear_next;
 
     logic [31:0] instruction;
     logic [31:0] instruction_next;
@@ -56,6 +62,7 @@ module cpu(
     logic [31:0] rs1_value;
     logic [31:0] rs2_value;
     logic [2:0] funct3;
+    logic [31:0] load_offset;
     logic [31:0] store_offset;
     logic [31:0] jump_offset;
     logic [31:0] branch_offset;
@@ -69,6 +76,7 @@ module cpu(
     assign rs1_value = rs1 > 0 ? regs[rs1 - 1] : 32'h0;
     assign rs2_value = rs2 > 0 ? regs[rs2 - 1] : 32'h0;
     assign funct3 = instruction[14:12];
+    assign load_offset = {{20{instruction[31]}}, instruction[31:20]};
     assign store_offset = {{20{instruction[31]}}, {instruction[31:25], instruction[11:7]}};
     assign jump_offset = {{11{instruction[31]}}, {instruction[31], instruction[19:12], instruction[20], instruction[30:21]}, 1'b0};
     assign branch_offset = {{19{instruction[31]}}, instruction[31], instruction[7], instruction[30:25], instruction[11:8], 1'b0};
@@ -81,6 +89,17 @@ module cpu(
         .lhs(alu_lhs),
         .rhs(alu_rhs),
         .res(alu_res));
+
+    logic [31:0] read_buffer_data[0:3];
+    logic [1:0] read_buffer_count;
+    read_buffer read_buffer0(
+        .clk(clk),
+        .reset_n(reset_n),
+        .clear(read_buffer_clear),
+        .read_data(read_data),
+        .read_data_valid(read_data_valid),
+        .data(read_buffer_data),
+        .count(read_buffer_count));
 
     always_comb begin
         addr_next = addr;
@@ -102,9 +121,13 @@ module cpu(
         alu_lhs_next = alu_lhs;
         alu_rhs_next = alu_rhs;
 
+        read_buffer_clear_next = read_buffer_clear;
+
         instruction_next = instruction;
 
         cycle_next = cycle + 64'h1;
+
+        read_buffer_clear_next = 0;
 
         case (state)
             STATE_INITIAL_INSTRUCTION_FETCH_SETUP: begin
@@ -134,7 +157,7 @@ module cpu(
             end
 
             STATE_INSTRUCTION_DECODE: begin
-                state_next = STATE_WRITEBACK;
+                state_next = STATE_REG_WRITEBACK;
 
                 case (funct3)
                     3'b000: alu_op_next = !instruction[30] ? ADD : SUB;
@@ -185,10 +208,18 @@ module cpu(
                             default: state_next = STATE_ERROR;
                         endcase
                     end
-                    // TODO: loads
+                    7'b0000011: begin
+                        // loads
+                        state_next = STATE_MEM_LOAD;
+
+                        alu_op_next = ADD;
+                        alu_rhs_next = load_offset;
+
+                        read_buffer_clear_next = 1;
+                    end
                     7'b0100011: begin
                         // stores
-                        state_next = STATE_MEM_ACCESS;
+                        state_next = STATE_MEM_STORE;
 
                         alu_op_next = ADD;
                         alu_rhs_next = store_offset;
@@ -223,127 +254,190 @@ module cpu(
                 endcase
             end
 
-            STATE_MEM_ACCESS: begin
-                state_next = STATE_WRITEBACK;
+            STATE_MEM_LOAD: begin
+                state_next = STATE_MEM_LOAD_WAIT;
 
-                case (opcode)
-                    // TODO: loads
-                    7'b0100011: begin
-                        addr_next = {alu_res[31:2], 2'b0};
-                        write_req_next = 1;
+                addr_next = {alu_res[31:2], 2'b0};
+                read_req_next = 1;
 
-                        case (funct3)
-                            3'b000: begin
-                                // sb
-                                case (alu_res[1:0])
-                                    2'b00: begin
-                                        write_data_next = rs2_value;
-                                        byte_enable_next = 4'b0001;
-                                    end
-                                    2'b01: begin
-                                        write_data_next = {16'b0, rs2_value[7:0], 8'b0};
-                                        byte_enable_next = 4'b0010;
-                                    end
-                                    2'b10: begin
-                                        write_data_next = {8'b0, rs2_value[7:0], 16'b0};
-                                        byte_enable_next = 4'b0100;
-                                    end
-                                    2'b11: begin
-                                        write_data_next = {rs2_value[7:0], 24'b0};
-                                        byte_enable_next = 4'b1000;
-                                    end
-                                endcase
-                            end
-                            3'b001: begin
-                                // sh
-                                case (alu_res[1:0])
-                                    2'b00: begin
-                                        write_data_next = rs2_value;
-                                        byte_enable_next = 4'b0011;
-                                    end
-                                    2'b01: begin
-                                        write_data_next = {8'b0, rs2_value[15:0], 8'b0};
-                                        byte_enable_next = 4'b0110;
-                                    end
-                                    2'b10: begin
-                                        write_data_next = {rs2_value[15:0], 16'b0};
-                                        byte_enable_next = 4'b1100;
-                                    end
-                                    2'b11: begin
-                                        write_data_next = {rs2_value[7:0], 24'b0};
-                                        byte_enable_next = 4'b1000;
-                                        state_next = STATE_MEM_ACCESS_2;
-                                    end
-                                endcase
-                            end
-                            3'b010: begin
-                                // sw
-                                case (alu_res[1:0])
-                                    2'b00: begin
-                                        write_data_next = rs2_value;
-                                        byte_enable_next = 4'b1111;
-                                    end
-                                    2'b01: begin
-                                        write_data_next = {rs2_value[23:0], 8'b0};
-                                        byte_enable_next = 4'b1110;
-                                        state_next = STATE_MEM_ACCESS_2;
-                                    end
-                                    2'b10: begin
-                                        write_data_next = {rs2_value[15:0], 16'b0};
-                                        byte_enable_next = 4'b1100;
-                                        state_next = STATE_MEM_ACCESS_2;
-                                    end
-                                    2'b11: begin
-                                        write_data_next = {rs2_value[7:0], 24'b0};
-                                        byte_enable_next = 4'b1000;
-                                        state_next = STATE_MEM_ACCESS_2;
-                                    end
-                                endcase
-                            end
-                            default: state_next = STATE_ERROR;
-                        endcase
+                case (funct3)
+                    3'b000, 3'b100: begin
+                        // lb, lbu
+                        byte_enable_next = 4'b0001 << alu_res[1:0];
                     end
+                    3'b001, 3'b101: begin
+                        // lh, lhu
+                        byte_enable_next = 4'b0011 << alu_res[1:0];
+                        if (alu_res[1:0] == 2'b11) begin
+                            state_next = STATE_MEM_LOAD_2;
+                        end
+                    end
+                    3'b010: begin
+                        // lw
+                        byte_enable_next = 4'b1111 << alu_res[1:0];
+                        if (alu_res[1:0] != 2'b00) begin
+                            state_next = STATE_MEM_LOAD_2;
+                        end
+                    end
+                    default: state_next = STATE_ERROR;
                 endcase
             end
 
-            STATE_MEM_ACCESS_2: begin
+            STATE_MEM_LOAD_2: begin
                 if (ready) begin
-                    state_next = STATE_WRITEBACK;
+                    state_next = STATE_MEM_LOAD_WAIT;
 
-                    case (opcode)
-                        // TODO: loads
-                        7'b0100011: begin
-                            addr_next = {alu_res[31:2] + 30'h1, 2'b0};
-                            write_req_next = 1;
+                    addr_next = {alu_res[31:2] + 30'h1, 2'b0};
 
-                            case (funct3)
-                                3'b001: begin
-                                    // sh
-                                    case (alu_res[1:0])
-                                        2'b11: begin
-                                            write_data_next = {24'b0, rs2_value[15:8]};
-                                            byte_enable_next = 4'b0001;
-                                        end
-                                        default: state_next = STATE_ERROR;
-                                    endcase
+                    case (funct3)
+                        3'b001, 3'b101: begin
+                            // lh, lhu
+                            case (alu_res[1:0])
+                                2'b11: byte_enable_next = 4'b0001;
+                                default: state_next = STATE_ERROR;
+                            endcase
+                        end
+                        3'b010: begin
+                            // lw
+                            case (alu_res[1:0])
+                                2'b01: byte_enable_next = 4'b0001;
+                                2'b10: byte_enable_next = 4'b0011;
+                                2'b11: byte_enable_next = 4'b0111;
+                                default: state_next = STATE_ERROR;
+                            endcase
+                        end
+                        default: state_next = STATE_ERROR;
+                    endcase
+                end
+            end
+
+            STATE_MEM_LOAD_WAIT: begin
+                if (ready) begin
+                    // Finish asserting reads
+                    read_req_next = 0;
+
+                    case (funct3)
+                        3'b000, 3'b100: begin
+                            // lb, lbu
+                            if (read_buffer_count == 2'h1) begin
+                                state_next = STATE_REG_WRITEBACK;
+                            end
+                        end
+                        3'b001, 3'b101: begin
+                            // lh, lhu
+                            if (alu_res[1:0] == 2'b11) begin
+                                if (read_buffer_count == 2'h2) begin
+                                    state_next = STATE_REG_WRITEBACK;
                                 end
-                                3'b010: begin
-                                    // sw
-                                    case (alu_res[1:0])
-                                        2'b01: begin
-                                            write_data_next = {24'b0, rs2_value[31:24]};
-                                            byte_enable_next = 4'b0001;
-                                        end
-                                        2'b10: begin
-                                            write_data_next = {16'b0, rs2_value[31:16]};
-                                            byte_enable_next = 4'b0011;
-                                        end
-                                        2'b11: begin
-                                            write_data_next = {8'b0, rs2_value[23:0]};
-                                            byte_enable_next = 4'b0111;
-                                        end
-                                        default: state_next = STATE_ERROR;
-                                    endcase
+                            end
+                            else begin
+                                if (read_buffer_count == 2'h1) begin
+                                    state_next = STATE_REG_WRITEBACK;
+                                end
+                            end
+                        end
+                        3'b010: begin
+                            // lw
+                            if (alu_res[1:0] != 2'b00) begin
+                                if (read_buffer_count == 2'h2) begin
+                                    state_next = STATE_REG_WRITEBACK;
+                                end
+                            end
+                            else begin
+                                if (read_buffer_count == 2'h1) begin
+                                    state_next = STATE_REG_WRITEBACK;
+                                end
+                            end
+                        end
+                        default: state_next = STATE_ERROR;
+                    endcase
+                end
+            end
+
+            STATE_MEM_STORE: begin
+                state_next = STATE_REG_WRITEBACK;
+
+                addr_next = {alu_res[31:2], 2'b0};
+                write_req_next = 1;
+
+                case (funct3)
+                    3'b000: begin
+                        // sb
+                        byte_enable_next = 4'b0001 << alu_res[1:0];
+                        case (alu_res[1:0])
+                            2'b00: write_data_next = rs2_value;
+                            2'b01: write_data_next = {16'b0, rs2_value[7:0], 8'b0};
+                            2'b10: write_data_next = {8'b0, rs2_value[7:0], 16'b0};
+                            2'b11: write_data_next = {rs2_value[7:0], 24'b0};
+                        endcase
+                    end
+                    3'b001: begin
+                        // sh
+                        byte_enable_next = 4'b0011 << alu_res[1:0];
+                        case (alu_res[1:0])
+                            2'b00: write_data_next = rs2_value;
+                            2'b01: write_data_next = {8'b0, rs2_value[15:0], 8'b0};
+                            2'b10: write_data_next = {rs2_value[15:0], 16'b0};
+                            2'b11: begin
+                                write_data_next = {rs2_value[7:0], 24'b0};
+                                state_next = STATE_MEM_STORE_2;
+                            end
+                        endcase
+                    end
+                    3'b010: begin
+                        // sw
+                        byte_enable_next = 4'b1111 << alu_res[1:0];
+                        case (alu_res[1:0])
+                            2'b00: write_data_next = rs2_value;
+                            2'b01: begin
+                                write_data_next = {rs2_value[23:0], 8'b0};
+                                state_next = STATE_MEM_STORE_2;
+                            end
+                            2'b10: begin
+                                write_data_next = {rs2_value[15:0], 16'b0};
+                                state_next = STATE_MEM_STORE_2;
+                            end
+                            2'b11: begin
+                                write_data_next = {rs2_value[7:0], 24'b0};
+                                state_next = STATE_MEM_STORE_2;
+                            end
+                        endcase
+                    end
+                    default: state_next = STATE_ERROR;
+                endcase
+            end
+
+            STATE_MEM_STORE_2: begin
+                if (ready) begin
+                    state_next = STATE_REG_WRITEBACK;
+
+                    addr_next = {alu_res[31:2] + 30'h1, 2'b0};
+
+                    case (funct3)
+                        3'b001: begin
+                            // sh
+                            case (alu_res[1:0])
+                                2'b11: begin
+                                    write_data_next = {24'b0, rs2_value[15:8]};
+                                    byte_enable_next = 4'b0001;
+                                end
+                                default: state_next = STATE_ERROR;
+                            endcase
+                        end
+                        3'b010: begin
+                            // sw
+                            case (alu_res[1:0])
+                                2'b01: begin
+                                    write_data_next = {24'b0, rs2_value[31:24]};
+                                    byte_enable_next = 4'b0001;
+                                end
+                                2'b10: begin
+                                    write_data_next = {16'b0, rs2_value[31:16]};
+                                    byte_enable_next = 4'b0011;
+                                end
+                                2'b11: begin
+                                    write_data_next = {8'b0, rs2_value[31:8]};
+                                    byte_enable_next = 4'b0111;
                                 end
                                 default: state_next = STATE_ERROR;
                             endcase
@@ -353,9 +447,9 @@ module cpu(
                 end
             end
 
-            STATE_WRITEBACK: begin
+            STATE_REG_WRITEBACK: begin
                 if (ready) begin
-                    // Finish asserting write, if any
+                    // Finish asserting writes, if any
                     write_req_next = 0;
 
                     state_next = STATE_INSTRUCTION_FETCH;
@@ -390,7 +484,59 @@ module cpu(
                                 pc_next = pc + branch_offset;
                             end
                         end
-                        // TODO: loads
+                        7'b0000011: begin
+                            // loads
+                            if (rd != 0) begin
+                                case (funct3)
+                                    3'b000: begin
+                                        // lb
+                                        case (alu_res[1:0])
+                                            2'b00: regs_next[rd - 1] = {24'b0, read_buffer_data[0][7:0]};
+                                            2'b01: regs_next[rd - 1] = {24'b0, read_buffer_data[0][15:8]};
+                                            2'b10: regs_next[rd - 1] = {24'b0, read_buffer_data[0][23:16]};
+                                            2'b11: regs_next[rd - 1] = {24'b0, read_buffer_data[0][31:24]};
+                                        endcase
+                                    end
+                                    3'b100: begin
+                                        // lbu
+                                        case (alu_res[1:0])
+                                            2'b00: regs_next[rd - 1] = {{24{read_buffer_data[0][7]}}, read_buffer_data[0][7:0]};
+                                            2'b01: regs_next[rd - 1] = {{24{read_buffer_data[0][15]}}, read_buffer_data[0][15:8]};
+                                            2'b10: regs_next[rd - 1] = {{24{read_buffer_data[0][23]}}, read_buffer_data[0][23:16]};
+                                            2'b11: regs_next[rd - 1] = {{24{read_buffer_data[0][31]}}, read_buffer_data[0][31:24]};
+                                        endcase
+                                    end
+                                    3'b001: begin
+                                        // lh
+                                        case (alu_res[1:0])
+                                            2'b00: regs_next[rd - 1] = {16'b0, read_buffer_data[0][15:0]};
+                                            2'b01: regs_next[rd - 1] = {16'b0, read_buffer_data[0][23:8]};
+                                            2'b10: regs_next[rd - 1] = {16'b0, read_buffer_data[0][31:16]};
+                                            2'b11: regs_next[rd - 1] = {16'b0, read_buffer_data[1][7:0], read_buffer_data[0][31:24]};
+                                        endcase
+                                    end
+                                    3'b101: begin
+                                        // lhu
+                                        case (alu_res[1:0])
+                                            2'b00: regs_next[rd - 1] = {{16{read_buffer_data[0][15]}}, read_buffer_data[0][15:0]};
+                                            2'b01: regs_next[rd - 1] = {{16{read_buffer_data[0][23]}}, read_buffer_data[0][23:8]};
+                                            2'b10: regs_next[rd - 1] = {{16{read_buffer_data[0][31]}}, read_buffer_data[0][31:16]};
+                                            2'b11: regs_next[rd - 1] = {{16{read_buffer_data[1][7]}}, read_buffer_data[1][7:0], read_buffer_data[0][31:24]};
+                                        endcase
+                                    end
+                                    3'b010: begin
+                                        // lw
+                                        case (alu_res[1:0])
+                                            2'b00: regs_next[rd - 1] = read_buffer_data[0];
+                                            2'b01: regs_next[rd - 1] = {read_buffer_data[1][7:0], read_buffer_data[0][31:8]};
+                                            2'b10: regs_next[rd - 1] = {read_buffer_data[1][15:0], read_buffer_data[0][31:16]};
+                                            2'b11: regs_next[rd - 1] = {read_buffer_data[1][23:0], read_buffer_data[0][31:24]};
+                                        endcase
+                                    end
+                                    default: state_next = STATE_ERROR;
+                                endcase
+                            end
+                        end
                         7'b1110011: begin
                             // system instr's
                             case (funct3)
@@ -451,6 +597,8 @@ module cpu(
             alu_lhs <= 32'h0;
             alu_rhs <= 32'h0;
 
+            read_buffer_clear <= 0;
+
             instruction <= 32'h0;
         end
         else begin
@@ -472,6 +620,8 @@ module cpu(
             alu_op <= alu_op_next;
             alu_lhs <= alu_lhs_next;
             alu_rhs <= alu_rhs_next;
+
+            read_buffer_clear <= read_buffer_clear_next;
 
             instruction <= instruction_next;
         end
