@@ -313,7 +313,7 @@ module cpu(
                     case (opcode)
                         // TODO: loads
                         7'b0100011: begin
-                            addr_next = {alu_res[31:2], 2'b0};
+                            addr_next = {alu_res[31:2] + 30'h1, 2'b0};
                             write_req_next = 1;
 
                             case (funct3)
