@@ -33,7 +33,8 @@ module cpu(
     localparam STATE_INSTRUCTION_FETCH = 3'h2;
     localparam STATE_INSTRUCTION_DECODE = 3'h3;
     localparam STATE_MEM_ACCESS = 3'h4;
-    localparam STATE_WRITEBACK = 3'h5;
+    localparam STATE_MEM_ACCESS_2 = 3'h5;
+    localparam STATE_WRITEBACK = 3'h6;
     logic [2:0] state;
     logic [2:0] state_next;
 
@@ -70,7 +71,7 @@ module cpu(
     assign funct3 = instruction[14:12];
     assign store_offset = {{20{instruction[31]}}, {instruction[31:25], instruction[11:7]}};
     assign jump_offset = {{11{instruction[31]}}, {instruction[31], instruction[19:12], instruction[20], instruction[30:21]}, 1'b0};
-    assign branch_offset = {{20{instruction[31]}}, instruction[31], instruction[7], instruction[30:25], instruction[11:8], 1'b0};
+    assign branch_offset = {{19{instruction[31]}}, instruction[31], instruction[7], instruction[30:25], instruction[11:8], 1'b0};
     assign i_immediate = {{20{instruction[31]}}, instruction[31:20]};
     assign u_immediate = {instruction[31:12], 12'h0};
     assign csr = instruction[31:20];
@@ -228,11 +229,12 @@ module cpu(
                 case (opcode)
                     // TODO: loads
                     7'b0100011: begin
+                        addr_next = {alu_res[31:2], 2'b0};
+                        write_req_next = 1;
+
                         case (funct3)
-                            // TODO: other stores
                             3'b000: begin
                                 // sb
-                                addr_next = {alu_res[31:2], 2'b0};
                                 case (alu_res[1:0])
                                     2'b00: begin
                                         write_data_next = rs2_value;
@@ -251,19 +253,104 @@ module cpu(
                                         byte_enable_next = 4'b1000;
                                     end
                                 endcase
-                                write_req_next = 1;
+                            end
+                            3'b001: begin
+                                // sh
+                                case (alu_res[1:0])
+                                    2'b00: begin
+                                        write_data_next = rs2_value;
+                                        byte_enable_next = 4'b0011;
+                                    end
+                                    2'b01: begin
+                                        write_data_next = {8'b0, rs2_value[15:0], 8'b0};
+                                        byte_enable_next = 4'b0110;
+                                    end
+                                    2'b10: begin
+                                        write_data_next = {rs2_value[15:0], 16'b0};
+                                        byte_enable_next = 4'b1100;
+                                    end
+                                    2'b11: begin
+                                        write_data_next = {rs2_value[7:0], 24'b0};
+                                        byte_enable_next = 4'b1000;
+                                        state_next = STATE_MEM_ACCESS_2;
+                                    end
+                                endcase
                             end
                             3'b010: begin
                                 // sw
-                                addr_next = alu_res;
-                                write_data_next = rs2_value;
-                                byte_enable_next = 4'hf;
-                                write_req_next = 1;
+                                case (alu_res[1:0])
+                                    2'b00: begin
+                                        write_data_next = rs2_value;
+                                        byte_enable_next = 4'b1111;
+                                    end
+                                    2'b01: begin
+                                        write_data_next = {rs2_value[23:0], 8'b0};
+                                        byte_enable_next = 4'b1110;
+                                        state_next = STATE_MEM_ACCESS_2;
+                                    end
+                                    2'b10: begin
+                                        write_data_next = {rs2_value[15:0], 16'b0};
+                                        byte_enable_next = 4'b1100;
+                                        state_next = STATE_MEM_ACCESS_2;
+                                    end
+                                    2'b11: begin
+                                        write_data_next = {rs2_value[7:0], 24'b0};
+                                        byte_enable_next = 4'b1000;
+                                        state_next = STATE_MEM_ACCESS_2;
+                                    end
+                                endcase
                             end
                             default: state_next = STATE_ERROR;
                         endcase
                     end
                 endcase
+            end
+
+            STATE_MEM_ACCESS_2: begin
+                if (ready) begin
+                    state_next = STATE_WRITEBACK;
+
+                    case (opcode)
+                        // TODO: loads
+                        7'b0100011: begin
+                            addr_next = {alu_res[31:2], 2'b0};
+                            write_req_next = 1;
+
+                            case (funct3)
+                                3'b001: begin
+                                    // sh
+                                    case (alu_res[1:0])
+                                        2'b11: begin
+                                            write_data_next = {24'b0, rs2_value[15:8]};
+                                            byte_enable_next = 4'b0001;
+                                        end
+                                        default: state_next = STATE_ERROR;
+                                    endcase
+                                end
+                                3'b010: begin
+                                    // sw
+                                    case (alu_res[1:0])
+                                        2'b01: begin
+                                            write_data_next = {24'b0, rs2_value[31:24]};
+                                            byte_enable_next = 4'b0001;
+                                        end
+                                        2'b10: begin
+                                            write_data_next = {16'b0, rs2_value[31:16]};
+                                            byte_enable_next = 4'b0011;
+                                        end
+                                        2'b11: begin
+                                            write_data_next = {8'b0, rs2_value[23:0]};
+                                            byte_enable_next = 4'b0111;
+                                        end
+                                        default: state_next = STATE_ERROR;
+                                    endcase
+                                end
+                                default: state_next = STATE_ERROR;
+                            endcase
+                        end
+                        default: state_next = STATE_ERROR;
+                    endcase
+                end
             end
 
             STATE_WRITEBACK: begin
