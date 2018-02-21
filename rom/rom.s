@@ -8,8 +8,8 @@ _start:
     sb x2, 0(x1)
 
 loop:
-        lh x3, 2(x1)
-        li x4, 0x1
+        lw x3, 2(x1)
+        li x4, 0x10000
         sub x3, x3, x4
-        sh x3, 2(x1)
+        sw x3, 2(x1)
     j loop
