@@ -491,37 +491,37 @@ module cpu(
                                     3'b000: begin
                                         // lb
                                         case (alu_res[1:0])
-                                            2'b00: regs_next[rd - 1] = {24'b0, read_buffer_data[0][7:0]};
-                                            2'b01: regs_next[rd - 1] = {24'b0, read_buffer_data[0][15:8]};
-                                            2'b10: regs_next[rd - 1] = {24'b0, read_buffer_data[0][23:16]};
-                                            2'b11: regs_next[rd - 1] = {24'b0, read_buffer_data[0][31:24]};
-                                        endcase
-                                    end
-                                    3'b100: begin
-                                        // lbu
-                                        case (alu_res[1:0])
                                             2'b00: regs_next[rd - 1] = {{24{read_buffer_data[0][7]}}, read_buffer_data[0][7:0]};
                                             2'b01: regs_next[rd - 1] = {{24{read_buffer_data[0][15]}}, read_buffer_data[0][15:8]};
                                             2'b10: regs_next[rd - 1] = {{24{read_buffer_data[0][23]}}, read_buffer_data[0][23:16]};
                                             2'b11: regs_next[rd - 1] = {{24{read_buffer_data[0][31]}}, read_buffer_data[0][31:24]};
                                         endcase
                                     end
-                                    3'b001: begin
-                                        // lh
+                                    3'b100: begin
+                                        // lbu
                                         case (alu_res[1:0])
-                                            2'b00: regs_next[rd - 1] = {16'b0, read_buffer_data[0][15:0]};
-                                            2'b01: regs_next[rd - 1] = {16'b0, read_buffer_data[0][23:8]};
-                                            2'b10: regs_next[rd - 1] = {16'b0, read_buffer_data[0][31:16]};
-                                            2'b11: regs_next[rd - 1] = {16'b0, read_buffer_data[1][7:0], read_buffer_data[0][31:24]};
+                                            2'b00: regs_next[rd - 1] = {24'b0, read_buffer_data[0][7:0]};
+                                            2'b01: regs_next[rd - 1] = {24'b0, read_buffer_data[0][15:8]};
+                                            2'b10: regs_next[rd - 1] = {24'b0, read_buffer_data[0][23:16]};
+                                            2'b11: regs_next[rd - 1] = {24'b0, read_buffer_data[0][31:24]};
                                         endcase
                                     end
-                                    3'b101: begin
-                                        // lhu
+                                    3'b001: begin
+                                        // lh
                                         case (alu_res[1:0])
                                             2'b00: regs_next[rd - 1] = {{16{read_buffer_data[0][15]}}, read_buffer_data[0][15:0]};
                                             2'b01: regs_next[rd - 1] = {{16{read_buffer_data[0][23]}}, read_buffer_data[0][23:8]};
                                             2'b10: regs_next[rd - 1] = {{16{read_buffer_data[0][31]}}, read_buffer_data[0][31:16]};
                                             2'b11: regs_next[rd - 1] = {{16{read_buffer_data[1][7]}}, read_buffer_data[1][7:0], read_buffer_data[0][31:24]};
+                                        endcase
+                                    end
+                                    3'b101: begin
+                                        // lhu
+                                        case (alu_res[1:0])
+                                            2'b00: regs_next[rd - 1] = {16'b0, read_buffer_data[0][15:0]};
+                                            2'b01: regs_next[rd - 1] = {16'b0, read_buffer_data[0][23:8]};
+                                            2'b10: regs_next[rd - 1] = {16'b0, read_buffer_data[0][31:16]};
+                                            2'b11: regs_next[rd - 1] = {16'b0, read_buffer_data[1][7:0], read_buffer_data[0][31:24]};
                                         endcase
                                     end
                                     3'b010: begin
