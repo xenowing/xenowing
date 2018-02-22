@@ -281,7 +281,6 @@ module cpu(
                             state_next = STATE_MEM_LOAD_2;
                         end
                     end
-                    default: state_next = STATE_ERROR;
                 endcase
             end
 
@@ -296,7 +295,6 @@ module cpu(
                             // lh, lhu
                             case (alu_res[1:0])
                                 2'b11: byte_enable_next = 4'b0001;
-                                default: state_next = STATE_ERROR;
                             endcase
                         end
                         3'b010: begin
@@ -305,10 +303,8 @@ module cpu(
                                 2'b01: byte_enable_next = 4'b0001;
                                 2'b10: byte_enable_next = 4'b0011;
                                 2'b11: byte_enable_next = 4'b0111;
-                                default: state_next = STATE_ERROR;
                             endcase
                         end
-                        default: state_next = STATE_ERROR;
                     endcase
                 end
             end
@@ -351,7 +347,6 @@ module cpu(
                                 end
                             end
                         end
-                        default: state_next = STATE_ERROR;
                     endcase
                 end
             end
@@ -405,7 +400,6 @@ module cpu(
                             end
                         endcase
                     end
-                    default: state_next = STATE_ERROR;
                 endcase
             end
 
@@ -423,7 +417,6 @@ module cpu(
                                     write_data_next = {24'b0, rs2_value[15:8]};
                                     byte_enable_next = 4'b0001;
                                 end
-                                default: state_next = STATE_ERROR;
                             endcase
                         end
                         3'b010: begin
@@ -441,10 +434,8 @@ module cpu(
                                     write_data_next = {8'b0, rs2_value[31:8]};
                                     byte_enable_next = 4'b0111;
                                 end
-                                default: state_next = STATE_ERROR;
                             endcase
                         end
-                        default: state_next = STATE_ERROR;
                     endcase
                 end
             end
@@ -532,7 +523,6 @@ module cpu(
                                         2'b11: rd_write_value = {read_buffer_data[1][23:0], read_buffer_data[0][31:24]};
                                     endcase
                                 end
-                                default: state_next = STATE_ERROR;
                             endcase
                         end
                         7'b1110011: begin
@@ -549,7 +539,6 @@ module cpu(
                                         default: state_next = STATE_ERROR;
                                     endcase
                                 end
-                                default: state_next = STATE_ERROR;
                             endcase
                         end
                     endcase
