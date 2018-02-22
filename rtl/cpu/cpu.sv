@@ -21,7 +21,8 @@ module cpu(
     logic [31:0] pc_next;
 
     logic [31:0] regs[0:31];
-    logic [31:0] regs_next[0:31];
+    logic rd_write_enable;
+    logic [31:0] rd_write_value;
 
     logic [63:0] cycle;
     logic [63:0] cycle_next;
@@ -110,7 +111,8 @@ module cpu(
 
         pc_next = pc;
 
-        regs_next = regs;
+        rd_write_enable = 0;
+        rd_write_value = 32'h0;
 
         cycle_next = cycle;
         instret_next = instret;
@@ -458,23 +460,20 @@ module cpu(
                     case (opcode)
                         7'b0110111, 7'b0010111, 7'b0010011, 7'b0110011: begin
                             // lui, auipc, immediate computation, register computation
-                            if (rd != 0) begin
-                                regs_next[rd] = alu_res;
-                            end
+                            rd_write_enable = 1;
+                            rd_write_value = alu_res;
                         end
                         7'b1101111: begin
                             // jal
-                            if (rd != 0) begin
-                                regs_next[rd] = pc + 32'h4;
-                            end
+                            rd_write_enable = 1;
+                            rd_write_value = pc + 32'h4;
 
                             pc_next = alu_res;
                         end
                         7'b1100111: begin
                             // jalr
-                            if (rd != 0) begin
-                                regs_next[rd] = pc + 32'h4;
-                            end
+                            rd_write_enable = 1;
+                            rd_write_value = pc + 32'h4;
 
                             pc_next = {alu_res[31:1], 1'b0};
                         end
@@ -486,71 +485,69 @@ module cpu(
                         end
                         7'b0000011: begin
                             // loads
-                            if (rd != 0) begin
-                                case (funct3)
-                                    3'b000: begin
-                                        // lb
-                                        case (alu_res[1:0])
-                                            2'b00: regs_next[rd] = {{24{read_buffer_data[0][7]}}, read_buffer_data[0][7:0]};
-                                            2'b01: regs_next[rd] = {{24{read_buffer_data[0][15]}}, read_buffer_data[0][15:8]};
-                                            2'b10: regs_next[rd] = {{24{read_buffer_data[0][23]}}, read_buffer_data[0][23:16]};
-                                            2'b11: regs_next[rd] = {{24{read_buffer_data[0][31]}}, read_buffer_data[0][31:24]};
-                                        endcase
-                                    end
-                                    3'b100: begin
-                                        // lbu
-                                        case (alu_res[1:0])
-                                            2'b00: regs_next[rd] = {24'b0, read_buffer_data[0][7:0]};
-                                            2'b01: regs_next[rd] = {24'b0, read_buffer_data[0][15:8]};
-                                            2'b10: regs_next[rd] = {24'b0, read_buffer_data[0][23:16]};
-                                            2'b11: regs_next[rd] = {24'b0, read_buffer_data[0][31:24]};
-                                        endcase
-                                    end
-                                    3'b001: begin
-                                        // lh
-                                        case (alu_res[1:0])
-                                            2'b00: regs_next[rd] = {{16{read_buffer_data[0][15]}}, read_buffer_data[0][15:0]};
-                                            2'b01: regs_next[rd] = {{16{read_buffer_data[0][23]}}, read_buffer_data[0][23:8]};
-                                            2'b10: regs_next[rd] = {{16{read_buffer_data[0][31]}}, read_buffer_data[0][31:16]};
-                                            2'b11: regs_next[rd] = {{16{read_buffer_data[1][7]}}, read_buffer_data[1][7:0], read_buffer_data[0][31:24]};
-                                        endcase
-                                    end
-                                    3'b101: begin
-                                        // lhu
-                                        case (alu_res[1:0])
-                                            2'b00: regs_next[rd] = {16'b0, read_buffer_data[0][15:0]};
-                                            2'b01: regs_next[rd] = {16'b0, read_buffer_data[0][23:8]};
-                                            2'b10: regs_next[rd] = {16'b0, read_buffer_data[0][31:16]};
-                                            2'b11: regs_next[rd] = {16'b0, read_buffer_data[1][7:0], read_buffer_data[0][31:24]};
-                                        endcase
-                                    end
-                                    3'b010: begin
-                                        // lw
-                                        case (alu_res[1:0])
-                                            2'b00: regs_next[rd] = read_buffer_data[0];
-                                            2'b01: regs_next[rd] = {read_buffer_data[1][7:0], read_buffer_data[0][31:8]};
-                                            2'b10: regs_next[rd] = {read_buffer_data[1][15:0], read_buffer_data[0][31:16]};
-                                            2'b11: regs_next[rd] = {read_buffer_data[1][23:0], read_buffer_data[0][31:24]};
-                                        endcase
-                                    end
-                                    default: state_next = STATE_ERROR;
-                                endcase
-                            end
+                            rd_write_enable = 1;
+                            case (funct3)
+                                3'b000: begin
+                                    // lb
+                                    case (alu_res[1:0])
+                                        2'b00: rd_write_value = {{24{read_buffer_data[0][7]}}, read_buffer_data[0][7:0]};
+                                        2'b01: rd_write_value = {{24{read_buffer_data[0][15]}}, read_buffer_data[0][15:8]};
+                                        2'b10: rd_write_value = {{24{read_buffer_data[0][23]}}, read_buffer_data[0][23:16]};
+                                        2'b11: rd_write_value = {{24{read_buffer_data[0][31]}}, read_buffer_data[0][31:24]};
+                                    endcase
+                                end
+                                3'b100: begin
+                                    // lbu
+                                    case (alu_res[1:0])
+                                        2'b00: rd_write_value = {24'b0, read_buffer_data[0][7:0]};
+                                        2'b01: rd_write_value = {24'b0, read_buffer_data[0][15:8]};
+                                        2'b10: rd_write_value = {24'b0, read_buffer_data[0][23:16]};
+                                        2'b11: rd_write_value = {24'b0, read_buffer_data[0][31:24]};
+                                    endcase
+                                end
+                                3'b001: begin
+                                    // lh
+                                    case (alu_res[1:0])
+                                        2'b00: rd_write_value = {{16{read_buffer_data[0][15]}}, read_buffer_data[0][15:0]};
+                                        2'b01: rd_write_value = {{16{read_buffer_data[0][23]}}, read_buffer_data[0][23:8]};
+                                        2'b10: rd_write_value = {{16{read_buffer_data[0][31]}}, read_buffer_data[0][31:16]};
+                                        2'b11: rd_write_value = {{16{read_buffer_data[1][7]}}, read_buffer_data[1][7:0], read_buffer_data[0][31:24]};
+                                    endcase
+                                end
+                                3'b101: begin
+                                    // lhu
+                                    case (alu_res[1:0])
+                                        2'b00: rd_write_value = {16'b0, read_buffer_data[0][15:0]};
+                                        2'b01: rd_write_value = {16'b0, read_buffer_data[0][23:8]};
+                                        2'b10: rd_write_value = {16'b0, read_buffer_data[0][31:16]};
+                                        2'b11: rd_write_value = {16'b0, read_buffer_data[1][7:0], read_buffer_data[0][31:24]};
+                                    endcase
+                                end
+                                3'b010: begin
+                                    // lw
+                                    case (alu_res[1:0])
+                                        2'b00: rd_write_value = read_buffer_data[0];
+                                        2'b01: rd_write_value = {read_buffer_data[1][7:0], read_buffer_data[0][31:8]};
+                                        2'b10: rd_write_value = {read_buffer_data[1][15:0], read_buffer_data[0][31:16]};
+                                        2'b11: rd_write_value = {read_buffer_data[1][23:0], read_buffer_data[0][31:24]};
+                                    endcase
+                                end
+                                default: state_next = STATE_ERROR;
+                            endcase
                         end
                         7'b1110011: begin
                             // system instr's
                             case (funct3)
                                 3'b001, 3'b010, 3'b011, 3'b101, 3'b110, 3'b111: begin
                                     // csrrw, csrrs, csrrc, csrrwi, csrrsi, csrrci
-                                    if (rd != 0) begin
-                                        case (csr)
-                                            12'hc00, 12'hc01: regs_next[rd] = cycle[31:0]; // cycle, time
-                                            12'hc02: regs_next[rd] = instret[31:0]; // instret
-                                            12'hc80, 12'hc81: regs_next[rd] = cycle[63:32]; // cycleh, timeh
-                                            12'hc82: regs_next[rd] = instret[63:32]; // instreth
-                                            default: state_next = STATE_ERROR;
-                                        endcase
-                                    end
+                                    rd_write_enable = 1;
+                                    case (csr)
+                                        12'hc00, 12'hc01: rd_write_value = cycle[31:0]; // cycle, time
+                                        12'hc02: rd_write_value = instret[31:0]; // instret
+                                        12'hc80, 12'hc81: rd_write_value = cycle[63:32]; // cycleh, timeh
+                                        12'hc82: rd_write_value = instret[63:32]; // instreth
+                                        default: state_next = STATE_ERROR;
+                                    endcase
                                 end
                                 default: state_next = STATE_ERROR;
                             endcase
@@ -610,7 +607,9 @@ module cpu(
 
             pc <= pc_next;
 
-            regs <= regs_next;
+            if (rd_write_enable && rd != 0) begin
+                regs[rd] <= rd_write_value;
+            end
 
             cycle <= cycle_next;
             instret <= instret_next;

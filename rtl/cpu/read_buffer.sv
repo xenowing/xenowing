@@ -10,11 +10,9 @@ module read_buffer(
     output logic [31:0] data[0:1],
     output logic [1:0] count);
 
-    logic [31:0] data_next[0:1];
     logic [1:0] count_next;
 
     always_comb begin
-        data_next = data;
         count_next = count;
 
         if (clear) begin
@@ -22,7 +20,6 @@ module read_buffer(
         end
 
         if (read_data_valid) begin
-            data_next[count[0]] = read_data;
             count_next = count + 2'h1;
         end
     end
@@ -33,7 +30,10 @@ module read_buffer(
             count <= 2'h0;
         end
         else begin
-            data <= data_next;
+            if (read_data_valid) begin
+                data[count[0]] <= read_data;
+            end
+
             count <= count_next;
         end
     end
