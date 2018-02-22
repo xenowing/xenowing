@@ -90,7 +90,7 @@ module cpu(
         .rhs(alu_rhs),
         .res(alu_res));
 
-    logic [31:0] read_buffer_data[0:3];
+    logic [31:0] read_buffer_data[0:1];
     logic [1:0] read_buffer_count;
     read_buffer read_buffer0(
         .clk(clk),
