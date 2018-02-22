@@ -74,8 +74,8 @@ module cpu(
     assign rd = instruction[11:7];
     assign rs1 = instruction[19:15];
     assign rs2 = instruction[24:20];
-    assign rs1_value = rs1 > 0 ? regs[rs1] : 32'h0;
-    assign rs2_value = rs2 > 0 ? regs[rs2] : 32'h0;
+    assign rs1_value = regs[rs1];
+    assign rs2_value = regs[rs2];
     assign funct3 = instruction[14:12];
     assign load_offset = {{20{instruction[31]}}, instruction[31:20]};
     assign store_offset = {{20{instruction[31]}}, {instruction[31:25], instruction[11:7]}};
