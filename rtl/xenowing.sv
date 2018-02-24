@@ -1,3 +1,5 @@
+`default_nettype none
+
 module xenowing(
     input reset_n,
     input clk,

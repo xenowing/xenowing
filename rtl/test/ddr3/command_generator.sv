@@ -1,3 +1,5 @@
+`default_nettype none
+
 module command_generator(
     input reset_n,
     input clk,

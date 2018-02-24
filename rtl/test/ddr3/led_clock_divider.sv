@@ -1,3 +1,5 @@
+`default_nettype none
+
 module led_clock_divider(
     input reset_n,
     input clk,

@@ -1,3 +1,5 @@
+`default_nettype none
+
 module cpu(
     input reset_n,
     input clk,
@@ -20,9 +22,25 @@ module cpu(
     logic [31:0] pc;
     logic [31:0] pc_next;
 
-    logic [31:0] regs[0:31];
+    logic [31:0] rs1_value;
+    logic [31:0] rs2_value;
+
     logic rd_write_enable;
     logic [31:0] rd_write_value;
+
+    register_file register_file0(
+        .clk(clk),
+        .reset_n(reset_n),
+
+        .read_addr1(rs1),
+        .read_data1(rs1_value),
+
+        .read_addr2(rs2),
+        .read_data2(rs2_value),
+
+        .write_enable(rd_write_enable),
+        .write_addr(rd),
+        .write_data(rd_write_value));
 
     logic [63:0] cycle;
     logic [63:0] cycle_next;
@@ -60,8 +78,6 @@ module cpu(
     logic [4:0] rd;
     logic [4:0] rs1;
     logic [4:0] rs2;
-    logic [31:0] rs1_value;
-    logic [31:0] rs2_value;
     logic [2:0] funct3;
     logic [31:0] load_offset;
     logic [31:0] store_offset;
@@ -74,8 +90,6 @@ module cpu(
     assign rd = instruction[11:7];
     assign rs1 = instruction[19:15];
     assign rs2 = instruction[24:20];
-    assign rs1_value = regs[rs1];
-    assign rs2_value = regs[rs2];
     assign funct3 = instruction[14:12];
     assign load_offset = {{20{instruction[31]}}, instruction[31:20]};
     assign store_offset = {{20{instruction[31]}}, {instruction[31:25], instruction[11:7]}};
@@ -572,8 +586,6 @@ module cpu(
 
             pc <= 32'h10000000;
 
-            regs <= '{default:0};
-
             cycle <= 64'h0;
             instret <= 64'h0;
 
@@ -595,10 +607,6 @@ module cpu(
             read_req <= read_req_next;
 
             pc <= pc_next;
-
-            if (rd_write_enable && rd != 0) begin
-                regs[rd] <= rd_write_value;
-            end
 
             cycle <= cycle_next;
             instret <= instret_next;

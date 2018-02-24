@@ -1,3 +1,5 @@
+`default_nettype none
+
 module mem_mapper(
     input reset_n,
     input clk,

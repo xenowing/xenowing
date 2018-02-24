@@ -1,3 +1,5 @@
+`default_nettype none
+
 module program_rom_interface(
     input reset_n,
     input clk,

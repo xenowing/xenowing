@@ -1,3 +1,5 @@
+`default_nettype none
+
 module test(
     input reset_n,
     input clk,

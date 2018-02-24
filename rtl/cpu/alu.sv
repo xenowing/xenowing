@@ -1,3 +1,5 @@
+`default_nettype none
+
 typedef enum {
     ADD,
     SUB,

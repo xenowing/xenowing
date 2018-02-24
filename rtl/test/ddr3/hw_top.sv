@@ -1,3 +1,5 @@
+`default_nettype none
+
 module hw_top(
     input pll_ref_clk,
     input global_reset_n,

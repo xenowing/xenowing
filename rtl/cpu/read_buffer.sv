@@ -1,3 +1,5 @@
+`default_nettype none
+
 module read_buffer(
     input reset_n,
     input clk,
