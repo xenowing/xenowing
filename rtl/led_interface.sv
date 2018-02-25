@@ -30,7 +30,7 @@ module led_interface(
         end
     end
 
-    always_ff @(posedge clk or negedge reset_n) begin
+    always_ff @(posedge clk) begin
         if (!reset_n) begin
             read_data_valid <= 0;
 

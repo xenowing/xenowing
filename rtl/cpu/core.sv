@@ -416,7 +416,7 @@ module core(
         endcase
     end
 
-    always_ff @(posedge clk or negedge reset_n) begin
+    always_ff @(posedge clk) begin
         if (!reset_n) begin
             mem_addr <= 32'h0;
             mem_byte_enable <= 4'h0;

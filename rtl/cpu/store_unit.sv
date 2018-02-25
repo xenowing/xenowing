@@ -87,7 +87,7 @@ module store_unit(
         endcase
     end
 
-    always @(posedge clk or negedge reset_n) begin
+    always @(posedge clk) begin
         if (!reset_n) begin
             mem_addr <= 32'h0;
             mem_write_data <= 32'h0;

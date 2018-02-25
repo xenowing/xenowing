@@ -23,7 +23,7 @@ module program_rom_interface(
         read_data_valid_next = read_req;
     end
 
-    always_ff @(posedge clk or negedge reset_n) begin
+    always_ff @(posedge clk) begin
         if (!reset_n) begin
             read_data_valid <= 0;
         end

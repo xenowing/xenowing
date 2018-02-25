@@ -55,11 +55,14 @@ pub extern "C" fn run(env: *const Env) -> i32 {
     let mut time = 0;
 
     // Reset
-    test.set_reset_n(true);
-    test.eval();
     test.set_reset_n(false);
     test.set_clk(false);
     test.eval();
+
+    test.trace_dump(time);
+    time += 1;
+
+    test.set_clk(true);
 
     test.set_avl_ready(false);
     test.set_avl_rdata_valid(false);
@@ -69,10 +72,17 @@ pub extern "C" fn run(env: *const Env) -> i32 {
     test.set_ddr3_cal_success(false);
     test.set_ddr3_cal_fail(false);
 
+    test.eval();
+
     test.trace_dump(time);
     time += 1;
 
     test.set_reset_n(true);
+    test.set_clk(false);
+    test.eval();
+
+    test.trace_dump(time);
+    time += 1;
 
     // Simulate init/cal
     for _ in 0..100 {

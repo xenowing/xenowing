@@ -19,7 +19,7 @@ module led_clock_divider(
         end
     end
 
-    always_ff @(posedge clk or negedge reset_n) begin
+    always_ff @(posedge clk) begin
         if (!reset_n) begin
             clock_divide_counter <= 0;
         end

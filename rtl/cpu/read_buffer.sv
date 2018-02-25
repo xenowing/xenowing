@@ -26,7 +26,7 @@ module read_buffer(
         end
     end
 
-    always_ff @(posedge clk or negedge reset_n) begin
+    always_ff @(posedge clk) begin
         if (!reset_n) begin
             data <= '{default:0};
             count <= 2'h0;

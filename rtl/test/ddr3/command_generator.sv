@@ -131,7 +131,7 @@ module command_generator(
         endcase
     end
 
-    always_ff @(posedge clk or negedge reset_n) begin
+    always_ff @(posedge clk) begin
         if (!reset_n) begin
             avl_burstbegin <= 0;
             avl_addr <= 24'h0;

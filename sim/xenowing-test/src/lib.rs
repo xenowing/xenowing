@@ -15,8 +15,6 @@ pub extern "C" fn run(env: *const Env) -> i32 {
     let mut time = 0;
 
     // Reset
-    xenowing.set_reset_n(true);
-    xenowing.eval();
     xenowing.set_reset_n(false);
     xenowing.set_clk(false);
     xenowing.eval();
@@ -24,7 +22,18 @@ pub extern "C" fn run(env: *const Env) -> i32 {
     xenowing.trace_dump(time);
     time += 1;
 
+    xenowing.set_clk(true);
+    xenowing.eval();
+
+    xenowing.trace_dump(time);
+    time += 1;
+
     xenowing.set_reset_n(true);
+    xenowing.set_clk(false);
+    xenowing.eval();
+
+    xenowing.trace_dump(time);
+    time += 1;
 
     for _ in 0..100 {
         // Rising edge

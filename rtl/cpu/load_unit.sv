@@ -132,7 +132,7 @@ module load_unit(
         endcase
     end
 
-    always @(posedge clk or negedge reset_n) begin
+    always @(posedge clk) begin
         if (!reset_n) begin
             read_data <= 32'h0;
             read_data_valid <= 0;

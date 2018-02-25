@@ -125,7 +125,7 @@ module hw_top(
         end
     end
 
-    always_ff @(posedge clk or negedge global_reset_n) begin
+    always_ff @(posedge clk) begin
         if (!global_reset_n) begin
             leds <= 3'h0;
         end
