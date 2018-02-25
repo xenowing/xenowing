@@ -4,7 +4,7 @@ module mem_mapper(
     input reset_n,
     input clk,
 
-    output logic ready,
+    output ready,
     input [31:0] addr,
     input [31:0] write_data,
     input [3:0] byte_enable,
@@ -25,17 +25,25 @@ module mem_mapper(
     input [31:0] led_interface_read_data,
     input led_interface_read_data_valid);
 
-    logic ready_next;
+    logic dummy_read_data_valid;
+    logic dummy_read_data_valid_next;
 
     assign program_rom_interface_addr = addr[13:0];
 
     assign led_interface_byte_enable = byte_enable;
 
     always_comb begin
-        ready_next = ready;
+        dummy_read_data_valid_next = dummy_read_data_valid;
 
+        dummy_read_data_valid_next = 0;
+
+        ready = 1;
         read_data = 32'h0;
         read_data_valid = 0;
+
+        if (dummy_read_data_valid) begin
+            read_data_valid = 1;
+        end
 
         if (program_rom_interface_read_data_valid) begin
             read_data = program_rom_interface_read_data;
@@ -61,15 +69,21 @@ module mem_mapper(
                 led_interface_write_req = write_req;
                 led_interface_read_req = read_req;
             end
+
+            default: begin
+                if (read_req) begin
+                    dummy_read_data_valid_next = 1;
+                end
+            end
         endcase
     end
 
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
-            ready <= 1;
+            dummy_read_data_valid <= 0;
         end
         else begin
-            ready <= ready_next;
+            dummy_read_data_valid <= dummy_read_data_valid_next;
         end
     end
 
