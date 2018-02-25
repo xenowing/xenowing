@@ -1,52 +1,10 @@
+extern crate ddr3_simulator;
+
 mod test;
 
+use ddr3_simulator::*;
+
 use test::*;
-
-use std::collections::VecDeque;
-
-struct Fifo<T> {
-    inner: VecDeque<T>,
-    depth: usize,
-}
-
-impl<T> Fifo<T> {
-    fn new(depth: usize) -> Fifo<T> {
-        Fifo {
-            inner: VecDeque::new(),
-            depth: depth,
-        }
-    }
-
-    fn is_empty(&self) -> bool {
-        self.inner.len() == 0
-    }
-
-    fn is_full(&self) -> bool {
-        self.inner.len() == self.depth
-    }
-
-    fn push_front(&mut self, value: T) {
-        if self.is_full() {
-            panic!("Attempted to push_front, but the FIFO was full");
-        }
-
-        self.inner.push_front(value);
-    }
-
-    fn pop_back(&mut self) -> T {
-        self.inner.pop_back().expect("Attempted to pop_back, but the FIFO was empty")
-    }
-}
-
-enum Command {
-    Read { addr: u32, byte_enable: u32 },
-    Write { addr: u32, byte_enable: u32, data: u64 },
-}
-
-enum ActiveCommand {
-    Command(Command),
-    Refresh,
-}
 
 #[no_mangle]
 pub extern "C" fn run(env: *const Env) -> i32 {
@@ -64,13 +22,15 @@ pub extern "C" fn run(env: *const Env) -> i32 {
 
     test.set_clk(true);
 
-    test.set_avl_ready(false);
-    test.set_avl_rdata_valid(false);
-    test.set_avl_rdata(0);
+    let mut ddr3_simulator = Ddr3Simulator::new();
 
-    test.set_ddr3_init_done(false);
-    test.set_ddr3_cal_success(false);
-    test.set_ddr3_cal_fail(false);
+    test.set_avl_ready(ddr3_simulator.avl_ready());
+    test.set_avl_rdata_valid(ddr3_simulator.avl_rdata_valid());
+    test.set_avl_rdata(ddr3_simulator.avl_rdata());
+
+    test.set_ddr3_init_done(ddr3_simulator.init_done());
+    test.set_ddr3_cal_success(ddr3_simulator.cal_success());
+    test.set_ddr3_cal_fail(ddr3_simulator.cal_fail());
 
     test.eval();
 
@@ -83,32 +43,6 @@ pub extern "C" fn run(env: *const Env) -> i32 {
 
     test.trace_dump(time);
     time += 1;
-
-    // Simulate init/cal
-    for _ in 0..100 {
-        // Rising edge
-        test.set_clk(true);
-        test.eval();
-
-        test.trace_dump(time);
-        time += 1;
-
-        // Falling edge
-        test.set_clk(false);
-        test.eval();
-
-        test.trace_dump(time);
-        time += 1;
-    }
-
-    // Init/cal successful
-    test.set_ddr3_init_done(true);
-    test.set_ddr3_cal_success(true);
-
-    let mut memory = vec![0; 0x1000000];
-    let mut command_fifo = Fifo::new(10);
-    let mut current_command: Option<(ActiveCommand, u32)> = None;
-    let mut cycles_since_last_refresh = 0;
 
     let mut test_passed = false;
 
@@ -133,98 +67,23 @@ pub extern "C" fn run(env: *const Env) -> i32 {
         test.set_clk(true);
         test.eval();
 
-        test.set_avl_rdata_valid(false);
+        ddr3_simulator.set_avl_burstbegin(test.avl_burstbegin());
+        ddr3_simulator.set_avl_addr(test.avl_addr());
+        ddr3_simulator.set_avl_wdata(test.avl_wdata());
+        ddr3_simulator.set_avl_be(test.avl_be());
+        ddr3_simulator.set_avl_read_req(test.avl_read_req());
+        ddr3_simulator.set_avl_write_req(test.avl_write_req());
+        ddr3_simulator.set_avl_size(test.avl_size());
 
-        cycles_since_last_refresh += 1;
+        ddr3_simulator.eval();
 
-        let mut is_current_command_finished = false;
+        test.set_avl_ready(ddr3_simulator.avl_ready());
+        test.set_avl_rdata_valid(ddr3_simulator.avl_rdata_valid());
+        test.set_avl_rdata(ddr3_simulator.avl_rdata());
 
-        if let Some(ref mut command) = current_command {
-            // Process current command, if any
-            //  Arbitrary 2-cycle latency for each command, implemented here as dummy waits
-            command.1 += 1;
-            if command.1 >= 2 {
-                // Command finished timing-wise; actually perform command here
-                if let ActiveCommand::Command(ref command) = command.0 {
-                    match command {
-                        &Command::Read { addr, byte_enable } => {
-                            let mut rdata = test.avl_rdata();
-                            let mem_word = memory[addr as usize];
-
-                            for i in 0..8 {
-                                if (byte_enable & (1 << i)) != 0 {
-                                    rdata &= !(0xff << (i * 8));
-                                    rdata |= mem_word & (0xff << i * 8);
-                                }
-                            }
-
-                            test.set_avl_rdata(rdata);
-                            test.set_avl_rdata_valid(true);
-                        }
-                        &Command::Write { addr, byte_enable, data } => {
-                            let mut mem_word = memory[addr as usize];
-
-                            for i in 0..8 {
-                                if (byte_enable & (1 << i)) != 0 {
-                                    mem_word &= !(0xff << (i * 8));
-                                    mem_word |= data & (0xff << i * 8);
-                                }
-                            }
-
-                            memory[addr as usize] = mem_word;
-                        }
-                    }
-                }
-
-                is_current_command_finished = true;
-            }
-        } else {
-            // If there's no current command, attempt to read one from the command FIFO,
-            //  unless it's been a sufficient amount of time between refreshes to do that instead
-            //  200 cycles between refreshes here is totally arbitrary
-            if cycles_since_last_refresh >= 200 {
-                current_command = Some((ActiveCommand::Refresh, 0));
-
-                cycles_since_last_refresh = 0;
-            } else if !command_fifo.is_empty() {
-                current_command = Some((ActiveCommand::Command(command_fifo.pop_back()), 0));
-            }
-        }
-
-        if is_current_command_finished {
-            current_command = None;
-        }
-
-        // Check for read/write requests and place them in the FIFO if possible, otherwise assert not ready signal
-        test.set_avl_ready(true);
-
-        let read_req = if test.avl_read_req() { Some(Command::Read { addr: test.avl_addr(), byte_enable: test.avl_be() }) } else { None };
-        let write_req = if test.avl_write_req() { Some(Command::Write { addr: test.avl_addr(), byte_enable: test.avl_be(), data: test.avl_wdata() }) } else { None };
-
-        if read_req.is_some() && write_req.is_some() {
-            panic!("Avalon master tried to assert read and write in the same cycle");
-        }
-
-        if test.avl_burstbegin() {
-            if read_req.is_none() && write_req.is_none() {
-                panic!("Avalon master tried to assert burstbegin without also asserting read or write");
-            }
-
-            if test.avl_size() != 1 {
-                panic!("Avalon master tried to assert a burst read or write with a size other than 1");
-            }
-        }
-
-        if command_fifo.is_full() {
-            test.set_avl_ready(false);
-        } else {
-            if let Some(command) = read_req {
-                command_fifo.push_front(command);
-            }
-            if let Some(command) = write_req {
-                command_fifo.push_front(command);
-            }
-        }
+        test.set_ddr3_init_done(ddr3_simulator.init_done());
+        test.set_ddr3_cal_success(ddr3_simulator.cal_success());
+        test.set_ddr3_cal_fail(ddr3_simulator.cal_fail());
 
         test.eval();
 
