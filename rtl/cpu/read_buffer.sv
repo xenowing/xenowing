@@ -6,8 +6,8 @@ module read_buffer(
 
     input clear,
 
-    input [31:0] read_data,
-    input read_data_valid,
+    input [31:0] mem_read_data,
+    input mem_read_data_valid,
 
     output logic [31:0] data[0:1],
     output logic [1:0] count);
@@ -21,7 +21,7 @@ module read_buffer(
             count_next = 2'h0;
         end
 
-        if (read_data_valid) begin
+        if (mem_read_data_valid) begin
             count_next = count + 2'h1;
         end
     end
@@ -32,8 +32,8 @@ module read_buffer(
             count <= 2'h0;
         end
         else begin
-            if (read_data_valid) begin
-                data[count[0]] <= read_data;
+            if (mem_read_data_valid) begin
+                data[count[0]] <= mem_read_data;
             end
 
             count <= count_next;

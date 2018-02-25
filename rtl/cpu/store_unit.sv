@@ -70,7 +70,7 @@ module store_unit(
                     else begin
                         mem_addr_next = {mem_addr[31:2] + 30'h1, 2'h0};
                         mem_write_data_next = write_word_next[63:32];
-                        mem_byte_enable_next = write_word_byte_enable_next[7:4];
+                        mem_byte_enable_next = write_word_byte_enable[7:4];
 
                         state_next = STATE_STORE_HIGH;
                     end
