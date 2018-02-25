@@ -11,7 +11,7 @@ module core(
     input [31:0] mem_read_data,
     input mem_read_data_valid,
 
-    input store_unit_busy,
+    input store_unit_write_ready,
     output logic store_unit_write_req,
     output logic [31:0] store_unit_write_addr,
     output logic [31:0] store_unit_write_data,
@@ -389,7 +389,7 @@ module core(
             end
 
             STATE_REG_WRITEBACK: begin
-                if (!store_unit_busy) begin
+                if (store_unit_write_ready) begin
                     // Finish asserting writes, if any
                     store_unit_write_req_next = 0;
 

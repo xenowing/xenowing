@@ -18,7 +18,7 @@ module cpu(
     logic [31:0] store_unit_write_data;
     logic [3:0] store_unit_write_byte_enable;
 
-    logic store_unit_busy;
+    logic store_unit_write_ready;
 
     logic [31:0] store_unit_mem_addr;
     logic [3:0] store_unit_mem_byte_enable;
@@ -28,12 +28,11 @@ module cpu(
         .clk(clk),
         .reset_n(reset_n),
 
+        .write_ready(store_unit_write_ready),
         .write_req(store_unit_write_req),
         .write_addr(store_unit_write_addr),
         .write_data(store_unit_write_data),
         .write_byte_enable(store_unit_write_byte_enable),
-
-        .busy(store_unit_busy),
 
         .mem_ready(mem_ready),
         .mem_addr(store_unit_mem_addr),
@@ -56,7 +55,7 @@ module cpu(
         .mem_read_data(mem_read_data),
         .mem_read_data_valid(mem_read_data_valid),
 
-        .store_unit_busy(store_unit_busy),
+        .store_unit_write_ready(store_unit_write_ready),
         .store_unit_write_req(store_unit_write_req),
         .store_unit_write_addr(store_unit_write_addr),
         .store_unit_write_data(store_unit_write_data),

@@ -4,12 +4,11 @@ module store_unit(
     input clk,
     input reset_n,
 
+    output write_ready,
     input write_req,
     input [31:0] write_addr,
     input [31:0] write_data,
     input [3:0] write_byte_enable,
-
-    output busy,
 
     input mem_ready,
     output logic [31:0] mem_addr,
@@ -33,7 +32,7 @@ module store_unit(
     logic [1:0] state;
     logic [1:0] state_next;
 
-    assign busy = state != STATE_IDLE;
+    assign write_ready = state == STATE_IDLE;
 
     always_comb begin
         mem_addr_next = mem_addr;
