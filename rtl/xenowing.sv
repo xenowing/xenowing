@@ -81,13 +81,13 @@ module xenowing(
         .reset_n(reset_n),
         .clk(clk),
 
-        .ready(mem_mapper_ready),
-        .addr(mem_mapper_addr),
-        .write_data(mem_mapper_write_data),
-        .byte_enable(mem_mapper_byte_enable),
-        .write_req(mem_mapper_write_req),
-        .read_req(mem_mapper_read_req),
-        .read_data(mem_mapper_read_data),
-        .read_data_valid(mem_mapper_read_data_valid));
+        .mem_ready(mem_mapper_ready),
+        .mem_addr(mem_mapper_addr),
+        .mem_write_data(mem_mapper_write_data),
+        .mem_byte_enable(mem_mapper_byte_enable),
+        .mem_write_req(mem_mapper_write_req),
+        .mem_read_req(mem_mapper_read_req),
+        .mem_read_data(mem_mapper_read_data),
+        .mem_read_data_valid(mem_mapper_read_data_valid));
 
 endmodule

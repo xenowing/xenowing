@@ -19,7 +19,7 @@ endif
 XENOWING_PREFIX=xenowing
 XENOWING_VM_PREFIX=V$(XENOWING_PREFIX)
 XENOWING_DRIVER=$(OBJ_DIR)/$(XENOWING_VM_PREFIX)
-XENOWING_DRIVER_RTL=rtl/xenowing.sv rtl/program_rom_interface.sv rtl/led_interface.sv rtl/mem_mapper.sv rtl/cpu/alu.sv rtl/cpu/register_file.sv rtl/cpu/read_buffer.sv rtl/cpu/cpu.sv
+XENOWING_DRIVER_RTL=rtl/xenowing.sv rtl/program_rom_interface.sv rtl/led_interface.sv rtl/mem_mapper.sv rtl/cpu/alu.sv rtl/cpu/store_unit.sv rtl/cpu/register_file.sv rtl/cpu/read_buffer.sv rtl/cpu/cpu.sv
 XENOWING_DRIVER_SRC=sim/xenowing_driver.cpp
 
 XENOWING_TEST_DIR=sim/xenowing-test

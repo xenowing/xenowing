@@ -4,20 +4,52 @@ module cpu(
     input reset_n,
     input clk,
 
-    input ready,
-    output logic [31:0] addr,
-    output logic [31:0] write_data,
-    output logic [3:0] byte_enable,
-    output logic write_req,
-    output logic read_req,
-    input [31:0] read_data,
-    input read_data_valid);
+    input mem_ready,
+    output [31:0] mem_addr,
+    output [31:0] mem_write_data,
+    output [3:0] mem_byte_enable,
+    output mem_write_req,
+    output mem_read_req,
+    input [31:0] mem_read_data,
+    input mem_read_data_valid);
 
+    logic [31:0] addr;
     logic [31:0] addr_next;
-    logic [31:0] write_data_next;
+    logic [3:0] byte_enable;
     logic [3:0] byte_enable_next;
-    logic write_req_next;
+    logic read_req;
     logic read_req_next;
+
+    logic store_unit_write_req;
+    logic store_unit_write_req_next;
+    logic [31:0] store_unit_write_addr;
+    logic [31:0] store_unit_write_addr_next;
+    logic [31:0] store_unit_write_data;
+    logic [31:0] store_unit_write_data_next;
+    logic [3:0] store_unit_write_byte_enable;
+    logic [3:0] store_unit_write_byte_enable_next;
+    logic store_unit_busy;
+    logic [31:0] store_unit_mem_addr;
+    logic [3:0] store_unit_mem_byte_enable;
+    logic store_unit_mem_write_req;
+    store_unit store_unit0(
+        .clk(clk),
+        .reset_n(reset_n),
+        .write_req(store_unit_write_req),
+        .write_addr(store_unit_write_addr),
+        .write_data(store_unit_write_data),
+        .write_byte_enable(store_unit_write_byte_enable),
+        .busy(store_unit_busy),
+        .mem_ready(mem_ready),
+        .mem_addr(store_unit_mem_addr),
+        .mem_write_data(mem_write_data),
+        .mem_byte_enable(store_unit_mem_byte_enable),
+        .mem_write_req(store_unit_mem_write_req));
+
+    assign mem_addr = !store_unit_mem_write_req ? addr : store_unit_mem_addr;
+    assign mem_byte_enable = !store_unit_mem_write_req ? byte_enable : store_unit_mem_byte_enable;
+    assign mem_write_req = store_unit_mem_write_req;
+    assign mem_read_req = read_req && !store_unit_mem_write_req;
 
     logic [31:0] pc;
     logic [31:0] pc_next;
@@ -55,8 +87,7 @@ module cpu(
     localparam STATE_MEM_LOAD_2 = 4'h5;
     localparam STATE_MEM_LOAD_WAIT = 4'h6;
     localparam STATE_MEM_STORE = 4'h7;
-    localparam STATE_MEM_STORE_2 = 4'h8;
-    localparam STATE_REG_WRITEBACK = 4'h9;
+    localparam STATE_REG_WRITEBACK = 4'h8;
     logic [3:0] state;
     logic [3:0] state_next;
 
@@ -111,17 +142,20 @@ module cpu(
         .clk(clk),
         .reset_n(reset_n),
         .clear(read_buffer_clear),
-        .read_data(read_data),
-        .read_data_valid(read_data_valid),
+        .read_data(mem_read_data),
+        .read_data_valid(mem_read_data_valid),
         .data(read_buffer_data),
         .count(read_buffer_count));
 
     always_comb begin
         addr_next = addr;
-        write_data_next = write_data;
         byte_enable_next = byte_enable;
-        write_req_next = write_req;
         read_req_next = read_req;
+
+        store_unit_write_req_next = store_unit_write_req;
+        store_unit_write_addr_next = store_unit_write_addr;
+        store_unit_write_data_next = store_unit_write_data;
+        store_unit_write_byte_enable_next = store_unit_write_byte_enable;
 
         pc_next = pc;
 
@@ -160,12 +194,12 @@ module cpu(
             end
 
             STATE_INSTRUCTION_FETCH: begin
-                if (ready) begin
+                if (mem_ready && !store_unit_mem_write_req) begin
                     // Finish asserting read
                     read_req_next = 0;
 
-                    if (read_data_valid) begin
-                        instruction_next = read_data;
+                    if (mem_read_data_valid) begin
+                        instruction_next = mem_read_data;
 
                         state_next = STATE_INSTRUCTION_DECODE;
                     end
@@ -299,7 +333,7 @@ module cpu(
             end
 
             STATE_MEM_LOAD_2: begin
-                if (ready) begin
+                if (mem_ready) begin
                     state_next = STATE_MEM_LOAD_WAIT;
 
                     addr_next = {alu_res[31:2] + 30'h1, 2'b0};
@@ -324,7 +358,7 @@ module cpu(
             end
 
             STATE_MEM_LOAD_WAIT: begin
-                if (ready) begin
+                if (mem_ready) begin
                     // Finish asserting reads
                     read_req_next = 0;
 
@@ -368,96 +402,21 @@ module cpu(
             STATE_MEM_STORE: begin
                 state_next = STATE_REG_WRITEBACK;
 
-                addr_next = {alu_res[31:2], 2'b0};
-                write_req_next = 1;
+                store_unit_write_req_next = 1;
+                store_unit_write_addr_next = alu_res;
+                store_unit_write_data_next = rs2_value;
 
                 case (funct3)
-                    3'b000: begin
-                        // sb
-                        byte_enable_next = 4'b0001 << alu_res[1:0];
-                        case (alu_res[1:0])
-                            2'b00: write_data_next = rs2_value;
-                            2'b01: write_data_next = {16'b0, rs2_value[7:0], 8'b0};
-                            2'b10: write_data_next = {8'b0, rs2_value[7:0], 16'b0};
-                            2'b11: write_data_next = {rs2_value[7:0], 24'b0};
-                        endcase
-                    end
-                    3'b001: begin
-                        // sh
-                        byte_enable_next = 4'b0011 << alu_res[1:0];
-                        case (alu_res[1:0])
-                            2'b00: write_data_next = rs2_value;
-                            2'b01: write_data_next = {8'b0, rs2_value[15:0], 8'b0};
-                            2'b10: write_data_next = {rs2_value[15:0], 16'b0};
-                            2'b11: begin
-                                write_data_next = {rs2_value[7:0], 24'b0};
-                                state_next = STATE_MEM_STORE_2;
-                            end
-                        endcase
-                    end
-                    3'b010: begin
-                        // sw
-                        byte_enable_next = 4'b1111 << alu_res[1:0];
-                        case (alu_res[1:0])
-                            2'b00: write_data_next = rs2_value;
-                            2'b01: begin
-                                write_data_next = {rs2_value[23:0], 8'b0};
-                                state_next = STATE_MEM_STORE_2;
-                            end
-                            2'b10: begin
-                                write_data_next = {rs2_value[15:0], 16'b0};
-                                state_next = STATE_MEM_STORE_2;
-                            end
-                            2'b11: begin
-                                write_data_next = {rs2_value[7:0], 24'b0};
-                                state_next = STATE_MEM_STORE_2;
-                            end
-                        endcase
-                    end
+                    3'b000: store_unit_write_byte_enable_next = 4'b0001; // sb
+                    3'b001: store_unit_write_byte_enable_next = 4'b0011; // sh
+                    3'b010: store_unit_write_byte_enable_next = 4'b1111; // sw
                 endcase
             end
 
-            STATE_MEM_STORE_2: begin
-                if (ready) begin
-                    state_next = STATE_REG_WRITEBACK;
-
-                    addr_next = {alu_res[31:2] + 30'h1, 2'b0};
-
-                    case (funct3)
-                        3'b001: begin
-                            // sh
-                            case (alu_res[1:0])
-                                2'b11: begin
-                                    write_data_next = {24'b0, rs2_value[15:8]};
-                                    byte_enable_next = 4'b0001;
-                                end
-                            endcase
-                        end
-                        3'b010: begin
-                            // sw
-                            case (alu_res[1:0])
-                                2'b01: begin
-                                    write_data_next = {24'b0, rs2_value[31:24]};
-                                    byte_enable_next = 4'b0001;
-                                end
-                                2'b10: begin
-                                    write_data_next = {16'b0, rs2_value[31:16]};
-                                    byte_enable_next = 4'b0011;
-                                end
-                                2'b11: begin
-                                    write_data_next = {8'b0, rs2_value[31:8]};
-                                    byte_enable_next = 4'b0111;
-                                end
-                            endcase
-                        end
-                    endcase
-                end
-            end
-
             STATE_REG_WRITEBACK: begin
-                if (ready) begin
+                if (!store_unit_busy) begin
                     // Finish asserting writes, if any
-                    write_req_next = 0;
+                    store_unit_write_req_next = 0;
 
                     state_next = STATE_INSTRUCTION_FETCH;
                     pc_next = pc + 32'h4;
@@ -579,10 +538,13 @@ module cpu(
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             addr <= 32'h0;
-            write_data <= 32'h0;
             byte_enable <= 4'h0;
-            write_req <= 0;
             read_req <= 0;
+
+            store_unit_write_req <= 0;
+            store_unit_write_addr <= 32'h0;
+            store_unit_write_data <= 32'h0;
+            store_unit_write_byte_enable <= 4'h0;
 
             pc <= 32'h10000000;
 
@@ -601,10 +563,13 @@ module cpu(
         end
         else begin
             addr <= addr_next;
-            write_data <= write_data_next;
             byte_enable <= byte_enable_next;
-            write_req <= write_req_next;
             read_req <= read_req_next;
+
+            store_unit_write_req <= store_unit_write_req_next;
+            store_unit_write_addr <= store_unit_write_addr_next;
+            store_unit_write_data <= store_unit_write_data_next;
+            store_unit_write_byte_enable <= store_unit_write_byte_enable_next;
 
             pc <= pc_next;
 
