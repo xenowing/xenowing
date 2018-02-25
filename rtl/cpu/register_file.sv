@@ -14,10 +14,16 @@ module register_file(
     input [4:0] write_addr,
     input [31:0] write_data);
 
-    logic [31:0] regs[1:31];
+    logic [31:0] regs[0:31];
 
-    assign read_data1 = read_addr1 != 0 ? regs[read_addr1] : 32'h0;
-    assign read_data2 = read_addr2 != 0 ? regs[read_addr2] : 32'h0;
+    assign read_data1 = regs[read_addr1];
+    assign read_data2 = regs[read_addr2];
+
+    initial begin
+        for (int i = 0; i < 32; i++) begin
+            regs[i] = 32'h0;
+        end
+    end
 
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
