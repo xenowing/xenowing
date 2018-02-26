@@ -7,7 +7,18 @@ module xenowing(
     output [13:0] program_rom_addr,
     input [31:0] program_rom_q,
 
-    output [2:0] leds);
+    output [2:0] leds,
+
+    input avl_ready,
+    output avl_burstbegin,
+    output [23:0] avl_addr,
+    input avl_rdata_valid,
+    input [63:0] avl_rdata,
+    output [63:0] avl_wdata,
+    output [7:0] avl_be,
+    output avl_read_req,
+    output avl_write_req,
+    output [6:0] avl_size);
 
     logic [13:0] program_rom_interface_addr;
     logic program_rom_read_req;
@@ -44,6 +55,38 @@ module xenowing(
 
         .leds(leds));
 
+    logic ddr3_interface_ready;
+    logic [26:0] ddr3_interface_addr;
+    logic [31:0] ddr3_interface_write_data;
+    logic [3:0] ddr3_interface_byte_enable;
+    logic ddr3_interface_write_req;
+    logic ddr3_interface_read_req;
+    logic [31:0] ddr3_interface_read_data;
+    logic ddr3_interface_read_data_valid;
+    ddr3_interface ddr3_interface0(
+        .reset_n(reset_n),
+        .clk(clk),
+
+        .ready(ddr3_interface_ready),
+        .addr(ddr3_interface_addr),
+        .write_data(ddr3_interface_write_data),
+        .byte_enable(ddr3_interface_byte_enable),
+        .write_req(ddr3_interface_write_req),
+        .read_req(ddr3_interface_read_req),
+        .read_data(ddr3_interface_read_data),
+        .read_data_valid(ddr3_interface_read_data_valid),
+
+        .avl_ready(avl_ready),
+        .avl_burstbegin(avl_burstbegin),
+        .avl_addr(avl_addr),
+        .avl_rdata_valid(avl_rdata_valid),
+        .avl_rdata(avl_rdata),
+        .avl_wdata(avl_wdata),
+        .avl_be(avl_be),
+        .avl_read_req(avl_read_req),
+        .avl_write_req(avl_write_req),
+        .avl_size(avl_size));
+
     logic mem_mapper_ready;
     logic [31:0] mem_mapper_addr;
     logic [31:0] mem_mapper_write_data;
@@ -75,7 +118,16 @@ module xenowing(
         .led_interface_write_req(led_interface_write_req),
         .led_interface_read_req(led_interface_read_req),
         .led_interface_read_data(led_interface_read_data),
-        .led_interface_read_data_valid(led_interface_read_data_valid));
+        .led_interface_read_data_valid(led_interface_read_data_valid),
+
+        .ddr3_interface_ready(ddr3_interface_ready),
+        .ddr3_interface_addr(ddr3_interface_addr),
+        .ddr3_interface_write_data(ddr3_interface_write_data),
+        .ddr3_interface_byte_enable(ddr3_interface_byte_enable),
+        .ddr3_interface_write_req(ddr3_interface_write_req),
+        .ddr3_interface_read_req(ddr3_interface_read_req),
+        .ddr3_interface_read_data(ddr3_interface_read_data),
+        .ddr3_interface_read_data_valid(ddr3_interface_read_data_valid));
 
     cpu cpu0(
         .reset_n(reset_n),

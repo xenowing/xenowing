@@ -19,7 +19,7 @@ endif
 XENOWING_PREFIX=xenowing
 XENOWING_VM_PREFIX=V$(XENOWING_PREFIX)
 XENOWING_DRIVER=$(OBJ_DIR)/$(XENOWING_VM_PREFIX)
-XENOWING_DRIVER_RTL=rtl/xenowing.sv rtl/program_rom_interface.sv rtl/led_interface.sv rtl/mem_mapper.sv rtl/cpu/alu.sv rtl/cpu/load_unit.sv rtl/cpu/store_unit.sv rtl/cpu/register_file.sv rtl/cpu/read_buffer.sv rtl/cpu/core.sv rtl/cpu/cpu.sv
+XENOWING_DRIVER_RTL=rtl/xenowing.sv rtl/program_rom_interface.sv rtl/led_interface.sv rtl/fifo.sv rtl/ddr3_interface.sv rtl/mem_mapper.sv rtl/cpu/alu.sv rtl/cpu/load_unit.sv rtl/cpu/store_unit.sv rtl/cpu/register_file.sv rtl/cpu/read_buffer.sv rtl/cpu/core.sv rtl/cpu/cpu.sv
 XENOWING_DRIVER_SRC=sim/xenowing_driver.cpp
 
 XENOWING_TEST_DIR=sim/xenowing-test
@@ -96,7 +96,7 @@ test: dirs $(XENOWING_DRIVER) $(XENOWING_TEST) $(ALU_DRIVER) $(ALU_TEST) $(DDR3_
 	$(XENOWING_DRIVER) $(XENOWING_TEST) $(XENOWING_TRACE)
 	#$(ALU_DRIVER) $(ALU_TEST)
 	#$(DDR3_TEST_DRIVER) $(DDR3_TEST) $(DDR3_TRACE)
-	$(DDR3_TEST_DRIVER) $(DDR3_TEST)
+	#$(DDR3_TEST_DRIVER) $(DDR3_TEST)
 
 clean:
 	$(RM) $(RM_FLAGS) $(OBJ_DIR)

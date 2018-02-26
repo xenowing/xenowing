@@ -8,3 +8,4 @@ name = "xenowing_test"
 crate-type = ["dylib"]
 
 [dependencies]
+ddr3-simulator = { path = "../ddr3-simulator" }

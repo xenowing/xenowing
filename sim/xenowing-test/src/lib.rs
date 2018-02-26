@@ -1,4 +1,8 @@
+extern crate ddr3_simulator;
+
 mod xenowing;
+
+use ddr3_simulator::*;
 
 use xenowing::*;
 
@@ -23,6 +27,13 @@ pub extern "C" fn run(env: *const Env) -> i32 {
     time += 1;
 
     xenowing.set_clk(true);
+
+    let mut ddr3_simulator = Ddr3Simulator::new();
+
+    xenowing.set_avl_ready(ddr3_simulator.avl_ready());
+    xenowing.set_avl_rdata_valid(ddr3_simulator.avl_rdata_valid());
+    xenowing.set_avl_rdata(ddr3_simulator.avl_rdata());
+
     xenowing.eval();
 
     xenowing.trace_dump(time);
@@ -35,7 +46,7 @@ pub extern "C" fn run(env: *const Env) -> i32 {
     xenowing.trace_dump(time);
     time += 1;
 
-    for _ in 0..100 {
+    for _ in 0..500 {
         // Rising edge
         xenowing.set_clk(true);
         xenowing.eval();
@@ -58,6 +69,20 @@ pub extern "C" fn run(env: *const Env) -> i32 {
                 if (leds & 0x02) == 0 { 0 } else { 1 },
                 if (leds & 0x01) == 0 { 0 } else { 1 });
         }
+
+        ddr3_simulator.set_avl_burstbegin(xenowing.avl_burstbegin());
+        ddr3_simulator.set_avl_addr(xenowing.avl_addr());
+        ddr3_simulator.set_avl_wdata(xenowing.avl_wdata());
+        ddr3_simulator.set_avl_be(xenowing.avl_be());
+        ddr3_simulator.set_avl_read_req(xenowing.avl_read_req());
+        ddr3_simulator.set_avl_write_req(xenowing.avl_write_req());
+        ddr3_simulator.set_avl_size(xenowing.avl_size());
+
+        ddr3_simulator.eval();
+
+        xenowing.set_avl_ready(ddr3_simulator.avl_ready());
+        xenowing.set_avl_rdata_valid(ddr3_simulator.avl_rdata_valid());
+        xenowing.set_avl_rdata(ddr3_simulator.avl_rdata());
 
         xenowing.eval();
 

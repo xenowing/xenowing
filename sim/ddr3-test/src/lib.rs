@@ -27,7 +27,6 @@ pub extern "C" fn run(env: *const Env) -> i32 {
     test.set_avl_ready(ddr3_simulator.avl_ready());
     test.set_avl_rdata_valid(ddr3_simulator.avl_rdata_valid());
     test.set_avl_rdata(ddr3_simulator.avl_rdata());
-
     test.set_ddr3_init_done(ddr3_simulator.init_done());
     test.set_ddr3_cal_success(ddr3_simulator.cal_success());
     test.set_ddr3_cal_fail(ddr3_simulator.cal_fail());
@@ -80,7 +79,6 @@ pub extern "C" fn run(env: *const Env) -> i32 {
         test.set_avl_ready(ddr3_simulator.avl_ready());
         test.set_avl_rdata_valid(ddr3_simulator.avl_rdata_valid());
         test.set_avl_rdata(ddr3_simulator.avl_rdata());
-
         test.set_ddr3_init_done(ddr3_simulator.init_done());
         test.set_ddr3_cal_success(ddr3_simulator.cal_success());
         test.set_ddr3_cal_fail(ddr3_simulator.cal_fail());
