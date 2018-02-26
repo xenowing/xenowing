@@ -26,7 +26,7 @@ module hw_top(
     logic [31:0] xenowing_program_rom_q;
     logic [2:0] xenowing_leds;
     xenowing xenowing0(
-        .reset_n(global_reset_n),
+        .reset_n(ddr3_controller_local_init_done),
         .clk(clk),
 
         .program_rom_addr(xenowing_program_rom_addr),
@@ -63,6 +63,8 @@ module hw_top(
     logic avl_write_req;
     logic [6:0] avl_size;
 
+    logic ddr3_controller_local_init_done;
+
     ddr3_controller ddr3_controller0(
         .pll_ref_clk(pll_ref_clk),
         .global_reset_n(global_reset_n),
@@ -94,7 +96,9 @@ module hw_top(
         .avl_be(avl_be),
         .avl_read_req(avl_read_req),
         .avl_write_req(avl_write_req),
-        .avl_size(avl_size));
+        .avl_size(avl_size),
+
+        .local_init_done(ddr3_controller_local_init_done));
 
     assign leds_n = ~xenowing_leds;
 

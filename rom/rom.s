@@ -13,4 +13,11 @@ loop:
         addi x2, x2, 1
         sb x2, 0(x1)
         sb x2, 0(x3)
+
+        li x4, 0x00080000
+wait:
+            li x5, 1
+            sub x4, x4, x5
+        bne x4, zero, wait
+
     j loop
