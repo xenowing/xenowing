@@ -16,8 +16,7 @@ loop:
 
         li x4, 0x00080000
 wait:
-            li x5, 1
-            sub x4, x4, x5
+            addi x4, x4, -1
         bne x4, zero, wait
 
     j loop

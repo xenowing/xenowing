@@ -186,12 +186,12 @@ module core(
                 state_next = STATE_REG_WRITEBACK;
 
                 case (funct3)
-                    3'b000: alu_op_next = !instruction[30] ? ADD : SUB;
+                    3'b000: alu_op_next = ADD;
                     3'b001: alu_op_next = SLL;
                     3'b010: alu_op_next = LT;
                     3'b011: alu_op_next = LTU;
                     3'b100: alu_op_next = XOR;
-                    3'b101: alu_op_next = !instruction[30] ? SRL : SRA;
+                    3'b101: alu_op_next = SRL;
                     3'b110: alu_op_next = OR;
                     3'b111: alu_op_next = AND;
                 endcase
@@ -256,7 +256,13 @@ module core(
                     end
                     7'b0110011: begin
                         // register computation
-                        //  default alu lhs/rhs are already correct; do nothing
+                        if (funct3 == 3'b000 && !instruction[30]) begin
+                            alu_op_next = SUB;
+                        end
+                        else if (funct3 == 3'b101 && !instruction[30]) begin
+                            alu_op_next = SRA;
+                        end
+                        //  default alu lhs/rhs are already correct
                     end
                     7'b0001111: begin
                         // fences (do nothing)
