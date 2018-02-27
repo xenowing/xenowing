@@ -14,7 +14,7 @@ loop:
         sb x2, 0(x1)
         sb x2, 0(x3)
 
-        li x4, 0x00080000
+        li x4, 0x00400000
 wait:
             addi x4, x4, -1
         bne x4, zero, wait

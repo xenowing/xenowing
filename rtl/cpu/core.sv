@@ -202,8 +202,6 @@ module core(
                 case (opcode)
                     7'b0110111: begin
                         // lui
-                        alu_op_next = ADD;
-                        alu_lhs_next = u_immediate;
                     end
                     7'b0010111: begin
                         // auipc
@@ -334,8 +332,13 @@ module core(
                     pc_next = pc + 32'h4;
 
                     case (opcode)
-                        7'b0110111, 7'b0010111, 7'b0010011, 7'b0110011: begin
-                            // lui, auipc, immediate computation, register computation
+                        7'b0110111: begin
+                            // lui
+                            rd_write_enable = 1;
+                            rd_write_value = u_immediate;
+                        end
+                        7'b0010111, 7'b0010011, 7'b0110011: begin
+                            // auipc, immediate computation, register computation
                             rd_write_enable = 1;
                             rd_write_value = alu_res;
                         end
