@@ -23,10 +23,10 @@ module fifo#(parameter data_width = 32, depth_bits = 4)(
     logic [depth_bits - 1:0] read_addr_next;
 
     logic [depth_bits:0] count;
-    logic [depth_bits - 1:0] count_next;
+    logic [depth_bits:0] count_next;
 
     assign empty = count == 0;
-    assign full = count == depth - 1;
+    assign full = count == depth;
 
     assign read_data = mem[read_addr];
 
