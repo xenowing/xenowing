@@ -9,6 +9,8 @@ module xenowing(
 
     output [2:0] leds,
 
+    output uart_tx,
+
     input avl_ready,
     output avl_burstbegin,
     output [23:0] avl_addr,
@@ -54,6 +56,42 @@ module xenowing(
         .read_data_valid(led_interface_read_data_valid),
 
         .leds(leds));
+
+    logic [7:0] uart_transmitter_write_data;
+    logic uart_transmitter_write_req;
+    logic uart_transmitter_ready;
+    uart_transmitter uart_transmitter0(
+        .reset_n(reset_n),
+        .clk(clk),
+
+        .write_data(uart_transmitter_write_data),
+        .write_req(uart_transmitter_write_req),
+        .ready(uart_transmitter_ready),
+
+        .tx(uart_tx));
+
+    logic uart_transmitter_interface_addr;
+    logic [31:0] uart_transmitter_interface_write_data;
+    logic [3:0] uart_transmitter_interface_byte_enable;
+    logic uart_transmitter_interface_write_req;
+    logic uart_transmitter_interface_read_req;
+    logic [31:0] uart_transmitter_interface_read_data;
+    logic uart_transmitter_interface_read_data_valid;
+    uart_transmitter_interface uart_transmitter_interface0(
+        .reset_n(reset_n),
+        .clk(clk),
+
+        .addr(uart_transmitter_interface_addr),
+        .write_data(uart_transmitter_interface_write_data),
+        .byte_enable(uart_transmitter_interface_byte_enable),
+        .write_req(uart_transmitter_interface_write_req),
+        .read_req(uart_transmitter_interface_read_req),
+        .read_data(uart_transmitter_interface_read_data),
+        .read_data_valid(uart_transmitter_interface_read_data_valid),
+
+        .uart_write_data(uart_transmitter_write_data),
+        .uart_write_req(uart_transmitter_write_req),
+        .uart_ready(uart_transmitter_ready));
 
     logic ddr3_interface_ready;
     logic [26:0] ddr3_interface_addr;
@@ -119,6 +157,14 @@ module xenowing(
         .led_interface_read_req(led_interface_read_req),
         .led_interface_read_data(led_interface_read_data),
         .led_interface_read_data_valid(led_interface_read_data_valid),
+
+        .uart_transmitter_interface_addr(uart_transmitter_interface_addr),
+        .uart_transmitter_interface_write_data(uart_transmitter_interface_write_data),
+        .uart_transmitter_interface_byte_enable(uart_transmitter_interface_byte_enable),
+        .uart_transmitter_interface_write_req(uart_transmitter_interface_write_req),
+        .uart_transmitter_interface_read_req(uart_transmitter_interface_read_req),
+        .uart_transmitter_interface_read_data(uart_transmitter_interface_read_data),
+        .uart_transmitter_interface_read_data_valid(uart_transmitter_interface_read_data_valid),
 
         .ddr3_interface_ready(ddr3_interface_ready),
         .ddr3_interface_addr(ddr3_interface_addr),

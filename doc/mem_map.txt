@@ -1,7 +1,11 @@
+Notes
+ - Registers are marked R, W, or R/W, depending on indented usage.
+ - Reads from regs not marked R or writes to regs marked W have undefined behavior.
+
 High-level map
 
 0x10000000 - 0x1fffffff: Program ROM
-0x20000000 - 0x2fffffff: System regs(mirrors)
+0x20000000 - 0x2fffffff: System regs
 0x30000000 - 0x3fffffff: DDR3 mem
 
 Detailed mem map
@@ -10,8 +14,13 @@ Detailed mem map
 0x10010000 - 0x1fffffff: Program ROM (mirrors)
 
 0x20000000 - 0x20000003: System regs
-0x20000000 - 0x20000003: LED interface (only byte 0 used)
-0x20000004 - 0x2fffffff: System regs (mirrors)
+0x20000000 - 0x20000003: LED interface (R/W, only byte 0 used)
+0x20000004 - 0x20ffffff: LED interface (mirrors)
+0x21000000 - 0x21000007: UART transmitter interface (only bytes 1-2 used)
+0x21000000 - 0x21000003: UART transmitter status (R). Bit 0 indicates ready status (1 = ready, 0 = busy). All other bits are undefined.
+0x21000004 - 0x21000007: UART transmitter write (W). Bits 0-7 indicate data to be transmitted. When not busy, a write to this reg will start a new transmission immediately. If busy, the write is ignored.
+0x21000008 - 0x21ffffff: UART transmitter interface (mirrors)
+0x22000000 - 0x2fffffff: System regs (mirrors)
 
 0x30000000 - 0x37ffffff: DDR3 mem
 0x38000000 - 0x3fffffff: DDR3 mem (mirror)

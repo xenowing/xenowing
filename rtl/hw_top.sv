@@ -20,7 +20,9 @@ module hw_top(
     inout [2:0] mem_dqs_n,
     output mem_odt,
 
-    output [2:0] leds_n);
+    output [2:0] leds_n,
+
+    output uart_tx);
 
     logic [13:0] xenowing_program_rom_addr;
     logic [31:0] xenowing_program_rom_q;
@@ -43,7 +45,9 @@ module hw_top(
         .avl_be(avl_be[7:0]),
         .avl_read_req(avl_read_req),
         .avl_write_req(avl_write_req),
-        .avl_size(avl_size));
+        .avl_size(avl_size),
+
+        .uart_tx(uart_tx));
 
     program_rom program_rom0(
         .clock(clk),

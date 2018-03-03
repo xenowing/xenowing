@@ -55,16 +55,16 @@ clear_bss_loop_end:
     /* If main exits, just start over */
     j stub
 
-    .section .text.xenowing_cycles
+    .section .text.xw_cycles
     .align 1
 
-    .global xenowing_cycles
+    .global xw_cycles
 
-xenowing_cycles:
+xw_cycles:
     /* Read loop to avoid overflow */
         rdcycleh a1
         rdcycle a0
         rdcycleh t0
-    bne a1, t0, xenowing_cycles
+    bne a1, t0, xw_cycles
 
     ret
