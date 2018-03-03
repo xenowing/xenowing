@@ -14,11 +14,14 @@ MIFFED=$(MIFFED_DIR)/target/release/miffed$(EXE_EXT)
 
 all: rom.bin rom.mif
 
-rom.o: rom.s
-	$(GCC_PREFIX)as -march=rv32i -o rom.o rom.s
+rom_s.o: rom.s
+	$(GCC_PREFIX)as -march=rv32i -o rom_s.o rom.s
 
-rom.elf: rom.o link.ld
-	$(GCC_PREFIX)gcc -march=rv32i -o rom.elf -nostartfiles rom.o -Tlink.ld
+rom_c.o: rom.c
+	$(GCC_PREFIX)gcc -march=rv32i -mabi=ilp32 -o rom_c.o -c rom.c -nodefaultlibs -O3
+
+rom.elf: rom_s.o rom_c.o link.ld
+	$(GCC_PREFIX)gcc -march=rv32i -o rom.elf -nostartfiles rom_s.o rom_c.o -Tlink.ld
 
 rom.bin: rom.elf
 	$(GCC_PREFIX)objcopy -O binary rom.elf rom.bin

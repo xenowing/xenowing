@@ -254,10 +254,10 @@ module core(
                     end
                     7'b0110011: begin
                         // register computation
-                        if (funct3 == 3'b000 && !instruction[30]) begin
+                        if (funct3 == 3'b000 && instruction[30]) begin
                             alu_op_next = SUB;
                         end
-                        else if (funct3 == 3'b101 && !instruction[30]) begin
+                        else if (funct3 == 3'b101 && instruction[30]) begin
                             alu_op_next = SRA;
                         end
                         //  default alu lhs/rhs are already correct

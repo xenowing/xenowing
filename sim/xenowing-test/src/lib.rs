@@ -10,7 +10,10 @@ use xenowing::*;
 pub extern "C" fn run(env: *const Env) -> i32 {
     let mut xenowing = Xenowing::new(env);
 
-    let rom = include_bytes!("../../../rom/rom.bin");
+    let mut rom = vec![0; 0x10000];
+    for (i, b) in include_bytes!("../../../rom/rom.bin").iter().enumerate() {
+        rom[i] = *b;
+    }
 
     let mut rom_addr_next = 0;
 
@@ -51,7 +54,7 @@ pub extern "C" fn run(env: *const Env) -> i32 {
         xenowing.set_clk(true);
         xenowing.eval();
 
-        let rom_addr = (rom_addr_next << 2) as usize;
+        let rom_addr = ((rom_addr_next << 2) & 0xfffc) as usize;
         xenowing.set_program_rom_q(
             ((rom[rom_addr + 0] as u32) << 0) |
             ((rom[rom_addr + 1] as u32) << 8) |
