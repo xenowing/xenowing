@@ -56,7 +56,7 @@ module fifo#(parameter data_width = 32, depth_bits = 4)(
         end
         else begin
             if (write_enable) begin
-                mem[write_data] <= write_data;
+                mem[write_addr] <= write_data;
             end
 
             write_addr <= write_addr_next;
