@@ -7,10 +7,10 @@ typedef unsigned long uint32_t;
 typedef long long int64_t;
 typedef unsigned long long uint64_t;
 
-static volatile uint8_t *XW_LEDS = (uint8_t *)0x20000000;
+#define XW_LEDS ((volatile uint8_t *)0x20000000)
 
-static volatile uint8_t *XW_UART_TX_STATUS = (uint8_t *)0x21000000;
-static volatile uint8_t *XW_UART_TX_WRITE = (uint8_t *)0x21000004;
+#define XW_UART_TX_STATUS ((volatile uint8_t *)0x21000000)
+#define XW_UART_TX_WRITE ((volatile uint8_t *)0x21000004)
 
 void xw_putc(const char c)
 {
