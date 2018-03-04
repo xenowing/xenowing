@@ -39,9 +39,6 @@ module load_unit(
 
     assign read_ready = state == STATE_IDLE;
 
-    logic read_buffer_clear;
-    logic read_buffer_clear_next;
-
     logic [31:0] read_buffer_data[0:1];
     logic [1:0] read_buffer_count;
 
@@ -49,7 +46,7 @@ module load_unit(
         .clk(clk),
         .reset_n(reset_n),
 
-        .clear(read_buffer_clear),
+        .clear(read_req),
 
         .mem_read_data(mem_read_data),
         .mem_read_data_valid(mem_read_data_valid),
@@ -71,11 +68,7 @@ module load_unit(
 
         read_addr_low_next = read_addr_low;
 
-        read_buffer_clear_next = read_buffer_clear;
-
         read_data_valid_next = 0;
-
-        read_buffer_clear_next = 0;
 
         case (state)
             STATE_IDLE: begin
@@ -87,8 +80,6 @@ module load_unit(
                     mem_addr_next = {read_addr[31:2], 2'h0};
                     mem_byte_enable_next = read_word_byte_enable_next[3:0];
                     mem_read_req_next = 1;
-
-                    read_buffer_clear_next = 1;
 
                     state_next = STATE_LOAD_LOW;
                 end
@@ -146,8 +137,6 @@ module load_unit(
             state <= STATE_IDLE;
 
             read_addr_low <= 2'h0;
-
-            read_buffer_clear <= 0;
         end
         else begin
             read_data <= read_data_next;
@@ -162,8 +151,6 @@ module load_unit(
             state <= state_next;
 
             read_addr_low <= read_addr_low_next;
-
-            read_buffer_clear <= read_buffer_clear_next;
         end
     end
 
