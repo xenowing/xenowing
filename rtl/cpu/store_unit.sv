@@ -61,19 +61,17 @@ module store_unit(
             end
 
             STATE_STORE_LOW: begin
-                if (mem_ready) begin
-                    if (write_word_byte_enable[7:4] == 4'h0) begin
-                        mem_write_req_next = 0;
+                if (write_word_byte_enable[7:4] == 4'h0) begin
+                    mem_write_req_next = 0;
 
-                        state_next = STATE_IDLE;
-                    end
-                    else begin
-                        mem_addr_next = {mem_addr[31:2] + 30'h1, 2'h0};
-                        mem_write_data_next = write_word_next[63:32];
-                        mem_byte_enable_next = write_word_byte_enable[7:4];
+                    state_next = STATE_IDLE;
+                end
+                else if (mem_ready) begin
+                    mem_addr_next = {mem_addr[31:2] + 30'h1, 2'h0};
+                    mem_write_data_next = write_word_next[63:32];
+                    mem_byte_enable_next = write_word_byte_enable[7:4];
 
-                        state_next = STATE_STORE_HIGH;
-                    end
+                    state_next = STATE_STORE_HIGH;
                 end
             end
 
