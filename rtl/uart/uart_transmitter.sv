@@ -28,7 +28,7 @@ module uart_transmitter(
     logic baud_clk_soft_reset_next;
 
     logic baud_clk_edge;
-    uart_transmitter_clock_divider uart_transmitter_clock_divider0(
+    uart_clock_divider #(.baud_rate(115200)) uart_clock_divider0(
         .reset_n(reset_n & !baud_clk_soft_reset),
         .clk(clk),
 

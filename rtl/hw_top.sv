@@ -22,17 +22,16 @@ module hw_top(
 
     output [2:0] leds_n,
 
-    output uart_tx);
+    output uart_tx,
+    input uart_rx);
 
-    logic [13:0] xenowing_program_rom_addr;
-    logic [31:0] xenowing_program_rom_q;
     logic [2:0] xenowing_leds;
     xenowing xenowing0(
-        .reset_n(ddr3_controller_local_init_done),
+        .reset_n(ddr3_controller_local_init_done && !rom_loader_system_soft_reset),
         .clk(clk),
 
-        .program_rom_addr(xenowing_program_rom_addr),
-        .program_rom_q(xenowing_program_rom_q),
+        .program_rom_addr(program_rom_rdaddress),
+        .program_rom_q(program_rom_q),
 
         .leds(xenowing_leds),
 
@@ -49,10 +48,18 @@ module hw_top(
 
         .uart_tx(uart_tx));
 
+    logic [31:0] program_rom_data;
+    logic [13:0] program_rom_rdaddress;
+    logic [13:0] program_rom_wraddress;
+    logic program_rom_wren;
+    logic [31:0] program_rom_q;
     program_rom program_rom0(
         .clock(clk),
-        .address(xenowing_program_rom_addr),
-        .q(xenowing_program_rom_q));
+        .data(program_rom_data),
+        .rdaddress(program_rom_rdaddress),
+        .wraddress(program_rom_wraddress),
+        .wren(program_rom_wren),
+        .q(program_rom_q));
 
     logic clk;
 
@@ -72,7 +79,7 @@ module hw_top(
     ddr3_controller ddr3_controller0(
         .pll_ref_clk(pll_ref_clk),
         .global_reset_n(global_reset_n),
-        .soft_reset_n(1),
+        .soft_reset_n(!rom_loader_system_soft_reset),
         .afi_clk(clk),
 
         .mem_a(mem_a),
@@ -105,5 +112,30 @@ module hw_top(
         .local_init_done(ddr3_controller_local_init_done));
 
     assign leds_n = ~xenowing_leds;
+
+    logic [7:0] uart_receiver_data;
+    logic uart_receiver_data_ready;
+    uart_receiver uart_receiver0(
+        .reset_n(global_reset_n),
+        .clk(clk),
+
+        .data(uart_receiver_data),
+        .data_ready(uart_receiver_data_ready),
+
+        .rx(uart_rx));
+
+    logic rom_loader_system_soft_reset;
+    rom_loader rom_loader0(
+        .reset_n(global_reset_n),
+        .clk(clk),
+
+        .uart_receiver_data(uart_receiver_data),
+        .uart_receiver_data_ready(uart_receiver_data_ready),
+
+        .system_soft_reset(rom_loader_system_soft_reset),
+
+        .program_rom_write_addr(program_rom_wraddress),
+        .program_rom_write_data(program_rom_data),
+        .program_rom_write_req(program_rom_wren));
 
 endmodule

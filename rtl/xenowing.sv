@@ -57,15 +57,13 @@ module xenowing(
 
         .leds(leds));
 
-    logic [7:0] uart_transmitter_write_data;
-    logic uart_transmitter_write_req;
     logic uart_transmitter_ready;
     uart_transmitter uart_transmitter0(
         .reset_n(reset_n),
         .clk(clk),
 
-        .write_data(uart_transmitter_write_data),
-        .write_req(uart_transmitter_write_req),
+        .write_data(uart_transmitter_interface_uart_write_data),
+        .write_req(uart_transmitter_interface_uart_write_req),
         .ready(uart_transmitter_ready),
 
         .tx(uart_tx));
@@ -77,6 +75,8 @@ module xenowing(
     logic uart_transmitter_interface_read_req;
     logic [31:0] uart_transmitter_interface_read_data;
     logic uart_transmitter_interface_read_data_valid;
+    logic [7:0] uart_transmitter_interface_uart_write_data;
+    logic uart_transmitter_interface_uart_write_req;
     uart_transmitter_interface uart_transmitter_interface0(
         .reset_n(reset_n),
         .clk(clk),
@@ -89,8 +89,8 @@ module xenowing(
         .read_data(uart_transmitter_interface_read_data),
         .read_data_valid(uart_transmitter_interface_read_data_valid),
 
-        .uart_write_data(uart_transmitter_write_data),
-        .uart_write_req(uart_transmitter_write_req),
+        .uart_write_data(uart_transmitter_interface_uart_write_data),
+        .uart_write_req(uart_transmitter_interface_uart_write_req),
         .uart_ready(uart_transmitter_ready));
 
     logic ddr3_interface_ready;
