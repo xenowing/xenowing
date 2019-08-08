@@ -1,11 +1,5 @@
-typedef char int8_t;
-typedef unsigned char uint8_t;
-typedef short int16_t;
-typedef unsigned short uint16_t;
-typedef long int32_t;
-typedef unsigned long uint32_t;
-typedef long long int64_t;
-typedef unsigned long long uint64_t;
+#include <stdint.h>
+#include <stdbool.h>
 
 #define XW_LEDS ((volatile uint8_t *)0x20000000)
 
@@ -22,7 +16,7 @@ void xw_putc(const char c)
 
 void xw_puts(const char *s)
 {
-    while (1)
+    while (true)
     {
         char c = *s++;
         if (!c)
@@ -44,7 +38,7 @@ int main()
     uint8_t leds = 5;
 
     xw_puts("Main loop time!");
-    while (1)
+    while (true)
     {
         *XW_LEDS = leds;
         leds -= 1;
