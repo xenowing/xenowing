@@ -30,7 +30,7 @@ module register_file(
             // Do nothing
         end
         else begin
-            if (write_enable && write_addr != 0) begin
+            if (write_enable) begin
                 regs[write_addr] <= write_data;
             end
         end

@@ -3,7 +3,7 @@ digraph mem_topology {
     node [shape=record fontsize=10 fontname="Verdana"];
 
     cpu [label="CPU"];
-    mem_mapper [label="Memory mapper"];
+    system_bus [label="System bus"];
     program_rom [label="Program ROM"];
     led_interface [label="LED interface"];
     uart_interface [label="UART transmitter"];
@@ -14,13 +14,13 @@ digraph mem_topology {
     ddr3_arbiter [label="DDR3 arbiter"];
     ddr3 [label="Avalon-mm DDR3 controller"];
 
-    cpu -> mem_mapper [dir="both"];
-    mem_mapper -> program_rom [dir="both"];
-    mem_mapper -> led_interface [dir="both"];
-    mem_mapper -> uart_interface [dir="both"];
-    mem_mapper -> gpu_display [dir="both"];
-    mem_mapper -> gpu_draw [dir="both"];
-    mem_mapper -> ddr3_arbiter [dir="both"];
+    cpu -> system_bus [dir="both"];
+    system_bus -> program_rom [dir="both"];
+    system_bus -> led_interface [dir="both"];
+    system_bus -> uart_interface [dir="both"];
+    system_bus -> gpu_display [dir="both"];
+    system_bus -> gpu_draw [dir="both"];
+    system_bus -> ddr3_arbiter [dir="both"];
 
     gpu_display -> ddr3_arbiter [dir="both"];
     gpu_draw -> ddr3_arbiter [dir="both"];

@@ -1,6 +1,6 @@
 `default_nettype none
 
-module mem_mapper(
+module system_bus(
     input reset_n,
     input clk,
 

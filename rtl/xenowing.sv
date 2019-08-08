@@ -125,26 +125,26 @@ module xenowing(
         .avl_write_req(avl_write_req),
         .avl_size(avl_size));
 
-    logic mem_mapper_ready;
-    logic [31:0] mem_mapper_addr;
-    logic [31:0] mem_mapper_write_data;
-    logic [3:0] mem_mapper_byte_enable;
-    logic mem_mapper_write_req;
-    logic mem_mapper_read_req;
-    logic [31:0] mem_mapper_read_data;
-    logic mem_mapper_read_data_valid;
-    mem_mapper mem_mapper0(
+    logic system_bus_ready;
+    logic [31:0] system_bus_addr;
+    logic [31:0] system_bus_write_data;
+    logic [3:0] system_bus_byte_enable;
+    logic system_bus_write_req;
+    logic system_bus_read_req;
+    logic [31:0] system_bus_read_data;
+    logic system_bus_read_data_valid;
+    system_bus system_bus0(
         .reset_n(reset_n),
         .clk(clk),
 
-        .ready(mem_mapper_ready),
-        .addr(mem_mapper_addr),
-        .write_data(mem_mapper_write_data),
-        .byte_enable(mem_mapper_byte_enable),
-        .write_req(mem_mapper_write_req),
-        .read_req(mem_mapper_read_req),
-        .read_data(mem_mapper_read_data),
-        .read_data_valid(mem_mapper_read_data_valid),
+        .ready(system_bus_ready),
+        .addr(system_bus_addr),
+        .write_data(system_bus_write_data),
+        .byte_enable(system_bus_byte_enable),
+        .write_req(system_bus_write_req),
+        .read_req(system_bus_read_req),
+        .read_data(system_bus_read_data),
+        .read_data_valid(system_bus_read_data_valid),
 
         .program_rom_interface_addr(program_rom_interface_addr),
         .program_rom_interface_read_req(program_rom_read_req),
@@ -179,13 +179,13 @@ module xenowing(
         .reset_n(reset_n),
         .clk(clk),
 
-        .mem_ready(mem_mapper_ready),
-        .mem_addr(mem_mapper_addr),
-        .mem_write_data(mem_mapper_write_data),
-        .mem_byte_enable(mem_mapper_byte_enable),
-        .mem_write_req(mem_mapper_write_req),
-        .mem_read_req(mem_mapper_read_req),
-        .mem_read_data(mem_mapper_read_data),
-        .mem_read_data_valid(mem_mapper_read_data_valid));
+        .system_bus_ready(system_bus_ready),
+        .system_bus_addr(system_bus_addr),
+        .system_bus_write_data(system_bus_write_data),
+        .system_bus_byte_enable(system_bus_byte_enable),
+        .system_bus_write_req(system_bus_write_req),
+        .system_bus_read_req(system_bus_read_req),
+        .system_bus_read_data(system_bus_read_data),
+        .system_bus_read_data_valid(system_bus_read_data_valid));
 
 endmodule
