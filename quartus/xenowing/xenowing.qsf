@@ -513,9 +513,8 @@ set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[0] 
 set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[4] -to auto_signaltap_0|gnd -section_id auto_signaltap_0
 set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[13] -to auto_signaltap_0|gnd -section_id auto_signaltap_0
 set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[14] -to auto_signaltap_0|vcc -section_id auto_signaltap_0
+set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/instruction_fetch.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/system_bus.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/instruction_fetch_wait.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/instruction_fetch_issue.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/decode.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/control.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/uart/uart_receiver.sv

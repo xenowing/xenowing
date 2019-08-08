@@ -30,7 +30,7 @@ fn main() {
         panic!("Input len ({} bytes) is too large", input_len);
     }
 
-    let mut port = serialport::open("COM3").expect("Couldn't open serial port");
+    let mut port = serialport::open("COM4").expect("Couldn't open serial port");
     port.set_baud_rate(BaudRate::Baud115200).expect("Couldn't set serial port baud rate");
     port.write_data_terminal_ready(true).expect("Couldn't set serial port DTR:");
 

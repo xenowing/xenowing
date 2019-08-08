@@ -32,7 +32,7 @@ extern uint64_t xw_cycles();
 
 int main()
 {
-    xw_puts("We're in main! Let's try a rather long string as it looks like we might be having some issues and it'd be nice to know it's not timing-related at least, or something something something darkside aaaah");
+    //xw_puts("We're in main! Let's try a rather long string as it looks like we might be having some issues and it'd be nice to know it's not timing-related at least, or something something something darkside aaaah");
 
     xw_puts("Setting initial LED value");
     uint8_t leds = 5;

@@ -13,59 +13,43 @@ module cpu(
     input [31:0] system_bus_read_data,
     input system_bus_read_data_valid);
 
-    logic instruction_fetch_issue_ready;
-    logic instruction_fetch_issue_enable;
-    instruction_fetch_issue instruction_fetch_issue0(
+    logic instruction_fetch_ready;
+    logic instruction_fetch_enable;
+    instruction_fetch instruction_fetch0(
         .clk(clk),
         .reset_n(reset_n),
 
-        .ready(instruction_fetch_issue_ready),
-        .enable(instruction_fetch_issue_enable),
+        .ready(instruction_fetch_ready),
+        .enable(instruction_fetch_enable),
 
         .system_bus_ready(system_bus_ready),
         .system_bus_addr(system_bus_addr),
         .system_bus_byte_enable(system_bus_byte_enable),
         .system_bus_read_req(system_bus_read_req));
 
-    logic instruction_fetch_wait_ready;
-    logic instruction_fetch_wait_enable;
-    logic [31:0] instruction_fetch_wait_instruction;
-    instruction_fetch_wait instruction_fetch_wait0(
-        .clk(clk),
-        .reset_n(reset_n),
+    logic decode_ready;
+    logic [31:0] decode_instruction;
+    decode decode0(
+        .ready(decode_ready),
 
-        .ready(instruction_fetch_wait_ready),
-        .enable(instruction_fetch_wait_enable),
-
-        .instruction(instruction_fetch_wait_instruction),
+        .instruction(decode_instruction),
 
         .system_bus_read_data(system_bus_read_data),
         .system_bus_read_data_valid(system_bus_read_data_valid));
 
-    logic [31:0] instruction_fetch_wait_decode_instruction;
+    // TODO: This might not be the right kind of register depending on the outputs of decode and inputs of execute
+    logic [31:0] decode_execute_instruction;
     always_ff @(posedge clk) begin
-        instruction_fetch_wait_decode_instruction <= instruction_fetch_wait_instruction;
+        decode_execute_instruction <= decode_instruction;
     end
-
-    logic decode_enable;
-    decode decode0(
-        .clk(clk),
-        .reset_n(reset_n),
-
-        .enable(decode_enable),
-
-        .instruction(instruction_fetch_wait_decode_instruction));
 
     control control0(
         .clk(clk),
         .reset_n(reset_n),
 
-        .instruction_fetch_issue_ready(instruction_fetch_issue_ready),
-        .instruction_fetch_issue_enable(instruction_fetch_issue_enable),
+        .instruction_fetch_ready(instruction_fetch_ready),
+        .instruction_fetch_enable(instruction_fetch_enable),
 
-        .instruction_fetch_wait_ready(instruction_fetch_wait_ready),
-        .instruction_fetch_wait_enable(instruction_fetch_wait_enable),
-
-        .decode_enable(decode_enable));
+        .decode_ready(decode_ready));
 
 endmodule
