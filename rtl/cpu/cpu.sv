@@ -90,17 +90,33 @@ module cpu(
 
     logic execute_mem_ready;
     logic execute_mem_enable;
-    logic [31:0] execute_mem_alu_res;
+    logic [4:0] execute_mem_rd;
+    logic [31:0] execute_mem_next_pc;
+    logic execute_mem_rd_value_write_enable;
+    logic [31:0] execute_mem_rd_value_write_data;
+    logic execute_mem_read_issued;
     execute_mem execute_mem0(
         .ready(execute_mem_ready),
         .enable(execute_mem_enable),
+
+        .pc_value(pc_value),
 
         .instruction(instruction),
 
         .register_file_read_data1(register_file_read_data1),
         .register_file_read_data2(register_file_read_data2),
 
-        .alu_res(execute_mem_alu_res));
+        .rd(execute_mem_rd),
+
+        .next_pc(execute_mem_next_pc),
+
+        .rd_value_write_enable(execute_mem_rd_value_write_enable),
+        .rd_value_write_data(execute_mem_rd_value_write_data),
+
+        .read_issued(execute_mem_read_issued),
+
+        .system_bus_write_data(system_bus_write_data),
+        .system_bus_write_req(system_bus_write_req));
 
     logic writeback_ready;
     logic writeback_enable;
@@ -108,17 +124,21 @@ module cpu(
         .ready(writeback_ready),
         .enable(writeback_enable),
 
-        .pc_value(pc_value),
+        .rd(execute_mem_rd),
+
+        .next_pc(execute_mem_next_pc),
+
+        .rd_value_write_enable(execute_mem_rd_value_write_enable),
+        .rd_value_write_data(execute_mem_rd_value_write_data),
+
+        .read_issued(execute_mem_read_issued),
+
         .pc_write_data(pc_write_data),
         .pc_write_enable(pc_write_enable),
 
         .register_file_write_enable(register_file_write_enable),
         .register_file_write_addr(register_file_write_addr),
-        .register_file_write_data(register_file_write_data),
-
-        .instruction(instruction),
-
-        .alu_res(execute_mem_alu_res));
+        .register_file_write_data(register_file_write_data));
 
     logic decode_enable;
     control control0(

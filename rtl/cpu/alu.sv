@@ -40,11 +40,6 @@ module alu(
             end
             3'b110: res = lhs | rhs; // OR
             3'b111: res = lhs & rhs; // AND
-            //EQ: res = lhs == rhs ? 32'h1 : 32'h0;
-            //NE: res = lhs != rhs ? 32'h1 : 32'h0;
-            //GE: res = $signed(lhs) >= $signed(rhs) ? 32'h1 : 32'h0;
-            //GEU: res = lhs >= rhs ? 32'h1 : 32'h0;
-            //default: res = 32'h0;
         endcase
     end
 endmodule
