@@ -4,7 +4,7 @@ module execute_mem(
     output ready,
     input enable,
 
-    input [31:0] pc_value,
+    input [31:2] pc_value,
 
     input [31:0] instruction,
 
@@ -43,6 +43,8 @@ module execute_mem(
     assign i_immediate = {{20{instruction[31]}}, instruction[31:20]};
     assign u_immediate = {instruction[31:12], 12'h0};
 
+    logic [31:0] link_pc;
+
     logic [31:0] alu_lhs;
     logic [31:0] alu_rhs;
     logic [31:0] alu_res;
@@ -66,7 +68,9 @@ module execute_mem(
     always_comb begin
         ready = 1; // TODO: Block if we're interacting with the bus and it's not ready
 
-        next_pc = pc_value + 32'h4;
+        link_pc = pc_value + 32'h4;
+
+        next_pc = link_pc;
 
         read_issued = 0;
 
@@ -96,13 +100,13 @@ module execute_mem(
             end
             5'b11011: begin
                 // jal
-                rd_value_write_data = next_pc;
+                rd_value_write_data = link_pc;
                 next_pc = pc_value + jump_offset;
             end
             5'b11001: begin
                 // jalr
                 alu_rhs = i_immediate;
-                rd_value_write_data = next_pc;
+                rd_value_write_data = link_pc;
                 next_pc = alu_res;
             end
         endcase*/

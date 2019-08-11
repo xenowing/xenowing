@@ -5,7 +5,7 @@ module ddr3_interface(
     input clk,
 
     output ready,
-    input [26:0] addr,
+    input [26:2] addr,
     input [31:0] write_data,
     input [3:0] byte_enable,
     input write_req,

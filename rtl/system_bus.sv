@@ -5,7 +5,7 @@ module system_bus(
     input clk,
 
     output ready,
-    input [31:0] addr,
+    input [31:2] addr,
     input [31:0] write_data,
     input [3:0] byte_enable,
     input write_req,
@@ -34,7 +34,7 @@ module system_bus(
     input uart_transmitter_interface_read_data_valid,
 
     input ddr3_interface_ready,
-    output [26:0] ddr3_interface_addr,
+    output [26:2] ddr3_interface_addr,
     output [31:0] ddr3_interface_write_data,
     output [3:0] ddr3_interface_byte_enable,
     output ddr3_interface_write_req,
@@ -45,7 +45,7 @@ module system_bus(
     logic dummy_read_data_valid;
     logic dummy_read_data_valid_next;
 
-    assign program_rom_interface_addr = addr[13:0];
+    assign program_rom_interface_addr = addr[13:2];
 
     assign led_interface_write_data = write_data;
     assign led_interface_byte_enable = byte_enable;
@@ -54,7 +54,7 @@ module system_bus(
     assign uart_transmitter_interface_write_data = write_data;
     assign uart_transmitter_interface_byte_enable = byte_enable;
 
-    assign ddr3_interface_addr = addr[26:0];
+    assign ddr3_interface_addr = addr[26:2];
     assign ddr3_interface_write_data = write_data;
     assign ddr3_interface_byte_enable = byte_enable;
 

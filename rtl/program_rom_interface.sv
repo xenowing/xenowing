@@ -4,7 +4,7 @@ module program_rom_interface(
     input reset_n,
     input clk,
 
-    input [13:0] addr,
+    input [13:2] addr,
     input read_req,
     output [31:0] read_data,
     output logic read_data_valid,

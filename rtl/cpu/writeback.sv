@@ -6,7 +6,7 @@ module writeback(
 
     input [4:0] rd,
 
-    input [31:0] next_pc,
+    input [31:2] next_pc,
 
     input rd_value_write_enable,
     input [31:0] rd_value_write_data,

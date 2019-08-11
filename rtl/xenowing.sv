@@ -4,7 +4,7 @@ module xenowing(
     input reset_n,
     input clk,
 
-    output [13:0] program_rom_addr,
+    output [11:0] program_rom_addr,
     input [31:0] program_rom_q,
 
     output [2:0] leds,
@@ -22,7 +22,7 @@ module xenowing(
     output avl_write_req,
     output [6:0] avl_size);
 
-    logic [13:0] program_rom_interface_addr;
+    logic [13:2] program_rom_interface_addr;
     logic program_rom_read_req;
     logic [31:0] program_rom_read_data;
     logic program_rom_read_data_valid;
@@ -94,7 +94,7 @@ module xenowing(
         .uart_ready(uart_transmitter_ready));
 
     logic ddr3_interface_ready;
-    logic [26:0] ddr3_interface_addr;
+    logic [26:2] ddr3_interface_addr;
     logic [31:0] ddr3_interface_write_data;
     logic [3:0] ddr3_interface_byte_enable;
     logic ddr3_interface_write_req;
@@ -126,7 +126,7 @@ module xenowing(
         .avl_size(avl_size));
 
     logic system_bus_ready;
-    logic [31:0] system_bus_addr;
+    logic [31:2] system_bus_addr;
     logic [31:0] system_bus_write_data;
     logic [3:0] system_bus_byte_enable;
     logic system_bus_write_req;
