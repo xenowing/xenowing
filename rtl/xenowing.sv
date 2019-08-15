@@ -22,7 +22,7 @@ module xenowing(
     output avl_write_req,
     output [6:0] avl_size);
 
-    logic [13:2] program_rom_interface_addr;
+    logic [11:0] program_rom_interface_addr;
     logic program_rom_read_req;
     logic [31:0] program_rom_read_data;
     logic program_rom_read_data_valid;
@@ -38,11 +38,11 @@ module xenowing(
         .program_rom_addr(program_rom_addr),
         .program_rom_q(program_rom_q));
 
-    logic [31:0] led_interface_write_data;
-    logic [3:0] led_interface_byte_enable;
+    logic [2:0] led_interface_write_data;
+    logic led_interface_byte_enable;
     logic led_interface_write_req;
     logic led_interface_read_req;
-    logic [31:0] led_interface_read_data;
+    logic [2:0] led_interface_read_data;
     logic led_interface_read_data_valid;
     led_interface led_interface0(
         .reset_n(reset_n),

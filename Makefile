@@ -16,10 +16,15 @@ else
 	endif
 endif
 
+KAZE=rtl/kaze.py
+
+GENERATED_RTL=rtl/_generated.sv
+GENERATED_RTL_GENERATOR=rtl/gen_modules.py
+
 XENOWING_PREFIX=xenowing
 XENOWING_VM_PREFIX=V$(XENOWING_PREFIX)
 XENOWING_DRIVER=$(OBJ_DIR)/$(XENOWING_VM_PREFIX)
-XENOWING_DRIVER_RTL=rtl/xenowing.sv rtl/program_rom_interface.sv rtl/led_interface.sv rtl/uart/uart_clock_divider.sv rtl/uart/uart_transmitter.sv rtl/uart/uart_transmitter_interface.sv rtl/fifo.sv rtl/ddr3_interface.sv rtl/system_bus.sv rtl/cpu/pc.sv rtl/cpu/register_file.sv rtl/cpu/instruction_fetch.sv rtl/cpu/decode.sv rtl/cpu/alu.sv rtl/cpu/execute_mem.sv rtl/cpu/writeback.sv rtl/cpu/control.sv rtl/cpu/cpu.sv
+XENOWING_DRIVER_RTL=rtl/xenowing.sv $(GENERATED_RTL) rtl/uart/uart_clock_divider.sv rtl/uart/uart_transmitter.sv rtl/uart/uart_transmitter_interface.sv rtl/fifo.sv rtl/ddr3_interface.sv rtl/system_bus.sv rtl/cpu/register_file.sv rtl/cpu/alu.sv rtl/cpu/execute_mem.sv rtl/cpu/writeback.sv rtl/cpu/control.sv rtl/cpu/cpu.sv
 XENOWING_DRIVER_SRC=sim/xenowing_driver.cpp
 
 XENOWING_TEST_DIR=sim/xenowing-test
@@ -56,7 +61,7 @@ RM_FLAGS=-rf
 
 .PHONY: all dirs test docs clean
 
-all: dirs $(XENOWING_DRIVER) $(XENOWING_TEST) $(ALU_DRIVER) $(ALU_TEST) $(DDR3_TEST_DRIVER) $(DDR3_TEST) docs
+all: dirs $(GENERATED_RTL) $(XENOWING_DRIVER) $(XENOWING_TEST) $(ALU_DRIVER) $(ALU_TEST) $(DDR3_TEST_DRIVER) $(DDR3_TEST) docs
 
 dirs: $(OBJ_DIR) $(TRACE_DIR)
 
@@ -65,6 +70,9 @@ $(OBJ_DIR):
 
 $(TRACE_DIR):
 	mkdir -p $(TRACE_DIR)
+
+$(GENERATED_RTL): $(GENERATED_RTL_GENERATOR) $(KAZE)
+	$(GENERATED_RTL_GENERATOR) $(GENERATED_RTL)
 
 $(XENOWING_DRIVER): $(XENOWING_DRIVER_RTL) $(XENOWING_DRIVER_SRC)
 	$(VERILATOR) $(VERILATOR_FLAGS) -cc $(XENOWING_DRIVER_RTL) --exe $(XENOWING_DRIVER_SRC)
@@ -101,6 +109,7 @@ test: dirs $(XENOWING_DRIVER) $(XENOWING_TEST) $(ALU_DRIVER) $(ALU_TEST) $(DDR3_
 clean:
 	$(RM) $(RM_FLAGS) $(OBJ_DIR)
 	$(RM) $(RM_FLAGS) $(TRACE_DIR)
+	$(RM) $(RM_FLAGS) $(GENERATED_RTL)
 	cd $(XENOWING_TEST_DIR) && cargo clean
 	cd $(ALU_TEST_DIR) && cargo clean
 	cd $(DDR3_TEST_DIR) && cargo clean

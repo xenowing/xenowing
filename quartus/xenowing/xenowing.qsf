@@ -513,14 +513,13 @@ set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[0] 
 set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[4] -to auto_signaltap_0|gnd -section_id auto_signaltap_0
 set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[13] -to auto_signaltap_0|gnd -section_id auto_signaltap_0
 set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[14] -to auto_signaltap_0|vcc -section_id auto_signaltap_0
+set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/_generated.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/writeback.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/execute_mem.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/alu.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/pc.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/register_file.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/instruction_fetch.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/system_bus.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/decode.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/control.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/uart/uart_receiver.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/rom_loader.sv
@@ -530,7 +529,6 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/uart/uart_clock_divider
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/ddr3_interface.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/fifo.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/xenowing.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/program_rom_interface.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/led_interface.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/hw_top.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/cpu.sv

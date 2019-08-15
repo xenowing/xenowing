@@ -6,3 +6,5 @@ Cargo.lock
 db/
 incremental_db/
 output_files/
+__pycache__/
+rtl/_generated.sv

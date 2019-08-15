@@ -5,7 +5,7 @@ module cpu(
     input clk,
 
     input system_bus_ready,
-    output [31:2] system_bus_addr,
+    output [29:0] system_bus_addr,
     output [31:0] system_bus_write_data,
     output [3:0] system_bus_byte_enable,
     output system_bus_write_req,
@@ -13,8 +13,8 @@ module cpu(
     input [31:0] system_bus_read_data,
     input system_bus_read_data_valid);
 
-    logic [31:2] pc_value;
-    logic [31:2] pc_write_data;
+    logic [31:0] pc_value;
+    logic [31:0] pc_write_data;
     logic pc_write_enable;
     pc pc0(
         .clk(clk),
@@ -55,7 +55,7 @@ module cpu(
         .ready(instruction_fetch_ready),
         .enable(instruction_fetch_enable),
 
-        .pc(pc_value),
+        .pc(pc_value[31:2]),
 
         .system_bus_ready(system_bus_ready),
         .system_bus_addr(system_bus_addr),
@@ -65,6 +65,9 @@ module cpu(
     logic decode_ready;
     logic [31:0] decode_instruction;
     decode decode0(
+        .clk(clk),
+        .reset_n(reset_n),
+
         .ready(decode_ready),
 
         .instruction(decode_instruction),
@@ -91,7 +94,7 @@ module cpu(
     logic execute_mem_ready;
     logic execute_mem_enable;
     logic [4:0] execute_mem_rd;
-    logic [31:2] execute_mem_next_pc;
+    logic [31:0] execute_mem_next_pc;
     logic execute_mem_rd_value_write_enable;
     logic [31:0] execute_mem_rd_value_write_data;
     logic execute_mem_read_issued;
