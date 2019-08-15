@@ -50,6 +50,41 @@ def pc():
 
     return mod
 
+def control():
+    mod = Module('control')
+
+    num_states = 4
+    state_instruction_fetch = 0
+    state_decode = 1
+    state_execute_mem = 2
+    state_writeback = 3
+    state = reg(num_states, 1 << state_instruction_fetch)
+    next_state = state
+    next_state = mux(
+        next_state,
+        lit(1 << state_decode, num_states),
+        state.bit(state_instruction_fetch) & mod.input('instruction_fetch_ready', 1))
+    next_state = mux(
+        next_state,
+        lit(1 << state_execute_mem, num_states),
+        state.bit(state_decode) & mod.input('decode_ready', 1))
+    next_state = mux(
+        next_state,
+        lit(1 << state_writeback, num_states),
+        state.bit(state_execute_mem) & mod.input('execute_mem_ready', 1))
+    next_state = mux(
+        next_state,
+        lit(1 << state_instruction_fetch, num_states),
+        state.bit(state_writeback) & mod.input('writeback_ready', 1))
+    state.drive_next_with(next_state)
+
+    mod.output('instruction_fetch_enable', state.bit(state_instruction_fetch))
+    mod.output('decode_enable', state.bit(state_decode))
+    mod.output('execute_mem_enable', state.bit(state_execute_mem))
+    mod.output('writeback_enable', state.bit(state_writeback))
+
+    return mod
+
 def instruction_fetch():
     mod = Module('instruction_fetch')
 
@@ -163,6 +198,7 @@ if __name__ == '__main__':
 
     modules = [
         pc(),
+        control(),
         instruction_fetch(),
         decode(),
         #fifo(),
