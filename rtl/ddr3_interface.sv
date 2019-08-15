@@ -35,7 +35,7 @@ module ddr3_interface(
         .full(addr2_fifo_full),
 
         .write_data(addr[2]),
-        .write_enable(avl_ready && read_req && !addr2_fifo_full),
+        .write_enable(avl_ready && read_req),
 
         .read_data(addr2_fifo_read_data),
         .read_enable(avl_rdata_valid));

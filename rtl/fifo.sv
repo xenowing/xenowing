@@ -36,12 +36,12 @@ module fifo#(parameter data_width = 32, depth_bits = 4)(
 
         count_next = count;
 
-        if (write_enable) begin
+        if (write_enable && !full) begin
             write_addr_next = write_addr + 1;
             count_next = count_next + 1;
         end
 
-        if (read_enable) begin
+        if (read_enable && !empty) begin
             read_addr_next = read_addr + 1;
             count_next = count_next - 1;
         end
