@@ -35,11 +35,20 @@ class Instruction:
     def word(self):
         return self.source
 
+    def opcode(self):
+        return self.source.bits(6, 0)
+
     def rs1(self):
         return self.source.bits(19, 15)
 
     def rs2(self):
         return self.source.bits(24, 20)
+
+    def funct3(self):
+        return self.source.bits(14, 12)
+
+    def load_offset(self):
+        return repeat(20, self.source.bit(31)).concat(self.source.bits(31, 20))
 
 def pc():
     mod = Module('pc')
@@ -185,6 +194,100 @@ def alu():
 
     return mod
 
+def system_bus():
+    mod = Module('system_bus')
+
+    addr = mod.input('addr', 30)
+    write_data = mod.input('write_data', 32)
+    byte_enable = mod.input('byte_enable', 4)
+    write_req = mod.input('write_req', 1)
+    read_req = mod.input('read_req', 1)
+
+    mod.output('program_rom_interface_addr', addr.bits(11, 0))
+
+    mod.output('led_interface_write_data', write_data.bits(2, 0))
+    mod.output('led_interface_byte_enable', byte_enable.bit(0))
+
+    mod.output('uart_transmitter_interface_addr', addr.bit(0))
+    mod.output('uart_transmitter_interface_write_data', write_data)
+    mod.output('uart_transmitter_interface_byte_enable', byte_enable)
+
+    mod.output('ddr3_interface_addr', addr.bits(24, 0))
+    mod.output('ddr3_interface_write_data', write_data)
+    mod.output('ddr3_interface_byte_enable', byte_enable)
+
+    dummy_read_data_valid = reg(1)
+    dummy_read_data_valid_next = dummy_read_data_valid
+
+    ready = HIGH
+    read_data = mod.input('program_rom_interface_read_data', 32)
+    read_data_valid = dummy_read_data_valid
+
+    with If(mod.input('program_rom_interface_read_data_valid', 1)):
+        read_data_valid = HIGH
+
+    with If(mod.input('led_interface_read_data_valid', 1)):
+        read_data = lit(0, 29).concat(mod.input('led_interface_read_data', 3))
+        read_data_valid = HIGH
+
+    with If(mod.input('uart_transmitter_interface_read_data_valid', 1)):
+        read_data = mod.input('uart_transmitter_interface_read_data', 32)
+        read_data_valid = HIGH
+
+    with If(mod.input('ddr3_interface_read_data_valid', 1)):
+        read_data = mod.input('ddr3_interface_read_data', 32)
+        read_data_valid = HIGH
+
+    program_rom_interface_read_req = LOW
+
+    led_interface_write_req = LOW
+    led_interface_read_req = LOW
+
+    uart_transmitter_interface_write_req = LOW
+    uart_transmitter_interface_read_req = LOW
+
+    ddr3_interface_write_req = LOW
+    ddr3_interface_read_req = LOW
+
+    # TODO: switch/case construct?
+    with If(addr.bits(29, 26).eq(lit(0, 4))):
+        dummy_read_data_valid_next = read_req
+
+    with If(addr.bits(29, 26).eq(lit(1, 4))):
+        program_rom_interface_read_req = read_req
+
+    with If(addr.bits(29, 26).eq(lit(2, 4))):
+        led_interface_write_req = write_req
+        led_interface_read_req = read_req
+
+        with If(addr.bit(22)):
+            uart_transmitter_interface_write_req = write_req
+            uart_transmitter_interface_read_req = read_req
+
+    with If(addr.bits(29, 26).eq(lit(3, 4))):
+        ready = mod.input('ddr3_interface_ready', 1)
+        ddr3_interface_write_req = write_req
+        ddr3_interface_read_req = read_req
+
+    dummy_read_data_valid.drive_next_with(dummy_read_data_valid_next)
+
+    mod.output('ready', ready)
+    mod.output('read_data', read_data)
+    mod.output('read_data_valid', read_data_valid)
+
+    mod.output('program_rom_interface_read_req', program_rom_interface_read_req)
+
+    mod.output('led_interface_write_req', led_interface_write_req)
+    mod.output('led_interface_read_req', led_interface_read_req)
+
+    mod.output('uart_transmitter_interface_write_req', uart_transmitter_interface_write_req)
+    mod.output('uart_transmitter_interface_read_req', uart_transmitter_interface_read_req)
+
+    mod.output('ddr3_interface_write_req', ddr3_interface_write_req)
+    mod.output('ddr3_interface_read_req', ddr3_interface_read_req)
+
+    return mod
+
 if __name__ == '__main__':
     output_file_name = argv[1]
 
@@ -198,6 +301,7 @@ if __name__ == '__main__':
         program_rom_interface(),
         #alu(),
         #ugly(),
+        system_bus(),
     ]
 
     w = CodeWriter()

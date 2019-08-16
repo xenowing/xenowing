@@ -65,6 +65,12 @@ class Source(Signal):
     def __invert__(self):
         return UnOp(self, '~')
 
+    def eq(self, other):
+        return BinOp(self, other, '==', 1)
+
+    def ne(self, other):
+        return BinOp(self, other, '!=', 1)
+
     def __and__(self, other):
         return BinOp(self, other, '&')
 
@@ -215,7 +221,7 @@ class UnOp(Source):
         self.source.gen_assign_expr(c, w)
 
 class BinOp(Source):
-    def __init__(self, a, b, op):
+    def __init__(self, a, b, op, num_bits = None):
         if a.num_bits() != b.num_bits():
             raise Exception('sources have different numbers of bits ({} and {}, respectively)'.format(a.num_bits(), b.num_bits()))
 
@@ -223,8 +229,12 @@ class BinOp(Source):
         self.b = b
         self.op = op
 
+        if num_bits is None:
+            num_bits = a.num_bits()
+        self._num_bits = num_bits
+
     def num_bits(self):
-        return self.a.num_bits()
+        return self._num_bits
 
     def gen_node_decls(self, c, w):
         self.a.gen_node_decls(c, w)
