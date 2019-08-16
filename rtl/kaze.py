@@ -1,3 +1,6 @@
+import ctypes
+import inspect
+
 # Lib dependencies
 
 class CodeWriter:
@@ -281,6 +284,7 @@ class Ternary(Source):
         ensure_source(b)
         if a.num_bits() != b.num_bits():
             raise Exception('sources have different numbers of bits ({} and {}, respectively)'.format(a.num_bits(), b.num_bits()))
+        ensure_source(sel)
         sel.ensure_num_bits(1)
 
         self.a = a
@@ -372,6 +376,25 @@ def lit(value, num_bits):
 
 def mux(a, b, sel):
     return Ternary(a, b, sel)
+
+class If:
+    def __init__(self, sel):
+        self.sel = sel
+
+    def __enter__(self):
+        self.locals = dict(inspect.currentframe().f_back.f_locals)
+        # TODO: Error if locals doesn't contain any Sources
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        frame = inspect.currentframe().f_back
+        new_locals = dict(frame.f_locals)
+        for name, value in new_locals.items():
+            if name not in self.locals:
+                raise Exception('New local added in If block: {}. New locals are not allowed in If blocks.'.format(name))
+            old_value = self.locals[name]
+            if value != old_value:
+                frame.f_locals[name] = mux(old_value, value, self.sel)
+            ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object(frame), ctypes.c_int(0))
 
 class Module:
     def __init__(self, name):

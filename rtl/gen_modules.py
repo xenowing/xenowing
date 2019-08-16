@@ -60,22 +60,14 @@ def control():
     state_writeback = 3
     state = reg(num_states, 1 << state_instruction_fetch)
     next_state = state
-    next_state = mux(
-        next_state,
-        lit(1 << state_decode, num_states),
-        state.bit(state_instruction_fetch) & mod.input('instruction_fetch_ready', 1))
-    next_state = mux(
-        next_state,
-        lit(1 << state_execute_mem, num_states),
-        state.bit(state_decode) & mod.input('decode_ready', 1))
-    next_state = mux(
-        next_state,
-        lit(1 << state_writeback, num_states),
-        state.bit(state_execute_mem) & mod.input('execute_mem_ready', 1))
-    next_state = mux(
-        next_state,
-        lit(1 << state_instruction_fetch, num_states),
-        state.bit(state_writeback) & mod.input('writeback_ready', 1))
+    with If(state.bit(state_instruction_fetch) & mod.input('instruction_fetch_ready', 1)):
+        next_state = lit(1 << state_decode, num_states)
+    with If(state.bit(state_decode) & mod.input('decode_ready', 1)):
+        next_state = lit(1 << state_execute_mem, num_states)
+    with If(state.bit(state_execute_mem) & mod.input('execute_mem_ready', 1)):
+        next_state = lit(1 << state_writeback, num_states)
+    with If(state.bit(state_writeback) & mod.input('writeback_ready', 1)):
+        next_state = lit(1 << state_instruction_fetch, num_states)
     state.drive_next_with(next_state)
 
     mod.output('instruction_fetch_enable', state.bit(state_instruction_fetch))
