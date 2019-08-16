@@ -36,27 +36,27 @@ def pc():
 def control():
     mod = Module('control')
 
-    num_states = 4
+    num_state_bits = 2
     state_instruction_fetch = 0
     state_decode = 1
     state_execute_mem = 2
     state_writeback = 3
-    state = reg(num_states, 1 << state_instruction_fetch)
+    state = reg(num_state_bits, state_instruction_fetch)
     next_state = state
-    with If(state.bit(state_instruction_fetch) & mod.input('instruction_fetch_ready', 1)):
-        next_state = lit(1 << state_decode, num_states)
-    with If(state.bit(state_decode) & mod.input('decode_ready', 1)):
-        next_state = lit(1 << state_execute_mem, num_states)
-    with If(state.bit(state_execute_mem) & mod.input('execute_mem_ready', 1)):
-        next_state = lit(1 << state_writeback, num_states)
-    with If(state.bit(state_writeback) & mod.input('writeback_ready', 1)):
-        next_state = lit(1 << state_instruction_fetch, num_states)
+    with If(state.eq(lit(state_instruction_fetch, num_state_bits)) & mod.input('instruction_fetch_ready', 1)):
+        next_state = lit(state_decode, num_state_bits)
+    with If(state.eq(lit(state_decode, num_state_bits)) & mod.input('decode_ready', 1)):
+        next_state = lit(state_execute_mem, num_state_bits)
+    with If(state.eq(lit(state_execute_mem, num_state_bits)) & mod.input('execute_mem_ready', 1)):
+        next_state = lit(state_writeback, num_state_bits)
+    with If(state.eq(lit(state_writeback, num_state_bits)) & mod.input('writeback_ready', 1)):
+        next_state = lit(state_instruction_fetch, num_state_bits)
     state.drive_next_with(next_state)
 
-    mod.output('instruction_fetch_enable', state.bit(state_instruction_fetch))
-    mod.output('decode_enable', state.bit(state_decode))
-    mod.output('execute_mem_enable', state.bit(state_execute_mem))
-    mod.output('writeback_enable', state.bit(state_writeback))
+    mod.output('instruction_fetch_enable', state.eq(lit(state_instruction_fetch, num_state_bits)))
+    mod.output('decode_enable', state.eq(lit(state_decode, num_state_bits)))
+    mod.output('execute_mem_enable', state.eq(lit(state_execute_mem, num_state_bits)))
+    mod.output('writeback_enable', state.eq(lit(state_writeback, num_state_bits)))
 
     return mod
 
