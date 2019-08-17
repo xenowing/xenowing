@@ -48,6 +48,9 @@ module cpu(
 
     logic instruction_fetch_ready;
     logic instruction_fetch_enable;
+    logic [29:0] instruction_fetch_bus_addr;
+    logic [3:0] instruction_fetch_bus_byte_enable;
+    logic instruction_fetch_bus_read_req;
     instruction_fetch instruction_fetch0(
         .clk(clk),
         .reset_n(reset_n),
@@ -58,9 +61,9 @@ module cpu(
         .pc(pc_value[31:2]),
 
         .bus_ready(system_bus_ready),
-        .bus_addr(system_bus_addr),
-        .bus_byte_enable(system_bus_byte_enable),
-        .bus_read_req(system_bus_read_req));
+        .bus_addr(instruction_fetch_bus_addr),
+        .bus_byte_enable(instruction_fetch_bus_byte_enable),
+        .bus_read_req(instruction_fetch_bus_read_req));
 
     logic decode_ready;
     logic [31:0] decode_instruction;
@@ -73,10 +76,7 @@ module cpu(
         .instruction(decode_instruction),
 
         .bus_read_data(system_bus_read_data),
-        .bus_read_data_valid(system_bus_read_data_valid),
-
-        .register_file_read_addr1(register_file_read_addr1),
-        .register_file_read_addr2(register_file_read_addr2));
+        .bus_read_data_valid(system_bus_read_data_valid));
 
     logic [31:0] instruction;
     logic [31:0] instruction_next;
@@ -90,6 +90,9 @@ module cpu(
     always_ff @(posedge clk) begin
         instruction <= instruction_next;
     end
+
+    assign register_file_read_addr1 = instruction[19:15]; // rs1
+    assign register_file_read_addr2 = instruction[24:20]; // rs2
 
     logic [2:0] alu_op;
     logic alu_op_mod;
@@ -108,7 +111,11 @@ module cpu(
     logic [31:0] execute_mem_next_pc;
     logic execute_mem_rd_value_write_enable;
     logic [31:0] execute_mem_rd_value_write_data;
-    logic execute_mem_read_issued;
+    logic execute_mem_load_issued;
+    logic [29:0] execute_mem_bus_addr;
+    logic [3:0] execute_mem_bus_byte_enable;
+    logic execute_mem_bus_read_req;
+    logic execute_mem_bus_write_req;
     execute_mem execute_mem0(
         .ready(execute_mem_ready),
         .enable(execute_mem_enable),
@@ -129,7 +136,21 @@ module cpu(
         .next_pc(execute_mem_next_pc),
 
         .rd_value_write_enable(execute_mem_rd_value_write_enable),
-        .rd_value_write_data(execute_mem_rd_value_write_data));
+        .rd_value_write_data(execute_mem_rd_value_write_data),
+
+        .load_issued(execute_mem_load_issued),
+
+        .bus_ready(system_bus_ready),
+        .bus_addr(execute_mem_bus_addr),
+        .bus_write_data(system_bus_write_data),
+        .bus_byte_enable(execute_mem_bus_byte_enable),
+        .bus_read_req(execute_mem_bus_read_req),
+        .bus_write_req(execute_mem_bus_write_req));
+
+    assign system_bus_addr = (execute_mem_bus_read_req | execute_mem_bus_write_req) ? execute_mem_bus_addr : instruction_fetch_bus_addr;
+    assign system_bus_byte_enable = (execute_mem_bus_read_req | execute_mem_bus_write_req) ? execute_mem_bus_byte_enable : instruction_fetch_bus_byte_enable;
+    assign system_bus_read_req = execute_mem_bus_read_req | instruction_fetch_bus_read_req;
+    assign system_bus_write_req = execute_mem_bus_write_req;
 
     logic writeback_ready;
     logic writeback_enable;
@@ -147,9 +168,14 @@ module cpu(
         .pc_write_data(pc_write_data),
         .pc_write_enable(pc_write_enable),
 
+        .load_issued(execute_mem_load_issued),
+
         .register_file_write_enable(register_file_write_enable),
         .register_file_write_addr(register_file_write_addr),
-        .register_file_write_data(register_file_write_data));
+        .register_file_write_data(register_file_write_data),
+
+        .bus_read_data(system_bus_read_data),
+        .bus_read_data_valid(system_bus_read_data_valid));
 
     logic decode_enable;
     control control0(

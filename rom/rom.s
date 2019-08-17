@@ -4,6 +4,9 @@
     .global _entry
 _entry:
     li x1, 0xdeadbeef
+    li x2, 0x30000000
+    sw x1, 0(x2)
+    lw x3, 0(x2)
 
 wait:
     j wait

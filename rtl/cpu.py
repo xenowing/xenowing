@@ -95,24 +95,25 @@ def decode():
 
     instruction = Instruction(mod.input('bus_read_data', 32))
     mod.output('instruction', instruction.word())
-    mod.output('register_file_read_addr1', instruction.rs1())
-    mod.output('register_file_read_addr2', instruction.rs2())
 
     return mod
 
 def execute_mem():
     mod = Module('execute_mem')
 
-    mod.output('ready', HIGH) # TODO: Disable if we're trying to issue a mem read/write but the bus isn't ready
+    ready = HIGH
     enable = mod.input('enable', 1)
 
     instruction = Instruction(mod.input('instruction', 32))
 
-    mod.output('alu_op', instruction.funct3())
+    rs1_value = mod.input('register_file_read_data1', 32)
+    rs2_value = mod.input('register_file_read_data2', 32)
+
+    alu_op = instruction.funct3()
     alu_op_mod = LOW
-    alu_lhs = mod.input('register_file_read_data1', 32)
+    alu_lhs = rs1_value
     mod.output('alu_lhs', alu_lhs)
-    alu_rhs = mod.input('register_file_read_data2', 32)
+    alu_rhs = rs2_value
     alu_res = mod.input('alu_res', 32)
 
     reg_comp = instruction.opcode().bit(3)
@@ -129,8 +130,6 @@ def execute_mem():
         with If(instruction.funct3().eq(lit(0b001, 3)) | instruction.funct3().eq(lit(0b101, 3))):
             alu_op_mod = instruction.word().bit(30)
             alu_rhs = lit(0, 27).concat(instruction.rs2())
-
-    mod.output('alu_op_mod', alu_op_mod)
 
     pc = mod.input('pc', 32)
     link_pc = (pc + lit(4, 32)).bits(31, 0)
@@ -158,7 +157,48 @@ def execute_mem():
         next_pc = alu_res
         rd_value_write_data = link_pc
 
+    bus_ready = mod.input('bus_ready', 1)
+    mod.output('bus_addr', alu_res.bits(31, 2)) # TODO: Consider separate adder for load/store offsets
+    bus_byte_enable = lit(0b1111, 4)
+
+    bus_read_req = LOW
+    load_issued = LOW
+
+    with If(instruction.opcode().eq(lit(0b00000, 5))):
+        # loads
+        ready = bus_ready
+        alu_op = lit(0, 3)
+        alu_op_mod = LOW
+        alu_rhs = instruction.load_offset()
+        bus_read_req = enable
+        load_issued = HIGH
+        # TODO: Different load types, byte enables, read data shifts
+
+    mod.output('bus_read_req', bus_read_req)
+    mod.output('load_issued', load_issued)
+
+    bus_write_data = rs2_value
+    bus_write_req = LOW
+
+    with If(instruction.opcode().eq(lit(0b01000, 5))):
+        # stores
+        ready = bus_ready
+        alu_op = lit(0, 3)
+        alu_op_mod = LOW
+        alu_rhs = instruction.store_offset()
+        rd_value_write_enable = LOW
+        bus_write_req = enable
+        # TODO: Different store types, byte enables, write data shifts
+
+    mod.output('ready', ready)
+
+    mod.output('alu_op', alu_op)
+    mod.output('alu_op_mod', alu_op_mod)
     mod.output('alu_rhs', alu_rhs)
+
+    mod.output('bus_byte_enable', bus_byte_enable)
+    mod.output('bus_write_data', bus_write_data)
+    mod.output('bus_write_req', bus_write_req)
 
     # Branch instructions
     branch_taken = LOW
@@ -187,7 +227,14 @@ def execute_mem():
 def writeback():
     mod = Module('writeback')
 
-    ready = HIGH # TODO: Should be high if we didn't issue a mem read last stage, or if we did and we have data ready this cycle
+    ready = HIGH
+
+    register_file_write_data = mod.input('rd_value_write_data', 32)
+
+    with If(mod.input('load_issued', 1)):
+        ready = mod.input('bus_read_data_valid', 1)
+        register_file_write_data = mod.input('bus_read_data', 32)
+
     mod.output('ready', ready)
 
     instruction = Instruction(mod.input('instruction', 32))
@@ -198,7 +245,7 @@ def writeback():
     mod.output('pc_write_enable', enable & ready)
 
     mod.output('register_file_write_addr', instruction.rd())
-    mod.output('register_file_write_data', mod.input('rd_value_write_data', 32))
+    mod.output('register_file_write_data', register_file_write_data)
     mod.output('register_file_write_enable', enable & mod.input('rd_value_write_enable', 1) & instruction.rd().ne(lit(0, 5)))
 
     return mod
