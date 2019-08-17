@@ -204,12 +204,12 @@ def execute_mem():
     branch_taken = LOW
     # TODO: switch/case construct?
     with If(instruction.funct3().bits(2, 1).eq(lit(0b00, 2))):
-        branch_taken = alu_lhs.eq(alu_rhs)
+        branch_taken = rs1_value.eq(rs2_value)
     with If(instruction.funct3().bits(2, 1).eq(lit(0b10, 2))):
-        branch_taken = alu_lhs.lt_signed(alu_rhs)
+        branch_taken = rs1_value.lt_signed(rs2_value)
     with If(instruction.funct3().bits(2, 1).eq(lit(0b11, 2))):
-        branch_taken = alu_lhs < alu_rhs
-    with If(~instruction.funct3().bit(0)):
+        branch_taken = rs1_value < rs2_value
+    with If(instruction.funct3().bit(0)):
         branch_taken = ~branch_taken
     with If(instruction.opcode().eq(lit(0b11000, 5))):
         rd_value_write_enable = LOW
