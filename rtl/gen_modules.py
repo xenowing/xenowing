@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from kaze import *
-from cpu import *
+import cpu
 from sys import argv
 
 def fifo(data_width, depth_bits):
@@ -162,11 +162,12 @@ if __name__ == '__main__':
     output_file_name = argv[1]
 
     modules = [
-        pc(),
-        control(),
-        instruction_fetch(),
-        decode(),
-        #alu(),
+        cpu.pc(),
+        cpu.control(),
+        cpu.instruction_fetch(),
+        cpu.decode(),
+        cpu.execute_mem(),
+        cpu.writeback(),
         #fifo(),
         led_interface(),
         program_rom_interface(),

@@ -3,6 +3,11 @@
 
     .global _entry
 _entry:
+    li x1, 0xdeadbeef
+
+wait:
+    j wait
+
     j stub
 
     .section .text.stub

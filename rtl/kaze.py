@@ -34,6 +34,8 @@ class CodegenContext:
         self.node_names = dict()
         self.nodes_decl_generated = set()
 
+        self.queued_assignments = []
+
     def get_node_name(self, node):
         if not node in self.node_names:
             self.node_names[node] = 'node{}'.format(len(self.node_names))
@@ -44,6 +46,9 @@ class CodegenContext:
 
     def mark_node_has_decl_generated(self, node):
         self.nodes_decl_generated.add(node)
+
+    def queue_assignment(self, name, value):
+        self.queued_assignments.append((name, value))
 
 # Lib classes
 
@@ -79,6 +84,33 @@ class Source(Signal):
 
     def __xor__(self, other):
         return BinOp(self, other, '^')
+
+    def __add__(self, other):
+        return BinOp(self, other, '+', max(self.num_bits(), other.num_bits()) + 1)
+
+    def __lt__(self, other):
+        return BinOp(self, other, '<', 1)
+
+    def __le__(self, other):
+        return BinOp(self, other, '<=', 1)
+
+    def __gt__(self, other):
+        return BinOp(self, other, '>', 1)
+
+    def __ge__(self, other):
+        return BinOp(self, other, '>=', 1)
+
+    def lt_signed(self, other):
+        return BinOp(self, other, '<', 1, True)
+
+    def le_signed(self, other):
+        return BinOp(self, other, '<=', 1, True)
+
+    def gt_signed(self, other):
+        return BinOp(self, other, '>', 1, True)
+
+    def ge_signed(self, other):
+        return BinOp(self, other, '>=', 1, True)
 
     def bit(self, index):
         return Bit(self, index)
@@ -129,6 +161,7 @@ class Register(Source, Sink):
         if c.node_has_decl_generated(self):
             return
         c.mark_node_has_decl_generated(self)
+        self.next.gen_node_decls(c, w)
         node_name = c.get_node_name(self)
         w.append_indent()
         w.append('logic ')
@@ -142,11 +175,7 @@ class Register(Source, Sink):
             w.append('[{}:{}] '.format(self.num_bits() - 1, 0))
         w.append('{}_next;'.format(node_name))
         w.append_newline()
-        w.append_indent()
-        w.append('assign {}_next = '.format(node_name))
-        self.next.gen_assign_expr(c, w)
-        w.append(';')
-        w.append_newline()
+        c.queue_assignment('{}_next'.format(node_name), self.next)
         w.append_line('always_ff @(posedge clk) begin')
         w.indent()
         w.append_line('if (!reset_n) begin')
@@ -221,7 +250,7 @@ class UnOp(Source):
         self.source.gen_assign_expr(c, w)
 
 class BinOp(Source):
-    def __init__(self, a, b, op, num_bits = None):
+    def __init__(self, a, b, op, num_bits = None, signed = False):
         if a.num_bits() != b.num_bits():
             raise Exception('sources have different numbers of bits ({} and {}, respectively)'.format(a.num_bits(), b.num_bits()))
 
@@ -233,6 +262,8 @@ class BinOp(Source):
             num_bits = a.num_bits()
         self._num_bits = num_bits
 
+        self.signed = signed
+
     def num_bits(self):
         return self._num_bits
 
@@ -242,9 +273,17 @@ class BinOp(Source):
 
     def gen_assign_expr(self, c, w):
         w.append('('.format(self.op))
+        if self.signed:
+            w.append('$signed(')
         self.a.gen_assign_expr(c, w)
+        if self.signed:
+            w.append(')')
         w.append(' {} '.format(self.op))
+        if self.signed:
+            w.append('$signed(')
         self.b.gen_assign_expr(c, w)
+        if self.signed:
+            w.append(')')
         w.append(')')
 
 class Bit(Source):
@@ -259,11 +298,21 @@ class Bit(Source):
         return 1
 
     def gen_node_decls(self, c, w):
+        if c.node_has_decl_generated(self):
+            return
+        c.mark_node_has_decl_generated(self)
         self.source.gen_node_decls(c, w)
+        node_name = c.get_node_name(self)
+        w.append_indent()
+        w.append('logic ')
+        if self.source.num_bits() > 1:
+            w.append('[{}:{}] '.format(self.source.num_bits() - 1, 0))
+        w.append('{};'.format(node_name))
+        w.append_newline()
+        c.queue_assignment(node_name, self.source)
 
     def gen_assign_expr(self, c, w):
-        self.source.gen_assign_expr(c, w)
-        w.append('[{}]'.format(self.index))
+        w.append('{}[{}]'.format(c.get_node_name(self), self.index))
 
 class Bits(Source):
     def __init__(self, source, range_high, range_low):
@@ -282,11 +331,21 @@ class Bits(Source):
         return self.range_high - self.range_low + 1
 
     def gen_node_decls(self, c, w):
+        if c.node_has_decl_generated(self):
+            return
+        c.mark_node_has_decl_generated(self)
         self.source.gen_node_decls(c, w)
+        node_name = c.get_node_name(self)
+        w.append_indent()
+        w.append('logic ')
+        if self.source.num_bits() > 1:
+            w.append('[{}:{}] '.format(self.source.num_bits() - 1, 0))
+        w.append('{};'.format(node_name))
+        w.append_newline()
+        c.queue_assignment(node_name, self.source)
 
     def gen_assign_expr(self, c, w):
-        self.source.gen_assign_expr(c, w)
-        w.append('[{}:{}]'.format(self.range_high, self.range_low))
+        w.append('{}[{}:{}]'.format(c.get_node_name(self), self.range_high, self.range_low))
 
 class Ternary(Source):
     def __init__(self, a, b, sel):
@@ -379,7 +438,7 @@ class Literal(Source):
         pass
 
     def gen_assign_expr(self, c, w):
-        w.append('{}\'h{}'.format(self.num_bits(), self.value))
+        w.append('{}\'h{:x}'.format(self.num_bits(), self.value))
 
 def lit(value, num_bits):
     return Literal(value, num_bits)
@@ -458,9 +517,12 @@ class Module:
 
         for output in self.outputs.values():
             output.gen_node_decls(c, w)
+            c.queue_assignment(output.name, output)
+
+        for name, value in c.queued_assignments:
             w.append_indent()
-            w.append('assign {} = '.format(output.name))
-            output.gen_assign_expr(c, w)
+            w.append('assign {} = '.format(name))
+            value.gen_assign_expr(c, w)
             w.append(';')
             w.append_newline()
 
