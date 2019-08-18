@@ -232,6 +232,11 @@ def execute_mem():
 
     mod.output('next_pc', next_pc)
 
+    # Fence instructions
+    with If(instruction.opcode().eq(lit(0b00011, 5))):
+        # Do nothing (nop)
+        rd_value_write_enable = LOW
+
     mod.output('rd_value_write_enable', rd_value_write_enable)
     mod.output('rd_value_write_data', rd_value_write_data)
 
