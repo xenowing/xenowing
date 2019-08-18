@@ -237,6 +237,11 @@ def execute_mem():
         # Do nothing (nop)
         rd_value_write_enable = LOW
 
+    # System instructions
+    with If(instruction.opcode().eq(lit(0b11100, 5))):
+        # Do nothing (nop)
+        rd_value_write_enable = LOW
+
     mod.output('rd_value_write_enable', rd_value_write_enable)
     mod.output('rd_value_write_data', rd_value_write_data)
 
