@@ -246,6 +246,6 @@ def writeback():
 
     mod.output('register_file_write_addr', instruction.rd())
     mod.output('register_file_write_data', register_file_write_data)
-    mod.output('register_file_write_enable', enable & mod.input('rd_value_write_enable', 1) & instruction.rd().ne(lit(0, 5)))
+    mod.output('register_file_write_enable', enable & ready & mod.input('rd_value_write_enable', 1) & instruction.rd().ne(lit(0, 5)))
 
     return mod
