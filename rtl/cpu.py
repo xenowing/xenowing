@@ -92,9 +92,7 @@ def decode():
     mod = Module('decode')
 
     mod.output('ready', mod.input('bus_read_data_valid', 1))
-
-    instruction = Instruction(mod.input('bus_read_data', 32))
-    mod.output('instruction', instruction.word())
+    mod.output('instruction', mod.input('bus_read_data', 32))
 
     return mod
 
@@ -158,30 +156,37 @@ def execute_mem():
         rd_value_write_data = link_pc
 
     bus_ready = mod.input('bus_ready', 1)
-    mod.output('bus_addr', alu_res.bits(31, 2)) # TODO: Consider separate adder for load/store offsets
+    bus_addr = alu_res # TODO: Consider separate adder for load/store offsets
+    mod.output('bus_addr', bus_addr)
     bus_byte_enable = lit(0b1111, 4)
 
+    # Loads
     bus_read_req = LOW
-    load_issued = LOW
 
     with If(instruction.opcode().eq(lit(0b00000, 5))):
-        # loads
+        # lw
         ready = bus_ready
         alu_op = lit(0, 3)
         alu_op_mod = LOW
         alu_rhs = instruction.load_offset()
         bus_read_req = enable
-        load_issued = HIGH
+
+        with If(instruction.funct3().bits(1, 0).eq(lit(0b01, 2))):
+            # lh/lhu
+            bus_byte_enable = lit(0b0011, 4)
+            with If(bus_addr.bit(1)):
+                bus_byte_enable = lit(0b1100, 4)
+
         # TODO: Different load types, byte enables, read data shifts
 
     mod.output('bus_read_req', bus_read_req)
-    mod.output('load_issued', load_issued)
 
+    # Stores
     bus_write_data = rs2_value
     bus_write_req = LOW
 
     with If(instruction.opcode().eq(lit(0b01000, 5))):
-        # stores
+        # sw
         ready = bus_ready
         alu_op = lit(0, 3)
         alu_op_mod = LOW
@@ -229,15 +234,28 @@ def writeback():
 
     ready = HIGH
 
+    instruction = Instruction(mod.input('instruction', 32))
+    bus_addr_low = mod.input('bus_addr_low', 2)
+    bus_read_data = mod.input('bus_read_data', 32)
+
     register_file_write_data = mod.input('rd_value_write_data', 32)
 
-    with If(mod.input('load_issued', 1)):
+    # Loads
+    with If(instruction.opcode().eq(lit(0b00000, 5))):
+        # lw
         ready = mod.input('bus_read_data_valid', 1)
-        register_file_write_data = mod.input('bus_read_data', 32)
+        register_file_write_data = bus_read_data
+
+        with If(instruction.funct3().bits(1, 0).eq(lit(0b01, 2))):
+            # lh/lhu
+            register_file_write_data = bus_read_data.bit(15).repeat(16).concat(bus_read_data.bits(15, 0))
+            with If(bus_addr_low.bit(1)):
+                register_file_write_data = bus_read_data.bit(31).repeat(16).concat(bus_read_data.bits(31, 16))
+
+            with If(instruction.funct3().bit(2)):
+                register_file_write_data = lit(0, 16).concat(register_file_write_data.bits(15, 0))
 
     mod.output('ready', ready)
-
-    instruction = Instruction(mod.input('instruction', 32))
 
     enable = mod.input('enable', 1)
 

@@ -111,8 +111,7 @@ module cpu(
     logic [31:0] execute_mem_next_pc;
     logic execute_mem_rd_value_write_enable;
     logic [31:0] execute_mem_rd_value_write_data;
-    logic execute_mem_load_issued;
-    logic [29:0] execute_mem_bus_addr;
+    logic [31:0] execute_mem_bus_addr;
     logic [3:0] execute_mem_bus_byte_enable;
     logic execute_mem_bus_read_req;
     logic execute_mem_bus_write_req;
@@ -138,8 +137,6 @@ module cpu(
         .rd_value_write_enable(execute_mem_rd_value_write_enable),
         .rd_value_write_data(execute_mem_rd_value_write_data),
 
-        .load_issued(execute_mem_load_issued),
-
         .bus_ready(system_bus_ready),
         .bus_addr(execute_mem_bus_addr),
         .bus_write_data(system_bus_write_data),
@@ -147,7 +144,7 @@ module cpu(
         .bus_read_req(execute_mem_bus_read_req),
         .bus_write_req(execute_mem_bus_write_req));
 
-    assign system_bus_addr = (execute_mem_bus_read_req | execute_mem_bus_write_req) ? execute_mem_bus_addr : instruction_fetch_bus_addr;
+    assign system_bus_addr = (execute_mem_bus_read_req | execute_mem_bus_write_req) ? execute_mem_bus_addr[31:2] : instruction_fetch_bus_addr;
     assign system_bus_byte_enable = (execute_mem_bus_read_req | execute_mem_bus_write_req) ? execute_mem_bus_byte_enable : instruction_fetch_bus_byte_enable;
     assign system_bus_read_req = execute_mem_bus_read_req | instruction_fetch_bus_read_req;
     assign system_bus_write_req = execute_mem_bus_write_req;
@@ -159,6 +156,7 @@ module cpu(
         .enable(writeback_enable),
 
         .instruction(instruction),
+        .bus_addr_low(execute_mem_bus_addr[1:0]),
 
         .next_pc(execute_mem_next_pc),
 
@@ -167,8 +165,6 @@ module cpu(
 
         .pc_write_data(pc_write_data),
         .pc_write_enable(pc_write_enable),
-
-        .load_issued(execute_mem_load_issued),
 
         .register_file_write_enable(register_file_write_enable),
         .register_file_write_addr(register_file_write_addr),

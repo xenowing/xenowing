@@ -514,10 +514,7 @@ set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[4] -t
 set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[13] -to auto_signaltap_0|gnd -section_id auto_signaltap_0
 set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[14] -to auto_signaltap_0|vcc -section_id auto_signaltap_0
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/_generated.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/writeback.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/execute_mem.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/alu.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/pc.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/register_file.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/uart/uart_receiver.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/rom_loader.sv

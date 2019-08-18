@@ -3,6 +3,25 @@
 
     .global _entry
 _entry:
+
+    li x1, 0x30000000
+    li x2, 0xdeadbeef
+    sw x2, 0(x1)
+
+    lh x3, 0(x1)
+    lh x4, 2(x1)
+
+    lhu x5, 0(x1)
+    lhu x6, 2(x1)
+    
+set_led:
+    li x1, 0x20000000
+    li x2, 0x00000007
+    sw x2, 0(x1)
+
+wait:
+    j wait
+
     j stub
 
     .section .text.stub
