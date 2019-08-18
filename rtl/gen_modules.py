@@ -51,19 +51,6 @@ def program_rom_interface():
 
     return mod
 
-# TODO
-#led_interface = led_interface_module.instantiate()
-
-def ugly():
-    mod = Module('ugly')
-
-    x = mod.input('some_input', 1)
-    y = repeat(~x | HIGH, 20)
-    mod.output('some_output', y)
-    mod.output('some_other_output', ~~~y)
-
-    return mod
-
 def system_bus():
     mod = Module('system_bus')
 
@@ -79,8 +66,8 @@ def system_bus():
     mod.output('led_interface_byte_enable', byte_enable.bit(0))
 
     mod.output('uart_transmitter_interface_addr', addr.bit(0))
-    mod.output('uart_transmitter_interface_write_data', write_data)
-    mod.output('uart_transmitter_interface_byte_enable', byte_enable)
+    mod.output('uart_transmitter_interface_write_data', write_data.bits(7, 0))
+    mod.output('uart_transmitter_interface_byte_enable', byte_enable.bit(0))
 
     mod.output('ddr3_interface_addr', addr.bits(24, 0))
     mod.output('ddr3_interface_write_data', write_data)
@@ -101,7 +88,7 @@ def system_bus():
         read_data_valid = HIGH
 
     with If(mod.input('uart_transmitter_interface_read_data_valid', 1)):
-        read_data = mod.input('uart_transmitter_interface_read_data', 32)
+        read_data = lit(0, 31).concat(mod.input('uart_transmitter_interface_read_data', 1))
         read_data_valid = HIGH
 
     with If(mod.input('ddr3_interface_read_data_valid', 1)):
@@ -174,7 +161,6 @@ if __name__ == '__main__':
         #fifo(),
         led_interface(),
         program_rom_interface(),
-        #ugly(),
         system_bus(),
     ]
 

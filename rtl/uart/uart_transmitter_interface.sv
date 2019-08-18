@@ -5,22 +5,22 @@ module uart_transmitter_interface(
     input clk,
 
     input addr,
-    input [31:0] write_data,
-    input [3:0] byte_enable,
+    input [7:0] write_data,
+    input byte_enable,
     input write_req,
     input read_req,
-    output [31:0] read_data,
+    output read_data,
     output logic read_data_valid,
 
     output [7:0] uart_write_data,
     output logic uart_write_req,
     input uart_ready);
 
-    assign read_data = {31'h0, uart_ready};
+    assign read_data = uart_ready;
 
     logic read_data_valid_next;
 
-    assign uart_write_data = write_data[7:0];
+    assign uart_write_data = write_data;
 
     logic uart_write_req_next;
 
@@ -34,7 +34,7 @@ module uart_transmitter_interface(
         uart_write_req_next = 0;
 
         if (write_req) begin
-            if (addr && byte_enable[0]) begin
+            if (addr && byte_enable) begin
                 // Write data reg
                 if (uart_ready) begin
                     uart_write_req_next = 1;

@@ -181,6 +181,24 @@ def execute_mem():
     mod.output('bus_addr', bus_addr)
     bus_byte_enable = lit(0b1111, 4)
 
+    with If(instruction.funct3().bits(1, 0).eq(lit(0b01, 2))):
+        # lh/lhu/sh
+        bus_byte_enable = lit(0b0011, 4)
+        with If(bus_addr.bit(1)):
+            bus_byte_enable = lit(0b1100, 4)
+
+    with If(instruction.funct3().bits(1, 0).eq(lit(0b00, 2))):
+        # lb/lbu/sb
+        bus_byte_enable = lit(0b0001, 4)
+        with If(bus_addr.bits(1, 0).eq(lit(0b01, 2))):
+            bus_byte_enable = lit(0b0010, 4)
+        with If(bus_addr.bits(1, 0).eq(lit(0b10, 2))):
+            bus_byte_enable = lit(0b0100, 4)
+        with If(bus_addr.bits(1, 0).eq(lit(0b11, 2))):
+            bus_byte_enable = lit(0b1000, 4)
+
+    mod.output('bus_byte_enable', bus_byte_enable)
+
     # Loads
     bus_read_req = LOW
 
@@ -191,22 +209,6 @@ def execute_mem():
         alu_op_mod = LOW
         alu_rhs = instruction.load_offset()
         bus_read_req = enable
-
-        with If(instruction.funct3().bits(1, 0).eq(lit(0b01, 2))):
-            # lh/lhu
-            bus_byte_enable = lit(0b0011, 4)
-            with If(bus_addr.bit(1)):
-                bus_byte_enable = lit(0b1100, 4)
-
-        with If(instruction.funct3().bits(1, 0).eq(lit(0b00, 2))):
-            # lb/lbu
-            bus_byte_enable = lit(0b0001, 4)
-            with If(bus_addr.bits(1, 0).eq(lit(0b01, 2))):
-                bus_byte_enable = lit(0b0010, 4)
-            with If(bus_addr.bits(1, 0).eq(lit(0b10, 2))):
-                bus_byte_enable = lit(0b0100, 4)
-            with If(bus_addr.bits(1, 0).eq(lit(0b11, 2))):
-                bus_byte_enable = lit(0b1000, 4)
 
     mod.output('bus_read_req', bus_read_req)
 
@@ -222,7 +224,20 @@ def execute_mem():
         alu_rhs = instruction.store_offset()
         rd_value_write_enable = LOW
         bus_write_req = enable
-        # TODO: Different store types, byte enables, write data shifts
+
+        with If(instruction.funct3().bits(1, 0).eq(lit(0b01, 2))):
+            # sh
+            with If(bus_addr.bit(1)):
+                bus_write_data = rs2_value.bits(15, 0).concat(lit(0, 16))
+
+        with If(instruction.funct3().bits(1, 0).eq(lit(0b00, 2))):
+            # sb
+            with If(bus_addr.bits(1, 0).eq(lit(0b01, 2))):
+                bus_write_data = lit(0, 16).concat(rs2_value.bits(7, 0)).concat(lit(0, 8))
+            with If(bus_addr.bits(1, 0).eq(lit(0b10, 2))):
+                bus_write_data = lit(0, 8).concat(rs2_value.bits(7, 0)).concat(lit(0, 16))
+            with If(bus_addr.bits(1, 0).eq(lit(0b11, 2))):
+                bus_write_data = rs2_value.bits(7, 0).concat(lit(0, 24))
 
     mod.output('ready', ready)
 
@@ -230,7 +245,6 @@ def execute_mem():
     mod.output('alu_op_mod', alu_op_mod)
     mod.output('alu_rhs', alu_rhs)
 
-    mod.output('bus_byte_enable', bus_byte_enable)
     mod.output('bus_write_data', bus_write_data)
     mod.output('bus_write_req', bus_write_req)
 

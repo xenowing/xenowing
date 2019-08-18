@@ -69,11 +69,11 @@ module xenowing(
         .tx(uart_tx));
 
     logic uart_transmitter_interface_addr;
-    logic [31:0] uart_transmitter_interface_write_data;
-    logic [3:0] uart_transmitter_interface_byte_enable;
+    logic [7:0] uart_transmitter_interface_write_data;
+    logic uart_transmitter_interface_byte_enable;
     logic uart_transmitter_interface_write_req;
     logic uart_transmitter_interface_read_req;
-    logic [31:0] uart_transmitter_interface_read_data;
+    logic uart_transmitter_interface_read_data;
     logic uart_transmitter_interface_read_data_valid;
     logic [7:0] uart_transmitter_interface_uart_write_data;
     logic uart_transmitter_interface_uart_write_req;
@@ -94,7 +94,7 @@ module xenowing(
         .uart_ready(uart_transmitter_ready));
 
     logic ddr3_interface_ready;
-    logic [26:2] ddr3_interface_addr;
+    logic [24:0] ddr3_interface_addr;
     logic [31:0] ddr3_interface_write_data;
     logic [3:0] ddr3_interface_byte_enable;
     logic ddr3_interface_write_req;
@@ -126,7 +126,7 @@ module xenowing(
         .avl_size(avl_size));
 
     logic system_bus_ready;
-    logic [31:2] system_bus_addr;
+    logic [29:0] system_bus_addr;
     logic [31:0] system_bus_write_data;
     logic [3:0] system_bus_byte_enable;
     logic system_bus_write_req;
