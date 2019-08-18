@@ -51,6 +51,24 @@ def pc():
 
     return mod
 
+def cycle_counter():
+    mod = Module('cycle_counter')
+
+    value = reg(64, 0)
+    value.drive_next_with((value + lit(1, 64)).bits(63, 0))
+    mod.output('value', value)
+
+    return mod
+
+def instructions_retired_counter():
+    mod = Module('instructions_retired_counter')
+
+    value = reg(64, 0)
+    value.drive_next_with(mux(value, (value + lit(1, 64)).bits(63, 0), mod.input('increment_enable', 1)))
+    mod.output('value', value)
+
+    return mod
+
 def control():
     mod = Module('control')
 
@@ -292,6 +310,8 @@ def writeback():
 
     mod.output('pc_write_data', mod.input('next_pc', 32))
     mod.output('pc_write_enable', enable & ready)
+
+    mod.output('instructions_retired_counter_increment_enable', enable & ready)
 
     mod.output('register_file_write_addr', instruction.rd())
     mod.output('register_file_write_data', register_file_write_data)

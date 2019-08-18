@@ -25,6 +25,22 @@ module cpu(
         .write_data(pc_write_data),
         .write_enable(pc_write_enable));
 
+    logic [63:0] cycle_counter_value;
+    cycle_counter cycle_counter0(
+        .clk(clk),
+        .reset_n(reset_n),
+
+        .value(cycle_counter_value));
+
+    logic [63:0] instructions_retired_counter_value;
+    logic instructions_retired_counter_increment_enable;
+    instructions_retired_counter instructions_retired_counter0(
+        .clk(clk),
+        .reset_n(reset_n),
+
+        .value(instructions_retired_counter_value),
+        .increment_enable(instructions_retired_counter_increment_enable));
+
     logic [4:0] register_file_read_addr1;
     logic [31:0] register_file_read_data1;
     logic [4:0] register_file_read_addr2;
@@ -165,6 +181,8 @@ module cpu(
 
         .pc_write_data(pc_write_data),
         .pc_write_enable(pc_write_enable),
+
+        .instructions_retired_counter_increment_enable(instructions_retired_counter_increment_enable),
 
         .register_file_write_enable(register_file_write_enable),
         .register_file_write_addr(register_file_write_addr),

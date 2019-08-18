@@ -163,6 +163,8 @@ if __name__ == '__main__':
 
     modules = [
         cpu.pc(),
+        cpu.cycle_counter(),
+        cpu.instructions_retired_counter(),
         cpu.control(),
         cpu.instruction_fetch(),
         cpu.decode(),
