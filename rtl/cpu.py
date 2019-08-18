@@ -177,7 +177,15 @@ def execute_mem():
             with If(bus_addr.bit(1)):
                 bus_byte_enable = lit(0b1100, 4)
 
-        # TODO: Different load types, byte enables, read data shifts
+        with If(instruction.funct3().bits(1, 0).eq(lit(0b00, 2))):
+            # lb/lbu
+            bus_byte_enable = lit(0b0001, 4)
+            with If(bus_addr.bits(1, 0).eq(lit(0b01, 2))):
+                bus_byte_enable = lit(0b0010, 4)
+            with If(bus_addr.bits(1, 0).eq(lit(0b10, 2))):
+                bus_byte_enable = lit(0b0100, 4)
+            with If(bus_addr.bits(1, 0).eq(lit(0b11, 2))):
+                bus_byte_enable = lit(0b1000, 4)
 
     mod.output('bus_read_req', bus_read_req)
 
@@ -254,6 +262,19 @@ def writeback():
 
             with If(instruction.funct3().bit(2)):
                 register_file_write_data = lit(0, 16).concat(register_file_write_data.bits(15, 0))
+
+        with If(instruction.funct3().bits(1, 0).eq(lit(0b00, 2))):
+            # lb/lbu
+            register_file_write_data = bus_read_data.bit(7).repeat(24).concat(bus_read_data.bits(7, 0))
+            with If(bus_addr_low.bits(1, 0).eq(lit(0b01, 2))):
+                register_file_write_data = bus_read_data.bit(15).repeat(24).concat(bus_read_data.bits(15, 8))
+            with If(bus_addr_low.bits(1, 0).eq(lit(0b10, 2))):
+                register_file_write_data = bus_read_data.bit(23).repeat(24).concat(bus_read_data.bits(23, 16))
+            with If(bus_addr_low.bits(1, 0).eq(lit(0b11, 2))):
+                register_file_write_data = bus_read_data.bit(31).repeat(24).concat(bus_read_data.bits(31, 24))
+
+            with If(instruction.funct3().bit(2)):
+                register_file_write_data = lit(0, 24).concat(register_file_write_data.bits(7, 0))
 
     mod.output('ready', ready)
 

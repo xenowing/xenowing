@@ -2,22 +2,22 @@ Core: ddr3_controller_p0 - Instance: ddr3_controller0|ddr3_controller_inst
 Path, Setup Margin, Hold Margin
 "Address Command (Slow 1200mV 85C Model)",0.916,0.895
 "Bus Turnaround Time (Slow 1200mV 85C Model)",4.699,--
-"Core (Slow 1200mV 85C Model)",-6.199,0.132
-"Core Recovery/Removal (Slow 1200mV 85C Model)",0.707,0.723
+"Core (Slow 1200mV 85C Model)",-6.481,0.192
+"Core Recovery/Removal (Slow 1200mV 85C Model)",0.365,0.787
 "DQS vs CK (Slow 1200mV 85C Model)",1.721,1.584
 "Read Capture (Slow 1200mV 85C Model)",0.047,0.047
 "Write (Slow 1200mV 85C Model)",0.036,0.041
 "Address Command (Slow 1200mV 0C Model)",0.945,0.878
 "Bus Turnaround Time (Slow 1200mV 0C Model)",4.73,--
-"Core (Slow 1200mV 0C Model)",-5.019,0.264
-"Core Recovery/Removal (Slow 1200mV 0C Model)",1.033,0.613
+"Core (Slow 1200mV 0C Model)",-5.295,0.188
+"Core Recovery/Removal (Slow 1200mV 0C Model)",0.719,0.674
 "DQS vs CK (Slow 1200mV 0C Model)",1.737,1.598
 "Read Capture (Slow 1200mV 0C Model)",0.049,0.049
 "Write (Slow 1200mV 0C Model)",0.061,0.049
 "Address Command (Fast 1200mV 0C Model)",1.017,0.965
 "Bus Turnaround Time (Fast 1200mV 0C Model)",4.897,--
-"Core (Fast 1200mV 0C Model)",0.344,0.019
-"Core Recovery/Removal (Fast 1200mV 0C Model)",1.901,0.329
+"Core (Fast 1200mV 0C Model)",0.179,0.027
+"Core Recovery/Removal (Fast 1200mV 0C Model)",1.741,0.375
 "DQS vs CK (Fast 1200mV 0C Model)",1.044,1.664
 "Read Capture (Fast 1200mV 0C Model)",0.058,0.058
 "Write (Fast 1200mV 0C Model)",0.25,0.26

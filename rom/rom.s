@@ -13,6 +13,16 @@ _entry:
 
     lhu x5, 0(x1)
     lhu x6, 2(x1)
+
+    lb x7, 0(x1)
+    lb x8, 1(x1)
+    lb x9, 2(x1)
+    lb x10, 3(x1)
+
+    lbu x11, 0(x1)
+    lbu x12, 1(x1)
+    lbu x13, 2(x1)
+    lbu x14, 3(x1)
     
 set_led:
     li x1, 0x20000000
