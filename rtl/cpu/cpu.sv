@@ -153,6 +153,9 @@ module cpu(
         .rd_value_write_enable(execute_mem_rd_value_write_enable),
         .rd_value_write_data(execute_mem_rd_value_write_data),
 
+        .cycle_counter_value(cycle_counter_value),
+        .instructions_retired_counter_value(instructions_retired_counter_value),
+
         .bus_ready(system_bus_ready),
         .bus_addr(execute_mem_bus_addr),
         .bus_write_data(system_bus_write_data),

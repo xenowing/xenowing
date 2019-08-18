@@ -127,8 +127,9 @@ def system_bus():
         program_rom_interface_read_req = read_req
 
     with If(addr.bits(29, 26).eq(lit(2, 4))):
-        led_interface_write_req = write_req
-        led_interface_read_req = read_req
+        with If(~addr.bit(22)):
+            led_interface_write_req = write_req
+            led_interface_read_req = read_req
 
         with If(addr.bit(22)):
             uart_transmitter_interface_write_req = write_req

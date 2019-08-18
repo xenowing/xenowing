@@ -42,6 +42,9 @@ class Instruction:
     def u_immediate(self):
         return self.source.bits(31, 12).concat(lit(0, 12))
 
+    def csr(self):
+        return self.source.bits(31, 20)
+
 def pc():
     mod = Module('pc')
 
@@ -255,10 +258,35 @@ def execute_mem():
         # Do nothing (nop)
         rd_value_write_enable = LOW
 
+    cycle_counter_value = mod.input('cycle_counter_value', 64)
+    instructions_retired_counter_value = mod.input('instructions_retired_counter_value', 64)
+
     # System instructions
     with If(instruction.opcode().eq(lit(0b11100, 5))):
-        # Do nothing (nop)
-        rd_value_write_enable = LOW
+        with If(instruction.funct3().eq(lit(0b000, 3))):
+            # ecall/ebreak: do nothing (nop)
+            rd_value_write_enable = LOW
+
+        with If(
+            instruction.funct3().eq(lit(0b001, 3)) |
+            instruction.funct3().eq(lit(0b010, 3)) |
+            instruction.funct3().eq(lit(0b011, 3)) |
+            instruction.funct3().eq(lit(0b101, 3)) |
+            instruction.funct3().eq(lit(0b110, 3)) |
+            instruction.funct3().eq(lit(0b111, 3))):
+            # csrrw, csrrs, csrrc, csrrwi, csrrsi, csrrci
+            with If(instruction.csr().bits(1, 0).eq(lit(0b00, 2)) | instruction.csr().bits(1, 0).eq(lit(0b01, 2))):
+                # cycle, time
+                rd_value_write_data = cycle_counter_value.bits(31, 0)
+                with If(instruction.csr().bit(7)):
+                    # cycleh, timeh
+                    rd_value_write_data = cycle_counter_value.bits(63, 32)
+            with If(instruction.csr().bits(1, 0).eq(lit(0b10, 2))):
+                # instret
+                rd_value_write_data = instructions_retired_counter_value.bits(31, 0)
+                with If(instruction.csr().bit(7)):
+                    # instreth
+                    rd_value_write_data = instructions_retired_counter_value.bits(63, 32)
 
     mod.output('rd_value_write_enable', rd_value_write_enable)
     mod.output('rd_value_write_data', rd_value_write_data)
