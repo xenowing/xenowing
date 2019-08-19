@@ -76,17 +76,14 @@ def control():
     mod = Module('control')
 
     num_state_bits = 3
-    state_init = 0
-    state_instruction_fetch = 1
-    state_decode = 2
-    state_reg_wait = 3
-    state_execute = 4
-    state_mem = 5
-    state_writeback = 6
-    state = reg(num_state_bits, state_init)
+    state_instruction_fetch = 0
+    state_decode = 1
+    state_reg_wait = 2
+    state_execute = 3
+    state_mem = 4
+    state_writeback = 5
+    state = reg(num_state_bits, state_instruction_fetch)
     next_state = state
-    with If(state.eq(lit(state_init, num_state_bits))):
-        next_state = lit(state_instruction_fetch, num_state_bits)
     with If(state.eq(lit(state_instruction_fetch, num_state_bits)) & mod.input('instruction_fetch_ready', 1)):
         next_state = lit(state_decode, num_state_bits)
     with If(state.eq(lit(state_decode, num_state_bits)) & mod.input('decode_ready', 1)):
