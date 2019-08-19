@@ -340,8 +340,8 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/xenowing.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/hw_top.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/cpu/cpu.sv
 set_global_assignment -name SIGNALTAP_FILE stp1.stp
-set_global_assignment -name QIP_FILE ddr3_controller.qip
 set_global_assignment -name SIP_FILE ddr3_controller.sip
 set_global_assignment -name QIP_FILE program_rom.qip
-set_global_assignment -name SLD_FILE db/stp1_auto_stripped.stp
+set_global_assignment -name QIP_FILE ddr3_controller.qip
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
+set_global_assignment -name SLD_FILE db/stp1_auto_stripped.stp

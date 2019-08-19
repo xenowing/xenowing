@@ -75,18 +75,27 @@ def instructions_retired_counter():
 def control():
     mod = Module('control')
 
-    num_state_bits = 2
-    state_instruction_fetch = 0
-    state_decode = 1
-    state_execute_mem = 2
-    state_writeback = 3
-    state = reg(num_state_bits, state_instruction_fetch)
+    num_state_bits = 3
+    state_init = 0
+    state_instruction_fetch = 1
+    state_decode = 2
+    state_reg_wait = 3
+    state_execute = 4
+    state_mem = 5
+    state_writeback = 6
+    state = reg(num_state_bits, state_init)
     next_state = state
+    with If(state.eq(lit(state_init, num_state_bits))):
+        next_state = lit(state_instruction_fetch, num_state_bits)
     with If(state.eq(lit(state_instruction_fetch, num_state_bits)) & mod.input('instruction_fetch_ready', 1)):
         next_state = lit(state_decode, num_state_bits)
     with If(state.eq(lit(state_decode, num_state_bits)) & mod.input('decode_ready', 1)):
-        next_state = lit(state_execute_mem, num_state_bits)
-    with If(state.eq(lit(state_execute_mem, num_state_bits)) & mod.input('execute_mem_ready', 1)):
+        next_state = lit(state_reg_wait, num_state_bits)
+    with If(state.eq(lit(state_reg_wait, num_state_bits))):
+        next_state = lit(state_execute, num_state_bits)
+    with If(state.eq(lit(state_execute, num_state_bits))):
+        next_state = lit(state_mem, num_state_bits)
+    with If(state.eq(lit(state_mem, num_state_bits)) & mod.input('mem_ready', 1)):
         next_state = lit(state_writeback, num_state_bits)
     with If(state.eq(lit(state_writeback, num_state_bits)) & mod.input('writeback_ready', 1)):
         next_state = lit(state_instruction_fetch, num_state_bits)
@@ -94,7 +103,9 @@ def control():
 
     mod.output('instruction_fetch_enable', state.eq(lit(state_instruction_fetch, num_state_bits)))
     mod.output('decode_enable', state.eq(lit(state_decode, num_state_bits)))
-    mod.output('execute_mem_enable', state.eq(lit(state_execute_mem, num_state_bits)))
+    mod.output('reg_wait_enable', state.eq(lit(state_reg_wait, num_state_bits)))
+    mod.output('execute_enable', state.eq(lit(state_execute, num_state_bits)))
+    mod.output('mem_enable', state.eq(lit(state_mem, num_state_bits)))
     mod.output('writeback_enable', state.eq(lit(state_writeback, num_state_bits)))
 
     return mod
@@ -117,8 +128,8 @@ def decode():
 
     return mod
 
-def execute_mem():
-    mod = Module('execute_mem')
+def execute():
+    mod = Module('execute')
 
     ready = HIGH
     enable = mod.input('enable', 1)
@@ -176,7 +187,6 @@ def execute_mem():
         next_pc = alu_res
         rd_value_write_data = link_pc
 
-    bus_ready = mod.input('bus_ready', 1)
     bus_addr = alu_res # TODO: Consider separate adder for load/store offsets
     mod.output('bus_addr', bus_addr)
     bus_byte_enable = lit(0b1111, 4)
@@ -204,7 +214,6 @@ def execute_mem():
 
     with If(instruction.opcode().eq(lit(0b00000, 5))):
         # lw
-        ready = bus_ready
         alu_op = lit(0, 3)
         alu_op_mod = LOW
         alu_rhs = instruction.load_offset()
@@ -218,7 +227,6 @@ def execute_mem():
 
     with If(instruction.opcode().eq(lit(0b01000, 5))):
         # sw
-        ready = bus_ready
         alu_op = lit(0, 3)
         alu_op_mod = LOW
         alu_rhs = instruction.store_offset()
@@ -238,8 +246,6 @@ def execute_mem():
                 bus_write_data = lit(0, 8).concat(rs2_value.bits(7, 0)).concat(lit(0, 16))
             with If(bus_addr.bits(1, 0).eq(lit(0b11, 2))):
                 bus_write_data = rs2_value.bits(7, 0).concat(lit(0, 24))
-
-    mod.output('ready', ready)
 
     mod.output('alu_op', alu_op)
     mod.output('alu_op_mod', alu_op_mod)
@@ -304,6 +310,36 @@ def execute_mem():
 
     mod.output('rd_value_write_enable', rd_value_write_enable)
     mod.output('rd_value_write_data', rd_value_write_data)
+
+    return mod
+
+def mem():
+    mod = Module('mem')
+
+    enable = mod.input('enable', 1)
+
+    bus_ready = mod.input('bus_ready', 1)
+    bus_addr = reg(32)
+    bus_addr.drive_next_with(mod.input('bus_addr_in', 32))
+    mod.output('bus_addr_out', bus_addr)
+    bus_write_data = reg(32)
+    bus_write_data.drive_next_with(mod.input('bus_write_data_in', 32))
+    mod.output('bus_write_data_out', bus_write_data)
+    bus_byte_enable = reg(4)
+    bus_byte_enable.drive_next_with(mod.input('bus_byte_enable_in', 4))
+    mod.output('bus_byte_enable_out', bus_byte_enable)
+    bus_read_req = reg(1)
+    bus_read_req.drive_next_with(mod.input('bus_read_req_in', 1))
+    mod.output('bus_read_req_out', enable & bus_read_req)
+    bus_write_req = reg(1)
+    bus_write_req.drive_next_with(mod.input('bus_write_req_in', 1))
+    mod.output('bus_write_req_out', enable & bus_write_req)
+
+    ready = HIGH
+    with If(bus_read_req | bus_write_req):
+        ready = bus_ready
+
+    mod.output('ready', ready)
 
     return mod
 

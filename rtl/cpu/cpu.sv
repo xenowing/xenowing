@@ -110,6 +110,31 @@ module cpu(
     assign register_file_read_addr1 = instruction[19:15]; // rs1
     assign register_file_read_addr2 = instruction[24:20]; // rs2
 
+    logic [31:0] rs1_value;
+    logic [31:0] rs1_value_next;
+    always_comb begin
+        rs1_value_next = rs1_value;
+
+        if (reg_wait_enable) begin
+            rs1_value_next = register_file_read_data1;
+        end
+    end
+    always_ff @(posedge clk) begin
+        rs1_value <= rs1_value_next;
+    end
+    logic [31:0] rs2_value;
+    logic [31:0] rs2_value_next;
+    always_comb begin
+        rs2_value_next = rs2_value;
+
+        if (reg_wait_enable) begin
+            rs2_value_next = register_file_read_data2;
+        end
+    end
+    always_ff @(posedge clk) begin
+        rs2_value <= rs2_value_next;
+    end
+
     logic [2:0] alu_op;
     logic alu_op_mod;
     logic [31:0] alu_lhs;
@@ -122,25 +147,24 @@ module cpu(
         .rhs(alu_rhs),
         .res(alu_res));
 
-    logic execute_mem_ready;
-    logic execute_mem_enable;
-    logic [31:0] execute_mem_next_pc;
-    logic execute_mem_rd_value_write_enable;
-    logic [31:0] execute_mem_rd_value_write_data;
-    logic [31:0] execute_mem_bus_addr;
-    logic [3:0] execute_mem_bus_byte_enable;
-    logic execute_mem_bus_read_req;
-    logic execute_mem_bus_write_req;
-    execute_mem execute_mem0(
-        .ready(execute_mem_ready),
-        .enable(execute_mem_enable),
+    logic execute_enable;
+    logic [31:0] execute_next_pc;
+    logic execute_rd_value_write_enable;
+    logic [31:0] execute_rd_value_write_data;
+    logic [31:0] execute_bus_addr;
+    logic [31:0] execute_bus_write_data;
+    logic [3:0] execute_bus_byte_enable;
+    logic execute_bus_read_req;
+    logic execute_bus_write_req;
+    execute execute0(
+        .enable(execute_enable),
 
         .pc(pc_value),
 
         .instruction(instruction),
 
-        .register_file_read_data1(register_file_read_data1),
-        .register_file_read_data2(register_file_read_data2),
+        .register_file_read_data1(rs1_value),
+        .register_file_read_data2(rs2_value),
 
         .alu_op(alu_op),
         .alu_op_mod(alu_op_mod),
@@ -148,25 +172,51 @@ module cpu(
         .alu_rhs(alu_rhs),
         .alu_res(alu_res),
 
-        .next_pc(execute_mem_next_pc),
+        .next_pc(execute_next_pc),
 
-        .rd_value_write_enable(execute_mem_rd_value_write_enable),
-        .rd_value_write_data(execute_mem_rd_value_write_data),
+        .rd_value_write_enable(execute_rd_value_write_enable),
+        .rd_value_write_data(execute_rd_value_write_data),
 
         .cycle_counter_value(cycle_counter_value),
         .instructions_retired_counter_value(instructions_retired_counter_value),
 
-        .bus_ready(system_bus_ready),
-        .bus_addr(execute_mem_bus_addr),
-        .bus_write_data(system_bus_write_data),
-        .bus_byte_enable(execute_mem_bus_byte_enable),
-        .bus_read_req(execute_mem_bus_read_req),
-        .bus_write_req(execute_mem_bus_write_req));
+        .bus_addr(execute_bus_addr),
+        .bus_write_data(execute_bus_write_data),
+        .bus_byte_enable(execute_bus_byte_enable),
+        .bus_read_req(execute_bus_read_req),
+        .bus_write_req(execute_bus_write_req));
 
-    assign system_bus_addr = (execute_mem_bus_read_req | execute_mem_bus_write_req) ? execute_mem_bus_addr[31:2] : instruction_fetch_bus_addr;
-    assign system_bus_byte_enable = (execute_mem_bus_read_req | execute_mem_bus_write_req) ? execute_mem_bus_byte_enable : instruction_fetch_bus_byte_enable;
-    assign system_bus_read_req = execute_mem_bus_read_req | instruction_fetch_bus_read_req;
-    assign system_bus_write_req = execute_mem_bus_write_req;
+    logic mem_ready;
+    logic mem_enable;
+    logic [31:0] mem_bus_addr;
+    logic [3:0] mem_bus_byte_enable;
+    logic mem_bus_read_req;
+    logic mem_bus_write_req;
+    mem mem0(
+        .clk(clk),
+        .reset_n(reset_n),
+
+        .ready(mem_ready),
+        .enable(mem_enable),
+
+        .bus_ready(system_bus_ready),
+
+        .bus_addr_in(execute_bus_addr),
+        .bus_write_data_in(execute_bus_write_data),
+        .bus_byte_enable_in(execute_bus_byte_enable),
+        .bus_read_req_in(execute_bus_read_req),
+        .bus_write_req_in(execute_bus_write_req),
+
+        .bus_addr_out(mem_bus_addr),
+        .bus_write_data_out(system_bus_write_data),
+        .bus_byte_enable_out(mem_bus_byte_enable),
+        .bus_read_req_out(mem_bus_read_req),
+        .bus_write_req_out(mem_bus_write_req));
+
+    assign system_bus_addr = (mem_bus_read_req | mem_bus_write_req) ? mem_bus_addr[31:2] : instruction_fetch_bus_addr;
+    assign system_bus_byte_enable = (mem_bus_read_req | mem_bus_write_req) ? mem_bus_byte_enable : instruction_fetch_bus_byte_enable;
+    assign system_bus_read_req = mem_bus_read_req | instruction_fetch_bus_read_req;
+    assign system_bus_write_req = mem_bus_write_req;
 
     logic writeback_ready;
     logic writeback_enable;
@@ -175,12 +225,12 @@ module cpu(
         .enable(writeback_enable),
 
         .instruction(instruction),
-        .bus_addr_low(execute_mem_bus_addr[1:0]),
+        .bus_addr_low(mem_bus_addr[1:0]),
 
-        .next_pc(execute_mem_next_pc),
+        .next_pc(execute_next_pc),
 
-        .rd_value_write_enable(execute_mem_rd_value_write_enable),
-        .rd_value_write_data(execute_mem_rd_value_write_data),
+        .rd_value_write_enable(execute_rd_value_write_enable),
+        .rd_value_write_data(execute_rd_value_write_data),
 
         .pc_write_data(pc_write_data),
         .pc_write_enable(pc_write_enable),
@@ -195,6 +245,7 @@ module cpu(
         .bus_read_data_valid(system_bus_read_data_valid));
 
     logic decode_enable;
+    logic reg_wait_enable;
     control control0(
         .clk(clk),
         .reset_n(reset_n),
@@ -205,8 +256,12 @@ module cpu(
         .decode_ready(decode_ready),
         .decode_enable(decode_enable),
 
-        .execute_mem_ready(execute_mem_ready),
-        .execute_mem_enable(execute_mem_enable),
+        .reg_wait_enable(reg_wait_enable),
+
+        .execute_enable(execute_enable),
+
+        .mem_ready(mem_ready),
+        .mem_enable(mem_enable),
 
         .writeback_ready(writeback_ready),
         .writeback_enable(writeback_enable));
