@@ -2,6 +2,7 @@
 
 from kaze import *
 import cpu
+import uart
 from sys import argv
 
 def fifo(data_width, depth_bits):
@@ -163,6 +164,7 @@ if __name__ == '__main__':
         led_interface(),
         program_rom_interface(),
         system_bus(),
+        uart.receiver(150000000, 115200),
     ]
 
     w = CodeWriter()

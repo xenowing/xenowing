@@ -49,7 +49,7 @@ pub extern "C" fn run(env: *const Env) -> i32 {
     xenowing.trace_dump(time);
     time += 1;
 
-    for _ in 0..800000 {
+    for _ in 0..200000 {
         // Rising edge
         xenowing.set_clk(true);
         xenowing.eval();

@@ -20,6 +20,7 @@ KAZE=rtl/kaze.py
 
 GENERATED_RTL=rtl/_generated.sv
 GENERATED_RTL_CPU=rtl/cpu.py
+GENERATED_RTL_UART=rtl/uart.py
 GENERATED_RTL_GENERATOR=rtl/gen_modules.py
 
 XENOWING_PREFIX=xenowing
@@ -55,7 +56,7 @@ DDR3_TEST=$(DDR3_TEST_DIR)/target/release/$(DYNAMIC_LIB_PREFIX)ddr3_test$(DYNAMI
 DDR3_TRACE=$(TRACE_DIR)/ddr3_test.vcd
 
 VERILATOR=verilator
-VERILATOR_FLAGS=-Wall -Wno-fatal -O3 --x-assign fast --noassert -CFLAGS "-O3 -std=c++11" --trace
+VERILATOR_FLAGS=--top-module xenowing -Wall -Wno-fatal -O3 --x-assign fast --noassert -CFLAGS "-O3 -std=c++11" --trace
 
 RM=rm
 RM_FLAGS=-rf
@@ -72,7 +73,7 @@ $(OBJ_DIR):
 $(TRACE_DIR):
 	mkdir -p $(TRACE_DIR)
 
-$(GENERATED_RTL): $(GENERATED_RTL_GENERATOR) $(GENERATED_RTL_CPU) $(KAZE)
+$(GENERATED_RTL): $(GENERATED_RTL_GENERATOR) $(GENERATED_RTL_CPU) $(GENERATED_RTL_UART) $(KAZE)
 	$(GENERATED_RTL_GENERATOR) $(GENERATED_RTL)
 
 $(XENOWING_DRIVER): $(XENOWING_DRIVER_RTL) $(XENOWING_DRIVER_SRC)
