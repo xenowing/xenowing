@@ -147,7 +147,6 @@ module cpu(
         .rhs(alu_rhs),
         .res(alu_res));
 
-    logic execute_enable;
     logic [31:0] execute_next_pc;
     logic execute_rd_value_write_enable;
     logic [31:0] execute_rd_value_write_data;
@@ -157,8 +156,6 @@ module cpu(
     logic execute_bus_read_req;
     logic execute_bus_write_req;
     execute execute0(
-        .enable(execute_enable),
-
         .pc(pc_value),
 
         .instruction(instruction),
@@ -257,8 +254,6 @@ module cpu(
         .decode_enable(decode_enable),
 
         .reg_wait_enable(reg_wait_enable),
-
-        .execute_enable(execute_enable),
 
         .mem_ready(mem_ready),
         .mem_enable(mem_enable),

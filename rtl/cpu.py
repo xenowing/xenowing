@@ -101,7 +101,6 @@ def control():
     mod.output('instruction_fetch_enable', state.eq(lit(state_instruction_fetch, num_state_bits)))
     mod.output('decode_enable', state.eq(lit(state_decode, num_state_bits)))
     mod.output('reg_wait_enable', state.eq(lit(state_reg_wait, num_state_bits)))
-    mod.output('execute_enable', state.eq(lit(state_execute, num_state_bits)))
     mod.output('mem_enable', state.eq(lit(state_mem, num_state_bits)))
     mod.output('writeback_enable', state.eq(lit(state_writeback, num_state_bits)))
 
@@ -129,7 +128,6 @@ def execute():
     mod = Module('execute')
 
     ready = HIGH
-    enable = mod.input('enable', 1)
 
     instruction = Instruction(mod.input('instruction', 32))
 
@@ -214,7 +212,7 @@ def execute():
         alu_op = lit(0, 3)
         alu_op_mod = LOW
         alu_rhs = instruction.load_offset()
-        bus_read_req = enable
+        bus_read_req = HIGH
 
     mod.output('bus_read_req', bus_read_req)
 
@@ -228,7 +226,7 @@ def execute():
         alu_op_mod = LOW
         alu_rhs = instruction.store_offset()
         rd_value_write_enable = LOW
-        bus_write_req = enable
+        bus_write_req = HIGH
 
         with If(instruction.funct3().bits(1, 0).eq(lit(0b01, 2))):
             # sh

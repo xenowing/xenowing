@@ -1,5 +1,5 @@
 Notes
- - Registers are marked R, W, or R/W, depending on indented usage.
+ - Registers are marked R, W, or R/W, depending on intended usage.
  - Reads from regs not marked R or writes to regs marked W have undefined behavior.
 
 High-level map
