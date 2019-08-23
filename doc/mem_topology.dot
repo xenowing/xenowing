@@ -6,29 +6,42 @@ digraph mem_topology {
     system_bus [label="System bus"];
     program_rom [label="Program ROM"];
     led_interface [label="LED interface"];
-    uart_interface [label="UART transmitter"];
+    uart_tx_interface [label="UART tx interface"];
 
-    gpu_display [label="GPU display"];
-    gpu_draw [label="GPU draw"];
+    display_interface [label="Display interface"];
 
-    ddr3_arbiter [label="DDR3 arbiter"];
-    ddr3 [label="Avalon-mm DDR3 controller"];
+    ddr3_interface [label="DDR3 interface"];
+
+    uart_tx [label="UART tx"];
+
+    display [label="Display"];
+
+    adv7513 [label="ADV7513"];
+
+    ddr3_bus [label="DDR3 bus"];
+
+    ddr3_controller [label="DDR3 controller"];
 
     cpu -> system_bus [dir="both"];
     system_bus -> program_rom [dir="both"];
     system_bus -> led_interface [dir="both"];
-    system_bus -> uart_interface [dir="both"];
-    system_bus -> gpu_display [dir="both"];
-    system_bus -> gpu_draw [dir="both"];
-    system_bus -> ddr3_arbiter [dir="both"];
+    system_bus -> uart_tx_interface [dir="both"];
+    system_bus -> ddr3_interface [dir="both"];
+    system_bus -> display_interface [dir="both"];
 
-    gpu_display -> ddr3_arbiter [dir="both"];
-    gpu_draw -> ddr3_arbiter [dir="both"];
+    uart_tx_interface -> uart_tx [dir="both"];
 
-    ddr3_arbiter -> ddr3 [dir="both"];
+    display_interface -> display [dir="both"];
 
-    { rank=same; program_rom led_interface uart_interface }
-    { rank=same; gpu_display gpu_draw }
-    { rank=same; ddr3_arbiter }
-    { rank=same; ddr3 }
+    ddr3_interface -> ddr3_bus [dir="both"];
+
+    display -> adv7513 [dir="both"];
+    display -> ddr3_bus [dir="both"];
+
+    ddr3_bus -> ddr3_controller [dir="both"];
+
+    { rank=same; program_rom led_interface uart_tx_interface display_interface ddr3_interface }
+    { rank=same; uart_tx display }
+    { rank=same; adv7513 ddr3_bus }
+    { rank=same; ddr3_controller }
 }
