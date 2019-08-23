@@ -37,18 +37,6 @@ extern uint64_t xw_cycles();
 
 int main()
 {
-    /*const uint16_t start_state = 0xace1;
-    uint16_t lfsr = start_state;
-
-    while (true)
-    {
-        uint16_t bit = (lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5);
-        lfsr = (lfsr >> 1) | (bit << 15);
-        xw_uart_write((uint8_t)lfsr);
-    }*/
-
-    xw_puts("We're in main! Let's try a rather long string as it looks like we might be having some issues and it'd be nice to know it's not timing-related at least, or something something something darkside aaaah");
-
     xw_puts("Setting initial LED value");
     uint8_t leds = 5;
 

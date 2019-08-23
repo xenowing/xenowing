@@ -1,0 +1,10 @@
+[package]
+name = "xw-blaster"
+version = "0.1.0"
+authors = ["ferris <yupferris@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+notify = "4.0.12"
+serialport = "3.3.0"
+termcolor = "1"

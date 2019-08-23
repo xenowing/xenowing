@@ -1,7 +1,0 @@
-[package]
-name = "rom-loader"
-version = "0.1.0"
-authors = ["ferris <yupferris@gmail.com>"]
-
-[dependencies]
-serialport = "1.0.1"
