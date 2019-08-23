@@ -1,6 +1,7 @@
 Notes
  - Registers are marked R, W, or R/W, depending on intended usage.
- - Reads from regs not marked R or writes to regs marked W have undefined behavior.
+ - Reads from regs not marked R and writes to regs marked W have undefined behavior.
+ - Reads and writes to undefined addresses in the memory map have undefined behavior.
 
 High-level map
 
