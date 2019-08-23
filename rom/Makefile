@@ -18,7 +18,7 @@ rom_s.o: rom.s
 	$(GCC_PREFIX)as -march=rv32i -o rom_s.o rom.s
 
 rom_c.o: rom.c
-	$(GCC_PREFIX)gcc -march=rv32i -mabi=ilp32 -o rom_c.o -c rom.c -nodefaultlibs -O3
+	$(GCC_PREFIX)gcc -march=rv32i -mabi=ilp32 -nostdinc -Iinclude -o rom_c.o -c rom.c -nodefaultlibs -O3
 
 rom.elf: rom_s.o rom_c.o link.ld
 	$(GCC_PREFIX)gcc -march=rv32i -o rom.elf -nostartfiles rom_s.o rom_c.o -Tlink.ld
