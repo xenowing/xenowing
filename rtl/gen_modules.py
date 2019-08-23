@@ -74,15 +74,9 @@ def system_bus():
     mod.output('ddr3_interface_write_data', write_data)
     mod.output('ddr3_interface_byte_enable', byte_enable)
 
-    dummy_read_data_valid = reg(1)
-    dummy_read_data_valid_next = dummy_read_data_valid
-
     ready = HIGH
     read_data = mod.input('program_rom_interface_read_data', 32)
-    read_data_valid = dummy_read_data_valid
-
-    with If(mod.input('program_rom_interface_read_data_valid', 1)):
-        read_data_valid = HIGH
+    read_data_valid = mod.input('program_rom_interface_read_data_valid', 1)
 
     with If(mod.input('led_interface_read_data_valid', 1)):
         read_data = lit(0, 29).concat(mod.input('led_interface_read_data', 3))
@@ -108,9 +102,6 @@ def system_bus():
     ddr3_interface_read_req = LOW
 
     # TODO: switch/case construct?
-    with If(addr.bits(29, 26).eq(lit(0, 4))):
-        dummy_read_data_valid_next = read_req
-
     with If(addr.bits(29, 26).eq(lit(1, 4))):
         program_rom_interface_read_req = read_req
 
@@ -127,8 +118,6 @@ def system_bus():
         ready = mod.input('ddr3_interface_ready', 1)
         ddr3_interface_write_req = write_req
         ddr3_interface_read_req = read_req
-
-    dummy_read_data_valid.drive_next_with(dummy_read_data_valid_next)
 
     mod.output('ready', ready)
     mod.output('read_data', read_data)
