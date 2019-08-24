@@ -1,0 +1,4 @@
+*.o
+rom.elf
+rom.bin
+rom.mif

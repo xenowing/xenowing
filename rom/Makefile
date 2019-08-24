@@ -1,36 +1,58 @@
 ifeq ($(OS),Windows_NT)
-	GCC_PREFIX=riscv-none-embed-
+	TARGET_PREFIX=riscv-none-embed-
 	EXE_EXT=.exe
 else
-	GCC_PREFIX=riscv64-unknown-elf-
+	TARGET_PREFIX=riscv64-unknown-elf-
 	EXE_EXT=
 endif
 
+ARCH=rv32i
+ABI=ilp32
+INCLUDE_DIRS=xw/include
+CC=$(TARGET_PREFIX)gcc
+CC_FLAGS=-march=$(ARCH) -mabi=$(ABI) -nostdinc -nodefaultlibs -Wall -O3 $(foreach d,$(INCLUDE_DIRS),-I$d)
+CC_SOURCES=$(wildcard src/*.c) $(wildcard xw/src/*.c)
+CC_OBJS=$(CC_SOURCES:.c=.o)
+AS=$(TARGET_PREFIX)as
+AS_FLAGS=-march=$(ARCH)
+AS_SOURCES=$(wildcard src/*.s)
+AS_OBJS=$(AS_SOURCES:.s=.o)
+OBJS=$(CC_OBJS) $(AS_OBJS)
+LD_SCRIPT=link.ld
+LD_FLAGS=-march=$(ARCH) -nostartfiles -T$(LD_SCRIPT)
+ROM_ELF=rom.elf
+ROM_BIN=rom.bin
+ROM_MIF=rom.mif
+
 MIFFED_DIR=../misc/miffed
 MIFFED_SRC=$(wildcard $(MIFFED_DIR)/**/*.rs)
-MIFFED=$(MIFFED_DIR)/target/release/miffed$(EXE_EXT)
+MIFFED=$(MIFFED_DIR)/target/debug/miffed$(EXE_EXT)
 
-.PHONY: all clean
+RM=rm
+RM_FLAGS=-f
 
-all: rom.bin rom.mif
+.PHONY: all
+all: $(ROM_MIF)
 
-rom_s.o: rom.s
-	$(GCC_PREFIX)as -march=rv32i -o rom_s.o rom.s
+.s.o:
+	$(AS) $(AS_FLAGS) -o $@ $<
 
-rom_c.o: rom.c
-	$(GCC_PREFIX)gcc -march=rv32i -mabi=ilp32 -nostdinc -Ixw/include -o rom_c.o -c rom.c -nodefaultlibs -O3
+.c.o:
+	$(CC) $(CC_FLAGS) -o $@ -c $<
 
-rom.elf: rom_s.o rom_c.o link.ld
-	$(GCC_PREFIX)gcc -march=rv32i -o rom.elf -nostartfiles rom_s.o rom_c.o -Tlink.ld
+$(ROM_ELF): $(OBJS) $(LD_SCRIPT)
+	$(CC) $(LD_FLAGS) -o $@ $(OBJS)
 
-rom.bin: rom.elf
-	$(GCC_PREFIX)objcopy -O binary rom.elf rom.bin
+$(ROM_BIN): $(ROM_ELF)
+	$(TARGET_PREFIX)objcopy -O binary $(ROM_ELF) $@
 
-rom.mif: rom.bin $(MIFFED)
-	$(MIFFED) rom.bin rom.mif
+$(ROM_MIF): $(ROM_BIN) $(MIFFED)
+	$(MIFFED) $(ROM_BIN) $@
 
 $(MIFFED): $(MIFFED_SRC)
-	cd $(MIFFED_DIR) && cargo build --release
+	cd $(MIFFED_DIR) && cargo build
 
+.PHONY: clean
 clean:
+	$(RM) $(RM_FLAGS) $(ROM_ELF) $(ROM_BIN) $(ROM_MIF) $(OBJS)
 	cd $(MIFFED_DIR) && cargo clean
