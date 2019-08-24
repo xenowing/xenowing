@@ -12,7 +12,7 @@ int main()
     uint32_t phase = phase_min;
     uint32_t duty_cycle = phase_min;
     bool duty_cycle_rising = true;
-    *XW_LEDS = 0;
+    xw_set_leds(0);
 
     const uint32_t ticks_max = 500;
     uint32_t ticks = 0;
@@ -24,7 +24,7 @@ int main()
             ;
 
         phase++;
-        *XW_LEDS = (phase & phase_mask) < duty_cycle ? 1 : 0;
+        xw_set_leds((phase & phase_mask) < duty_cycle ? 1 : 0);
 
         ticks++;
         if (ticks >= ticks_max)
