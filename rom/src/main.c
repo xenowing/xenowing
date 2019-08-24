@@ -4,6 +4,8 @@ int main()
 {
     xw_puts("xw online");
 
+    xw_display_init();
+
     xw_puts("get ready for some 0xfadebabe");
     const uint32_t phase_bits = 8;
     const uint32_t phase_min = 0;

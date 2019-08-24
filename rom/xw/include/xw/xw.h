@@ -7,5 +7,6 @@
 #include "cpu.h"
 #include "leds.h"
 #include "uart.h"
+#include "display.h"
 
 #endif
