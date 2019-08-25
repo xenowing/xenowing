@@ -3,6 +3,7 @@
 from kaze import *
 import cpu
 import uart
+import display
 from sys import argv
 
 def fifo(data_width, depth_bits):
@@ -70,6 +71,10 @@ def system_bus():
     mod.output('uart_transmitter_interface_write_data', write_data.bits(7, 0))
     mod.output('uart_transmitter_interface_byte_enable', byte_enable.bit(0))
 
+    mod.output('display_interface_addr', addr.bit(0))
+    mod.output('display_interface_write_data', write_data.bits(1, 0))
+    mod.output('display_interface_byte_enable', byte_enable.bit(0))
+
     mod.output('ddr3_interface_addr', addr.bits(24, 0))
     mod.output('ddr3_interface_write_data', write_data)
     mod.output('ddr3_interface_byte_enable', byte_enable)
@@ -86,6 +91,10 @@ def system_bus():
         read_data = lit(0, 31).concat(mod.input('uart_transmitter_interface_read_data', 1))
         read_data_valid = HIGH
 
+    with If(mod.input('display_interface_read_data_valid', 1)):
+        read_data = lit(0, 30).concat(mod.input('display_interface_read_data', 2))
+        read_data_valid = HIGH
+
     with If(mod.input('ddr3_interface_read_data_valid', 1)):
         read_data = mod.input('ddr3_interface_read_data', 32)
         read_data_valid = HIGH
@@ -98,6 +107,9 @@ def system_bus():
     uart_transmitter_interface_write_req = LOW
     uart_transmitter_interface_read_req = LOW
 
+    display_interface_write_req = LOW
+    display_interface_read_req = LOW
+
     ddr3_interface_write_req = LOW
     ddr3_interface_read_req = LOW
 
@@ -106,13 +118,17 @@ def system_bus():
         program_rom_interface_read_req = read_req
 
     with If(addr.bits(29, 26).eq(lit(2, 4))):
-        with If(~addr.bit(22)):
+        with If(addr.bits(23, 22).eq(lit(0, 2))):
             led_interface_write_req = write_req
             led_interface_read_req = read_req
 
-        with If(addr.bit(22)):
+        with If(addr.bits(23, 22).eq(lit(1, 2))):
             uart_transmitter_interface_write_req = write_req
             uart_transmitter_interface_read_req = read_req
+
+        with If(addr.bits(23, 22).eq(lit(2, 2))):
+            display_interface_write_req = write_req
+            display_interface_read_req = read_req
 
     with If(addr.bits(29, 26).eq(lit(3, 4))):
         ready = mod.input('ddr3_interface_ready', 1)
@@ -130,6 +146,9 @@ def system_bus():
 
     mod.output('uart_transmitter_interface_write_req', uart_transmitter_interface_write_req)
     mod.output('uart_transmitter_interface_read_req', uart_transmitter_interface_read_req)
+
+    mod.output('display_interface_write_req', display_interface_write_req)
+    mod.output('display_interface_read_req', display_interface_read_req)
 
     mod.output('ddr3_interface_write_req', ddr3_interface_write_req)
     mod.output('ddr3_interface_read_req', ddr3_interface_read_req)
@@ -154,6 +173,7 @@ if __name__ == '__main__':
         program_rom_interface(),
         system_bus(),
         uart.receiver(150000000, 115200),
+        display.display_interface(),
     ]
 
     w = CodeWriter()

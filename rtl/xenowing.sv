@@ -11,6 +11,11 @@ module xenowing(
 
     output uart_tx,
 
+    output display_i2c_clk_out_n,
+    output display_i2c_data_out_n,
+    input display_i2c_clk_in,
+    input display_i2c_data_in,
+
     input avl_ready,
     output avl_burstbegin,
     output [23:0] avl_addr,
@@ -93,6 +98,30 @@ module xenowing(
         .uart_write_req(uart_transmitter_interface_uart_write_req),
         .uart_ready(uart_transmitter_ready));
 
+    logic display_interface_addr;
+    logic [1:0] display_interface_write_data;
+    logic display_interface_byte_enable;
+    logic display_interface_write_req;
+    logic display_interface_read_req;
+    logic [1:0] display_interface_read_data;
+    logic display_interface_read_data_valid;
+    display_interface display_interface0(
+        .reset_n(reset_n),
+        .clk(clk),
+
+        .addr(display_interface_addr),
+        .write_data(display_interface_write_data),
+        .byte_enable(display_interface_byte_enable),
+        .write_req(display_interface_write_req),
+        .read_req(display_interface_read_req),
+        .read_data(display_interface_read_data),
+        .read_data_valid(display_interface_read_data_valid),
+
+        .i2c_clk_out_n(display_i2c_clk_out_n),
+        .i2c_data_out_n(display_i2c_data_out_n),
+        .i2c_clk_in(display_i2c_clk_in),
+        .i2c_data_in(display_i2c_data_in));
+
     logic ddr3_interface_ready;
     logic [24:0] ddr3_interface_addr;
     logic [31:0] ddr3_interface_write_data;
@@ -165,6 +194,14 @@ module xenowing(
         .uart_transmitter_interface_read_req(uart_transmitter_interface_read_req),
         .uart_transmitter_interface_read_data(uart_transmitter_interface_read_data),
         .uart_transmitter_interface_read_data_valid(uart_transmitter_interface_read_data_valid),
+
+        .display_interface_addr(display_interface_addr),
+        .display_interface_write_data(display_interface_write_data),
+        .display_interface_byte_enable(display_interface_byte_enable),
+        .display_interface_write_req(display_interface_write_req),
+        .display_interface_read_req(display_interface_read_req),
+        .display_interface_read_data(display_interface_read_data),
+        .display_interface_read_data_valid(display_interface_read_data_valid),
 
         .ddr3_interface_ready(ddr3_interface_ready),
         .ddr3_interface_addr(ddr3_interface_addr),

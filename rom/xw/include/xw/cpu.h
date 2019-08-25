@@ -5,4 +5,6 @@
 
 extern uint64_t xw_cycles();
 
+void xw_sleep_cycles(uint64_t cycles);
+
 #endif
