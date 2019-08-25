@@ -58,8 +58,8 @@ module hw_top(
         .display_i2c_clk_in(hdmi_scl),
         .display_i2c_data_in(hdmi_sda));
 
-    assign hdmi_scl = xenowing_display_i2c_clk_out_n ? 0 : 1'bZ;
-    assign hdmi_sda = xenowing_display_i2c_data_out_n ? 0 : 1'bZ;
+    assign hdmi_scl = xenowing_display_i2c_clk_out_n ? 1'b0 : 1'bZ;
+    assign hdmi_sda = xenowing_display_i2c_data_out_n ? 1'b0 : 1'bZ;
 
     logic [31:0] program_rom_data;
     logic [13:0] program_rom_rdaddress;
