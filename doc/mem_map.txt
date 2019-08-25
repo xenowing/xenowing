@@ -14,7 +14,7 @@ Detailed mem map
 
 0x10000000 - 0x1000ffff: Program ROM
 
-0x20000000 - 0x20000003: LED interface (R/W, only word 0 used).
+0x20000000 - 0x20000003: LED interface (R/W, only word 0 used). Bits 0, 1, and 2 correspond to the 3 available LED's (0 = off, 1 = on).
 
 0x21000000 - 0x21000003: UART transmitter status (R). Bit 0 indicates ready status (1 = ready, 0 = busy).
 0x21000004 - 0x21000007: UART transmitter write (W). Bits 0-7 indicate data to be transmitted. When not busy, a write to this reg will start a new transmission immediately. If busy, the write is ignored.
