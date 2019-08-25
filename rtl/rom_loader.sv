@@ -9,11 +9,11 @@ module rom_loader(
 
     output system_soft_reset,
 
-    output logic [13:0] program_rom_write_addr,
+    output logic [11:0] program_rom_write_addr,
     output logic [31:0] program_rom_write_data,
     output logic program_rom_write_req);
 
-    logic [13:0] program_rom_write_addr_next;
+    logic [11:0] program_rom_write_addr_next;
     logic [31:0] program_rom_write_data_next;
     logic program_rom_write_req_next;
 
@@ -66,7 +66,7 @@ module rom_loader(
                     program_rom_write_data_next = {uart_receiver_data, program_rom_write_data[31:8]};
 
                     if (data_receive_index[1:0] == 2'h3) begin
-                        program_rom_write_addr_next = data_receive_index[15:2];
+                        program_rom_write_addr_next = data_receive_index[13:2];
                         program_rom_write_req_next = 1;
                     end
 
@@ -82,7 +82,7 @@ module rom_loader(
 
     always_ff @(posedge clk) begin
         if (!reset_n) begin
-            program_rom_write_addr <= 14'h0;
+            program_rom_write_addr <= 12'h0;
             program_rom_write_data <= 32'h0;
             program_rom_write_req <= 0;
 

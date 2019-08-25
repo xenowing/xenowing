@@ -62,8 +62,8 @@ module hw_top(
     assign hdmi_sda = xenowing_display_i2c_data_out_n ? 1'b0 : 1'bZ;
 
     logic [31:0] program_rom_data;
-    logic [13:0] program_rom_rdaddress;
-    logic [13:0] program_rom_wraddress;
+    logic [11:0] program_rom_rdaddress;
+    logic [11:0] program_rom_wraddress;
     logic program_rom_wren;
     logic [31:0] program_rom_q;
     program_rom program_rom0(

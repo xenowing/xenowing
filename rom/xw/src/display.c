@@ -16,8 +16,8 @@
 #define XW_DISPLAY_I2C_DATA_HIGH XW_DISPLAY_I2C_DATA_MASK
 
 #define I2C_DEVICE_ADDR 0x72
-#define I2C_WRITE_BIT 0x01
-#define I2C_READ_BIT 0x00
+#define I2C_WRITE_BIT 0x00
+#define I2C_READ_BIT 0x01
 
 typedef uint8_t i2c_reg_t;
 
