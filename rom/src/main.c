@@ -2,7 +2,7 @@
 
 int main()
 {
-    //xw_puts("xw online");
+    xw_puts("xw online");
 
     xw_display_init();
 
