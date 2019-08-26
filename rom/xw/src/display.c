@@ -31,8 +31,8 @@ typedef uint8_t i2c_reg_t;
 
 void i2c_delay(uint32_t ticks)
 {
-    // Each tick is 1/4 the I2C clock rate, which should be 100khz max (TODO: We can likely make this faster for the adv7513, check data sheet)
-    const uint64_t cycles_per_tick = 150000000 / 100000 / 4;
+    // Each tick is 1/4 the I2C clock rate, which should be 400khz max
+    const uint64_t cycles_per_tick = 150000000 / 400000 / 4;
     while (ticks)
     {
         xw_sleep_cycles(cycles_per_tick);
@@ -160,45 +160,48 @@ void adv7513_init()
     // Wait 200ns for adv7513 power-up
     xw_sleep_cycles(30000000);
 
-    // I2C testing for now...
-    //i2c_debug_read(0x96);
-    i2c_debug_read(REG_HPD_MONITOR_SENSE);
-
-    i2c_debug_read(0x98);
-    i2c_debug_read(0x9a); // TODO: This one may be wrong :P
-    i2c_debug_read(0x9c);
-    i2c_debug_read(0x9d);
-    i2c_debug_read(0xa2);
-    i2c_debug_read(0xa3);
-    i2c_debug_read(0xe0);
-    i2c_debug_read(0xf9);
-
-    /*i2c_set(REG_POWER_DOWN, REG_POWER_DOWN_DISABLE);
-    i2c_debug_read(REG_POWER_DOWN);
-    i2c_set(REG_POWER_DOWN, REG_POWER_DOWN_ENABLE);
-    i2c_debug_read(REG_POWER_DOWN);
-    i2c_set(REG_POWER_DOWN, REG_POWER_DOWN_DISABLE);
-    i2c_debug_read(REG_POWER_DOWN);*/
-
-    // TODO: Do we need to detect if the monitor is connected before powering on the transmitter?
-    // TODO: If the monitor is disconnected, how do we detect it? How much do we have to do to power on again?
+    // Wait for HPD to be high
+    while (!(i2c_get(REG_HPD_MONITOR_SENSE) & REG_HPD_MONITOR_SENSE_HPD_MASK))
+        ;
 
     // Disable power down
-    //i2c_set(REG_POWER_DOWN, REG_POWER_DOWN_DISABLE);
+    i2c_set(REG_POWER_DOWN, REG_POWER_DOWN_DISABLE);
 
     // Set fixed registers
-    /*i2c_set(0x98, 0x03);
+    i2c_set(0x98, 0x03);
     i2c_set(0x9a, 0xe0); // TODO: This one may be wrong :P
     i2c_set(0x9c, 0x30);
     i2c_set(0x9d, 0x01);
     i2c_set(0xa2, 0xa4);
     i2c_set(0xa3, 0xa4);
     i2c_set(0xe0, 0xd0);
-    i2c_set(0xf9, 0x00);*/
+    i2c_set(0xf9, 0x00);
+
+    /*i2c_debug_read(0x98);
+    i2c_debug_read(0x9a); // TODO: This one may be wrong :P
+    i2c_debug_read(0x9c);
+    i2c_debug_read(0x9d);
+    i2c_debug_read(0xa2);
+    i2c_debug_read(0xa3);
+    i2c_debug_read(0xe0);
+    i2c_debug_read(0xf9);*/
 
     // TODO: Set video input mode
     // TODO: Set video output mode
 
+    i2c_debug_read(0x15);
+    i2c_debug_read(0x16);
+    i2c_debug_read(0x17);
+    i2c_debug_read(0x18);
+    i2c_debug_read(0xaf);
+    i2c_debug_read(0x97);
+    i2c_debug_read(0x01);
+    i2c_debug_read(0x0a);
+    i2c_debug_read(0x0b);
+    i2c_debug_read(0x0c);
+    i2c_debug_read(0x15);
+
+    // TODO: If the monitor is disconnected, how do we detect it? How much do we have to do to power on again? Can we detect it without polling the I2C port?
     // TODO: Audio? We won't have that for awhile, but probably want to generalize this to HDMI rather than just display
 }
 

@@ -174,6 +174,7 @@ if __name__ == '__main__':
         system_bus(),
         uart.receiver(150000000, 115200),
         display.display_interface(),
+        display.display(),
     ]
 
     w = CodeWriter()

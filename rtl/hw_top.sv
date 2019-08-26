@@ -26,7 +26,12 @@ module hw_top(
     input uart_rx,
 
     inout hdmi_scl,
-    inout hdmi_sda);
+    inout hdmi_sda,
+    output hdmi_pixel_clk,
+    output hdmi_vsync,
+    output hdmi_hsync,
+    output hdmi_data_enable,
+    output [23:0] hdmi_pixel_data);
 
     logic [2:0] xenowing_leds;
     logic xenowing_display_i2c_clk_out_n;
@@ -56,7 +61,12 @@ module hw_top(
         .display_i2c_clk_out_n(xenowing_display_i2c_clk_out_n),
         .display_i2c_data_out_n(xenowing_display_i2c_data_out_n),
         .display_i2c_clk_in(hdmi_scl),
-        .display_i2c_data_in(hdmi_sda));
+        .display_i2c_data_in(hdmi_sda),
+        .display_pixel_clk(hdmi_pixel_clk),
+        .display_vsync(hdmi_vsync),
+        .display_hsync(hdmi_hsync),
+        .display_data_enable(hdmi_data_enable),
+        .display_pixel_data(hdmi_pixel_data));
 
     assign hdmi_scl = xenowing_display_i2c_clk_out_n ? 1'b0 : 1'bZ;
     assign hdmi_sda = xenowing_display_i2c_data_out_n ? 1'b0 : 1'bZ;

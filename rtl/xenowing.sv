@@ -15,6 +15,11 @@ module xenowing(
     output display_i2c_data_out_n,
     input display_i2c_clk_in,
     input display_i2c_data_in,
+    output display_pixel_clk,
+    output display_vsync,
+    output display_hsync,
+    output display_data_enable,
+    output [23:0] display_pixel_data,
 
     input avl_ready,
     output avl_burstbegin,
@@ -97,6 +102,16 @@ module xenowing(
         .uart_write_data(uart_transmitter_interface_uart_write_data),
         .uart_write_req(uart_transmitter_interface_uart_write_req),
         .uart_ready(uart_transmitter_ready));
+
+    display display0(
+        .reset_n(reset_n),
+        .clk(clk),
+
+        .pixel_clk(display_pixel_clk),
+        .vsync(display_vsync),
+        .hsync(display_hsync),
+        .data_enable(display_data_enable),
+        .pixel_data(display_pixel_data));
 
     logic display_interface_addr;
     logic [1:0] display_interface_write_data;
