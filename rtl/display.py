@@ -6,16 +6,15 @@ def display():
     # Pixel clock is 25mhz, which is 1/6 150mhz
     pixel_clock_counter_max = 6
     pixel_clock_counter_bits = 3
-    pixel_clock_counter = reg(pixel_clock_counter_bits, 0)
-    pixel_clock_counter_next = (pixel_clock_counter + lit(1, pixel_clock_counter_bits)).bits(pixel_clock_counter_bits - 1, 0)
-    pixel_clock_counter_reset = pixel_clock_counter.eq(lit(pixel_clock_counter_max - 1, pixel_clock_counter_bits))
+    pixel_clock_counter = reg(pixel_clock_counter_bits, 1)
+    pixel_clock_counter_reset = pixel_clock_counter.eq(lit(pixel_clock_counter_max, pixel_clock_counter_bits))
     pixel_clock_counter.drive_next_with(
         mux(
-            pixel_clock_counter_next,
-            lit(0, pixel_clock_counter_bits),
+            (pixel_clock_counter + lit(1, pixel_clock_counter_bits)).bits(pixel_clock_counter_bits - 1, 0),
+            lit(1, pixel_clock_counter_bits),
             pixel_clock_counter_reset))
-    # Use top bit of next counter value for 50% duty cycle, shifted 180 degrees to ensure data (which should change on counter == 0) is stable before clock edge
-    mod.output('pixel_clk', pixel_clock_counter_next.bit(pixel_clock_counter_bits - 1))
+    # Use top bit of counter value for 50% duty cycle, shifted 180 degrees to ensure data (which should change on counter reset to 1) is stable before clock edge
+    mod.output('pixel_clk', pixel_clock_counter.bit(pixel_clock_counter_bits - 1))
 
     pixel_counter_x = reg(10, 0)
     pixel_counter_y = reg(10, 0)
@@ -42,13 +41,13 @@ def display():
     frame_counter.drive_next_with(next_frame_counter)
 
     vsync = reg(1)
-    vsync.drive_next_with((pixel_counter_y >= lit(490, 10)) & (pixel_counter_y < lit(492, 10)))
+    vsync.drive_next_with((pixel_counter_y >= lit(10, 10)) & (pixel_counter_y < lit(12, 10)))
     mod.output('vsync', vsync)
     hsync = reg(1)
-    hsync.drive_next_with((pixel_counter_x >= lit(656, 10)) & (pixel_counter_x < lit(752, 10)))
+    hsync.drive_next_with((pixel_counter_x >= lit(16, 10)) & (pixel_counter_x < lit(112, 10)))
     mod.output('hsync', hsync)
     data_enable = reg(1)
-    data_enable.drive_next_with((pixel_counter_x < lit(640, 10)) & (pixel_counter_y < lit(480, 10)))
+    data_enable.drive_next_with((pixel_counter_x >= lit(160, 10)) & (pixel_counter_y >= lit(45, 10)))
     mod.output('data_enable', data_enable)
 
     pixel_color = ((pixel_counter_x.bits(7, 0) ^ pixel_counter_y.bits(7, 0)) + frame_counter).bits(7, 0)
