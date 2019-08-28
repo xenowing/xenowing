@@ -26,6 +26,17 @@ typedef struct
     uint32_t (*get_leds)();
     void (*set_leds)(uint32_t value);
 
+    uint32_t (*get_display_pixel_clk)();
+    void (*set_display_pixel_clk)(uint32_t value);
+    uint32_t (*get_display_vsync)();
+    void (*set_display_vsync)(uint32_t value);
+    uint32_t (*get_display_hsync)();
+    void (*set_display_hsync)(uint32_t value);
+    uint32_t (*get_display_data_enable)();
+    void (*set_display_data_enable)(uint32_t value);
+    uint32_t (*get_display_pixel_data)();
+    void (*set_display_pixel_data)(uint32_t value);
+
     uint32_t (*get_avl_ready)();
     void (*set_avl_ready)(uint32_t value);
     uint32_t (*get_avl_burstbegin)();
@@ -103,6 +114,56 @@ uint32_t get_leds()
 void set_leds(uint32_t value)
 {
     top->leds = value;
+}
+
+uint32_t get_display_pixel_clk()
+{
+    return top->display_pixel_clk;
+}
+
+void set_display_pixel_clk(uint32_t value)
+{
+    top->display_pixel_clk = value;
+}
+
+uint32_t get_display_vsync()
+{
+    return top->display_vsync;
+}
+
+void set_display_vsync(uint32_t value)
+{
+    top->display_vsync = value;
+}
+
+uint32_t get_display_hsync()
+{
+    return top->display_hsync;
+}
+
+void set_display_hsync(uint32_t value)
+{
+    top->display_hsync = value;
+}
+
+uint32_t get_display_data_enable()
+{
+    return top->display_data_enable;
+}
+
+void set_display_data_enable(uint32_t value)
+{
+    top->display_data_enable = value;
+}
+
+uint32_t get_display_pixel_data()
+{
+    return top->display_pixel_data;
+}
+
+void set_display_pixel_data(uint32_t value)
+{
+    top->display_pixel_data = value;
 }
 
 uint32_t get_avl_ready()
@@ -278,6 +339,17 @@ int main(int argc, char **argv)
 
         .get_leds = get_leds,
         .set_leds = set_leds,
+
+        .get_display_pixel_clk = get_display_pixel_clk,
+        .set_display_pixel_clk = set_display_pixel_clk,
+        .get_display_vsync = get_display_vsync,
+        .set_display_vsync = set_display_vsync,
+        .get_display_hsync = get_display_hsync,
+        .set_display_hsync = set_display_hsync,
+        .get_display_data_enable = get_display_data_enable,
+        .set_display_data_enable = set_display_data_enable,
+        .get_display_pixel_data = get_display_pixel_data,
+        .set_display_pixel_data = set_display_pixel_data,
 
         .get_avl_ready = get_avl_ready,
         .set_avl_ready = set_avl_ready,

@@ -15,6 +15,17 @@ pub struct Env {
     get_leds: extern "C" fn() -> u32,
     set_leds: extern "C" fn(value: u32),
 
+    get_display_pixel_clk: extern "C" fn() -> u32,
+    set_display_pixel_clk: extern "C" fn(value: u32),
+    get_display_vsync: extern "C" fn() -> u32,
+    set_display_vsync: extern "C" fn(value: u32),
+    get_display_hsync: extern "C" fn() -> u32,
+    set_display_hsync: extern "C" fn(value: u32),
+    get_display_data_enable: extern "C" fn() -> u32,
+    set_display_data_enable: extern "C" fn(value: u32),
+    get_display_pixel_data: extern "C" fn() -> u32,
+    set_display_pixel_data: extern "C" fn(value: u32),
+
     get_avl_ready: extern "C" fn() -> u32,
     set_avl_ready: extern "C" fn(value: u32),
     get_avl_burstbegin: extern "C" fn() -> u32,
@@ -99,6 +110,56 @@ impl Xenowing {
     pub fn set_leds(&mut self, value: u32) {
         unsafe {
             ((*self.env).set_leds)(value);
+        }
+    }
+
+    pub fn display_pixel_clk(&self) -> u32 {
+        unsafe { ((*self.env).get_display_pixel_clk)() }
+    }
+
+    pub fn set_display_pixel_clk(&mut self, value: u32) {
+        unsafe {
+            ((*self.env).set_display_pixel_clk)(value);
+        }
+    }
+
+    pub fn display_vsync(&self) -> u32 {
+        unsafe { ((*self.env).get_display_vsync)() }
+    }
+
+    pub fn set_display_vsync(&mut self, value: u32) {
+        unsafe {
+            ((*self.env).set_display_vsync)(value);
+        }
+    }
+
+    pub fn display_hsync(&self) -> u32 {
+        unsafe { ((*self.env).get_display_hsync)() }
+    }
+
+    pub fn set_display_hsync(&mut self, value: u32) {
+        unsafe {
+            ((*self.env).set_display_hsync)(value);
+        }
+    }
+
+    pub fn display_data_enable(&self) -> u32 {
+        unsafe { ((*self.env).get_display_data_enable)() }
+    }
+
+    pub fn set_display_data_enable(&mut self, value: u32) {
+        unsafe {
+            ((*self.env).set_display_data_enable)(value);
+        }
+    }
+
+    pub fn display_pixel_data(&self) -> u32 {
+        unsafe { ((*self.env).get_display_pixel_data)() }
+    }
+
+    pub fn set_display_pixel_data(&mut self, value: u32) {
+        unsafe {
+            ((*self.env).set_display_pixel_data)(value);
         }
     }
 

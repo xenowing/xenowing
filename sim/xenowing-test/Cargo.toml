@@ -9,3 +9,4 @@ crate-type = ["dylib"]
 
 [dependencies]
 ddr3-simulator = { path = "../ddr3-simulator" }
+minifb = "0.12"
