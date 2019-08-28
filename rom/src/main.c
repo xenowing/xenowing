@@ -1,10 +1,17 @@
 #include <xw/xw.h>
 
+#define FRAMEBUFFER_WIDTH 320
+#define FRAMEBUFFER_HEIGHT 240
+static uint16_t framebuffer[FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT] __attribute__((aligned(8)));
+
 int main()
 {
     xw_puts("xw online");
 
     xw_display_init();
+
+    xw_puts("time to try a random framebuffer addr");
+    xw_display_set_framebuffer_addr(framebuffer);
 
     xw_puts("get ready for some 0xfadebabe");
     const uint32_t phase_bits = 8;
@@ -16,8 +23,14 @@ int main()
     bool duty_cycle_rising = true;
     xw_set_leds(0);
 
-    const uint32_t ticks_max = 500;
+    const uint32_t ticks_max = 2000;//500;
     uint32_t ticks = 0;
+
+    uint32_t framebuffer_x = FRAMEBUFFER_WIDTH / 2;
+    uint32_t framebuffer_y = FRAMEBUFFER_HEIGHT / 2;
+    bool framebuffer_x_rising = true;
+    bool framebuffer_y_rising = true;
+    uint16_t color = 0;
 
     while (true)
     {
@@ -44,6 +57,33 @@ int main()
                 if (duty_cycle == 0)
                     duty_cycle_rising = true;
             }
+
+            //framebuffer[(FRAMEBUFFER_HEIGHT / 2 * FRAMEBUFFER_WIDTH) + framebuffer_x] = 0;
+            if (framebuffer_x_rising)
+            {
+                framebuffer_x++;
+                if (framebuffer_x == FRAMEBUFFER_WIDTH - 1)
+                    framebuffer_x_rising = false;
+            }
+            else
+            {
+                framebuffer_x--;
+                if (framebuffer_x == 0)
+                    framebuffer_x_rising = true;
+            }
+            if (framebuffer_y_rising)
+            {
+                framebuffer_y++;
+                if (framebuffer_y == FRAMEBUFFER_HEIGHT - 1)
+                    framebuffer_y_rising = false;
+            }
+            else
+            {
+                framebuffer_y--;
+                if (framebuffer_y == 0)
+                    framebuffer_y_rising = true;
+            }
+            framebuffer[(framebuffer_y * FRAMEBUFFER_WIDTH) + framebuffer_x] = color++;
         }
     }
 

@@ -4,14 +4,21 @@ module ddr3_interface(
     input reset_n,
     input clk,
 
-    output ready,
-    input [24:0] addr,
-    input [31:0] write_data,
-    input [3:0] byte_enable,
-    input write_req,
-    input read_req,
-    output [31:0] read_data,
-    output read_data_valid,
+    output cpu_avl_ready,
+    input [23:0] cpu_avl_addr,
+    output cpu_avl_rdata_valid,
+    output [63:0] cpu_avl_rdata,
+    input [63:0] cpu_avl_wdata,
+    input [7:0] cpu_avl_be,
+    input cpu_avl_read_req,
+    input cpu_avl_write_req,
+
+    output display_avl_ready,
+    input [23:0] display_avl_addr,
+    output display_avl_rdata_valid,
+    output [63:0] display_avl_rdata,
+    input [7:0] display_avl_be,
+    input display_avl_read_req,
 
     input avl_ready,
     output avl_burstbegin,
@@ -24,32 +31,52 @@ module ddr3_interface(
     output avl_write_req,
     output [6:0] avl_size);
 
-    logic addr0_fifo_full;
-
-    logic addr0_fifo_read_data;
-
-    fifo #(.data_width(1), .depth_bits(4)) addr0_fifo(
+    logic read_select_fifo_full;
+    logic read_select_fifo_read_data;
+    fifo #(.data_width(1), .depth_bits(4)) read_select_fifo(
         .reset_n(reset_n),
         .clk(clk),
 
-        .full(addr0_fifo_full),
+        .full(read_select_fifo_full),
 
-        .write_data(addr[0]),
-        .write_enable(avl_ready && read_req),
+        .write_data(display_avl_read_req),
+        .write_enable(avl_ready && (cpu_avl_read_req || display_avl_read_req)),
 
-        .read_data(addr0_fifo_read_data),
+        .read_data(read_select_fifo_read_data),
         .read_enable(avl_rdata_valid));
 
-    assign ready = avl_ready && !addr0_fifo_full;
-    assign read_data = avl_rdata >> {addr0_fifo_read_data, 5'h0};
-    assign read_data_valid = avl_rdata_valid;
+    assign cpu_avl_rdata_valid = avl_rdata_valid && !read_select_fifo_read_data;
+    assign cpu_avl_rdata = avl_rdata;
 
-    assign avl_burstbegin = write_req; // TODO: This is probably crap. Somehow we need to detect that a write is starting, or we need to extend our interface for this.
-    assign avl_addr = addr[24:1];
-    assign avl_wdata = {32'h0, write_data} << {addr[0], 5'h0};
-    assign avl_be = {4'h0, byte_enable} << {addr[0], 2'h0};
-    assign avl_read_req = read_req;
-    assign avl_write_req = write_req;
+    assign display_avl_rdata_valid = avl_rdata_valid && read_select_fifo_read_data;
+    assign display_avl_rdata = avl_rdata;
+
+    assign avl_wdata = cpu_avl_wdata;
     assign avl_size = 7'h1;
+
+    always_comb begin
+        cpu_avl_ready = avl_ready && !read_select_fifo_full;
+
+        display_avl_ready = 0;
+
+        avl_burstbegin = cpu_avl_write_req;
+        avl_addr = cpu_avl_addr;
+        avl_be = cpu_avl_be;
+        avl_read_req = cpu_avl_read_req;
+        avl_write_req = cpu_avl_write_req;
+
+        if (display_avl_read_req) begin
+            // Display reads always take priority over CPU reads/writes
+            cpu_avl_ready = 0;
+
+            display_avl_ready = avl_ready && !read_select_fifo_full;
+
+            avl_burstbegin = 0;
+            avl_addr = display_avl_addr;
+            avl_be = display_avl_be;
+            avl_read_req = display_avl_read_req;
+            avl_write_req = 0;
+        end
+    end
 
 endmodule

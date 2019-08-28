@@ -103,9 +103,89 @@ module xenowing(
         .uart_write_req(uart_transmitter_interface_uart_write_req),
         .uart_ready(uart_transmitter_ready));
 
+    logic [6:0] display_buffer0_write_addr;
+    logic [63:0] display_buffer0_write_data;
+    logic display_buffer0_write_enable;
+    logic [6:0] display_buffer0_read_addr;
+    logic [63:0] display_buffer0_read_data;
+    display_buffer display_buffer0(
+        .clk(clk),
+
+        .write_addr(display_buffer0_write_addr),
+        .write_data(display_buffer0_write_data),
+        .write_enable(display_buffer0_write_enable),
+        .read_addr(display_buffer0_read_addr),
+        .read_data(display_buffer0_read_data));
+
+    logic [6:0] display_buffer1_write_addr;
+    logic [63:0] display_buffer1_write_data;
+    logic display_buffer1_write_enable;
+    logic [6:0] display_buffer1_read_addr;
+    logic [63:0] display_buffer1_read_data;
+    display_buffer display_buffer1(
+        .clk(clk),
+
+        .write_addr(display_buffer1_write_addr),
+        .write_data(display_buffer1_write_data),
+        .write_enable(display_buffer1_write_enable),
+        .read_addr(display_buffer1_read_addr),
+        .read_data(display_buffer1_read_data));
+
+    logic [23:0] display_load_issue_framebuffer_base_addr_data;
+    logic display_load_issue_framebuffer_base_addr_write_enable;
+    logic [23:0] display_load_issue_bus_read_addr;
+    logic [7:0] display_load_issue_bus_byte_enable;
+    logic display_load_issue_start;
+    logic display_load_issue_bus_ready;
+    logic display_load_issue_bus_read_addr_reset;
+    logic display_load_issue_bus_read_req;
+    display_load_issue display_load_issue0(
+        .reset_n(reset_n),
+        .clk(clk),
+
+        .framebuffer_base_addr_data(display_load_issue_framebuffer_base_addr_data),
+        .framebuffer_base_addr_write_enable(display_load_issue_framebuffer_base_addr_write_enable),
+
+        .bus_read_addr(display_load_issue_bus_read_addr),
+        .bus_byte_enable(display_load_issue_bus_byte_enable),
+        .start(display_load_issue_start),
+        .bus_ready(display_load_issue_bus_ready),
+        .bus_read_addr_reset(display_load_issue_bus_read_addr_reset),
+        .bus_read_req(display_load_issue_bus_read_req));
+
+    logic display_load_return_start;
+    logic [63:0] display_load_return_bus_read_data;
+    logic display_load_return_bus_read_data_valid;
+    logic [6:0] display_load_return_load_addr;
+    logic [63:0] display_load_return_load_data;
+    logic display_load_return_load_data_valid;
+    display_load_return display_load_return0(
+        .reset_n(reset_n),
+        .clk(clk),
+
+        .start(display_load_return_start),
+
+        .bus_read_data(display_load_return_bus_read_data),
+        .bus_read_data_valid(display_load_return_bus_read_data_valid),
+
+        .load_addr(display_load_return_load_addr),
+        .load_data(display_load_return_load_data),
+        .load_data_valid(display_load_return_load_data_valid));
+
+    logic [6:0] display_buffer_addr;
+    logic display_buffer_select;
+    logic [63:0] display_buffer_data;
+    logic display_load_start;
     display display0(
         .reset_n(reset_n),
         .clk(clk),
+
+        .buffer_addr(display_buffer_addr),
+        .buffer_select(display_buffer_select),
+        .buffer_data(display_buffer_data),
+
+        .load_bus_read_addr_reset(display_load_issue_bus_read_addr_reset),
+        .load_start(display_load_start),
 
         .pixel_clk(display_pixel_clk),
         .vsync(display_vsync),
@@ -113,8 +193,24 @@ module xenowing(
         .data_enable(display_data_enable),
         .pixel_data(display_pixel_data));
 
-    logic display_interface_addr;
-    logic [1:0] display_interface_write_data;
+    assign display_buffer0_write_addr = display_load_return_load_addr;
+    assign display_buffer0_write_data = display_load_return_load_data;
+    assign display_buffer0_write_enable = display_load_return_load_data_valid & display_buffer_select;
+    assign display_buffer0_read_addr = display_buffer_addr;
+
+    assign display_buffer1_write_addr = display_load_return_load_addr;
+    assign display_buffer1_write_data = display_load_return_load_data;
+    assign display_buffer1_write_enable = display_load_return_load_data_valid & ~display_buffer_select;
+    assign display_buffer1_read_addr = display_buffer_addr;
+
+    assign display_load_issue_start = display_load_start;
+
+    assign display_load_return_start = display_load_start;
+
+    assign display_buffer_data = display_buffer_select ? display_buffer1_read_data : display_buffer0_read_data;
+
+    logic [1:0] display_interface_addr;
+    logic [26:0] display_interface_write_data;
     logic display_interface_byte_enable;
     logic display_interface_write_req;
     logic display_interface_read_req;
@@ -135,28 +231,68 @@ module xenowing(
         .i2c_clk_out_n(display_i2c_clk_out_n),
         .i2c_data_out_n(display_i2c_data_out_n),
         .i2c_clk_in(display_i2c_clk_in),
-        .i2c_data_in(display_i2c_data_in));
+        .i2c_data_in(display_i2c_data_in),
 
-    logic ddr3_interface_ready;
-    logic [24:0] ddr3_interface_addr;
-    logic [31:0] ddr3_interface_write_data;
-    logic [3:0] ddr3_interface_byte_enable;
-    logic ddr3_interface_write_req;
-    logic ddr3_interface_read_req;
-    logic [31:0] ddr3_interface_read_data;
-    logic ddr3_interface_read_data_valid;
+        .display_load_issue_framebuffer_base_addr_data(display_load_issue_framebuffer_base_addr_data),
+        .display_load_issue_framebuffer_base_addr_write_enable(display_load_issue_framebuffer_base_addr_write_enable));
+
+    logic cpu_ddr3_interface_ready;
+    logic [24:0] cpu_ddr3_interface_addr;
+    logic [31:0] cpu_ddr3_interface_write_data;
+    logic [3:0] cpu_ddr3_interface_byte_enable;
+    logic cpu_ddr3_interface_write_req;
+    logic cpu_ddr3_interface_read_req;
+    logic [31:0] cpu_ddr3_interface_read_data;
+    logic cpu_ddr3_interface_read_data_valid;
+    logic cpu_ddr3_interface_avl_ready;
+    logic [23:0] cpu_ddr3_interface_avl_addr;
+    logic cpu_ddr3_interface_avl_rdata_valid;
+    logic [63:0] cpu_ddr3_interface_avl_rdata;
+    logic [63:0] cpu_ddr3_interface_avl_wdata;
+    logic [7:0] cpu_ddr3_interface_avl_be;
+    logic cpu_ddr3_interface_avl_read_req;
+    logic cpu_ddr3_interface_avl_write_req;
+    cpu_ddr3_interface cpu_ddr3_interface0(
+        .reset_n(reset_n),
+        .clk(clk),
+
+        .ready(cpu_ddr3_interface_ready),
+        .addr(cpu_ddr3_interface_addr),
+        .write_data(cpu_ddr3_interface_write_data),
+        .byte_enable(cpu_ddr3_interface_byte_enable),
+        .write_req(cpu_ddr3_interface_write_req),
+        .read_req(cpu_ddr3_interface_read_req),
+        .read_data(cpu_ddr3_interface_read_data),
+        .read_data_valid(cpu_ddr3_interface_read_data_valid),
+
+        .avl_ready(cpu_ddr3_interface_avl_ready),
+        .avl_addr(cpu_ddr3_interface_avl_addr),
+        .avl_rdata_valid(cpu_ddr3_interface_avl_rdata_valid),
+        .avl_rdata(cpu_ddr3_interface_avl_rdata),
+        .avl_wdata(cpu_ddr3_interface_avl_wdata),
+        .avl_be(cpu_ddr3_interface_avl_be),
+        .avl_read_req(cpu_ddr3_interface_avl_read_req),
+        .avl_write_req(cpu_ddr3_interface_avl_write_req));
+
     ddr3_interface ddr3_interface0(
         .reset_n(reset_n),
         .clk(clk),
 
-        .ready(ddr3_interface_ready),
-        .addr(ddr3_interface_addr),
-        .write_data(ddr3_interface_write_data),
-        .byte_enable(ddr3_interface_byte_enable),
-        .write_req(ddr3_interface_write_req),
-        .read_req(ddr3_interface_read_req),
-        .read_data(ddr3_interface_read_data),
-        .read_data_valid(ddr3_interface_read_data_valid),
+        .cpu_avl_ready(cpu_ddr3_interface_avl_ready),
+        .cpu_avl_addr(cpu_ddr3_interface_avl_addr),
+        .cpu_avl_rdata_valid(cpu_ddr3_interface_avl_rdata_valid),
+        .cpu_avl_rdata(cpu_ddr3_interface_avl_rdata),
+        .cpu_avl_wdata(cpu_ddr3_interface_avl_wdata),
+        .cpu_avl_be(cpu_ddr3_interface_avl_be),
+        .cpu_avl_read_req(cpu_ddr3_interface_avl_read_req),
+        .cpu_avl_write_req(cpu_ddr3_interface_avl_write_req),
+
+        .display_avl_ready(display_load_issue_bus_ready),
+        .display_avl_addr(display_load_issue_bus_read_addr),
+        .display_avl_rdata_valid(display_load_return_bus_read_data_valid),
+        .display_avl_rdata(display_load_return_bus_read_data),
+        .display_avl_be(display_load_issue_bus_byte_enable),
+        .display_avl_read_req(display_load_issue_bus_read_req),
 
         .avl_ready(avl_ready),
         .avl_burstbegin(avl_burstbegin),
@@ -218,14 +354,14 @@ module xenowing(
         .display_interface_read_data(display_interface_read_data),
         .display_interface_read_data_valid(display_interface_read_data_valid),
 
-        .ddr3_interface_ready(ddr3_interface_ready),
-        .ddr3_interface_addr(ddr3_interface_addr),
-        .ddr3_interface_write_data(ddr3_interface_write_data),
-        .ddr3_interface_byte_enable(ddr3_interface_byte_enable),
-        .ddr3_interface_write_req(ddr3_interface_write_req),
-        .ddr3_interface_read_req(ddr3_interface_read_req),
-        .ddr3_interface_read_data(ddr3_interface_read_data),
-        .ddr3_interface_read_data_valid(ddr3_interface_read_data_valid));
+        .ddr3_interface_ready(cpu_ddr3_interface_ready),
+        .ddr3_interface_addr(cpu_ddr3_interface_addr),
+        .ddr3_interface_write_data(cpu_ddr3_interface_write_data),
+        .ddr3_interface_byte_enable(cpu_ddr3_interface_byte_enable),
+        .ddr3_interface_write_req(cpu_ddr3_interface_write_req),
+        .ddr3_interface_read_req(cpu_ddr3_interface_read_req),
+        .ddr3_interface_read_data(cpu_ddr3_interface_read_data),
+        .ddr3_interface_read_data_valid(cpu_ddr3_interface_read_data_valid));
 
     cpu cpu0(
         .reset_n(reset_n),

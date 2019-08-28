@@ -71,8 +71,8 @@ def system_bus():
     mod.output('uart_transmitter_interface_write_data', write_data.bits(7, 0))
     mod.output('uart_transmitter_interface_byte_enable', byte_enable.bit(0))
 
-    mod.output('display_interface_addr', addr.bit(0))
-    mod.output('display_interface_write_data', write_data.bits(1, 0))
+    mod.output('display_interface_addr', addr.bits(1, 0))
+    mod.output('display_interface_write_data', write_data.bits(26, 0))
     mod.output('display_interface_byte_enable', byte_enable.bit(0))
 
     mod.output('ddr3_interface_addr', addr.bits(24, 0))
@@ -173,8 +173,10 @@ if __name__ == '__main__':
         program_rom_interface(),
         system_bus(),
         uart.receiver(150000000, 115200),
-        display.display_interface(),
         display.display(),
+        display.display_load_issue(),
+        display.display_load_return(),
+        display.display_interface(),
     ]
 
     w = CodeWriter()

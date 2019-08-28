@@ -6,6 +6,8 @@
 #define XW_DISPLAY_I2C_READ ((volatile uint8_t *)0x22000000)
 #define XW_DISPLAY_I2C_WRITE ((volatile uint8_t *)0x22000004)
 
+#define XW_DISPLAY_FRAMEBUFFER_ADDR ((volatile uint32_t *)0x22000008)
+
 // TODO: I'm not entirely sure how I want to specify bit indices/masks for registers generally; need to see more usage examples first
 #define XW_DISPLAY_I2C_CLOCK_BIT 0
 #define XW_DISPLAY_I2C_DATA_BIT 1
@@ -210,4 +212,9 @@ void xw_display_init()
     adv7513_init();
 
     // TODO: Enable video output data generation (should that be a separate unit?)
+}
+
+void xw_display_set_framebuffer_addr(uint16_t *addr)
+{
+    *XW_DISPLAY_FRAMEBUFFER_ADDR = (uint32_t)addr;
 }

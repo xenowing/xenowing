@@ -3,4 +3,6 @@
 
 void xw_display_init();
 
+void xw_display_set_framebuffer_addr(uint16_t *addr);
+
 #endif

@@ -25,7 +25,7 @@ GENERATED_RTL_GENERATOR=rtl/gen_modules.py
 XENOWING_PREFIX=xenowing
 XENOWING_VM_PREFIX=V$(XENOWING_PREFIX)
 XENOWING_DRIVER=$(OBJ_DIR)/$(XENOWING_VM_PREFIX)
-XENOWING_DRIVER_RTL=rtl/xenowing.sv $(GENERATED_RTL) rtl/uart/uart_clock_divider.sv rtl/uart/uart_transmitter.sv rtl/uart/uart_transmitter_interface.sv rtl/fifo.sv rtl/ddr3_interface.sv rtl/cpu/register_file.sv rtl/cpu/alu.sv rtl/cpu/cpu.sv
+XENOWING_DRIVER_RTL=rtl/xenowing.sv $(GENERATED_RTL) rtl/uart/uart_clock_divider.sv rtl/uart/uart_transmitter.sv rtl/uart/uart_transmitter_interface.sv rtl/fifo.sv rtl/ddr3_interface.sv rtl/cpu_ddr3_interface.sv rtl/cpu/register_file.sv rtl/cpu/alu.sv rtl/cpu/cpu.sv rtl/display_buffer.sv
 XENOWING_DRIVER_SRC=sim/xenowing_driver.cpp
 
 XENOWING_TEST_DIR=sim/xenowing-test
