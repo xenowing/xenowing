@@ -103,33 +103,19 @@ module xenowing(
         .uart_write_req(uart_transmitter_interface_uart_write_req),
         .uart_ready(uart_transmitter_ready));
 
-    logic [6:0] display_buffer0_write_addr;
-    logic [63:0] display_buffer0_write_data;
-    logic display_buffer0_write_enable;
-    logic [6:0] display_buffer0_read_addr;
-    logic [63:0] display_buffer0_read_data;
+    logic [6:0] display_buffer_write_addr;
+    logic [63:0] display_buffer_write_data;
+    logic display_buffer_write_enable;
+    logic [6:0] display_buffer_read_addr;
+    logic [63:0] display_buffer_read_data;
     display_buffer display_buffer0(
         .clk(clk),
 
-        .write_addr(display_buffer0_write_addr),
-        .write_data(display_buffer0_write_data),
-        .write_enable(display_buffer0_write_enable),
-        .read_addr(display_buffer0_read_addr),
-        .read_data(display_buffer0_read_data));
-
-    logic [6:0] display_buffer1_write_addr;
-    logic [63:0] display_buffer1_write_data;
-    logic display_buffer1_write_enable;
-    logic [6:0] display_buffer1_read_addr;
-    logic [63:0] display_buffer1_read_data;
-    display_buffer display_buffer1(
-        .clk(clk),
-
-        .write_addr(display_buffer1_write_addr),
-        .write_data(display_buffer1_write_data),
-        .write_enable(display_buffer1_write_enable),
-        .read_addr(display_buffer1_read_addr),
-        .read_data(display_buffer1_read_data));
+        .write_addr(display_buffer_write_addr),
+        .write_data(display_buffer_write_data),
+        .write_enable(display_buffer_write_enable),
+        .read_addr(display_buffer_read_addr),
+        .read_data(display_buffer_read_data));
 
     logic [23:0] display_load_issue_framebuffer_base_addr_data;
     logic display_load_issue_framebuffer_base_addr_write_enable;
@@ -172,17 +158,13 @@ module xenowing(
         .load_data(display_load_return_load_data),
         .load_data_valid(display_load_return_load_data_valid));
 
-    logic [6:0] display_buffer_addr;
-    logic display_buffer_select;
-    logic [63:0] display_buffer_data;
     logic display_load_start;
     display display0(
         .reset_n(reset_n),
         .clk(clk),
 
-        .buffer_addr(display_buffer_addr),
-        .buffer_select(display_buffer_select),
-        .buffer_data(display_buffer_data),
+        .buffer_addr(display_buffer_read_addr),
+        .buffer_data(display_buffer_read_data),
 
         .load_bus_read_addr_reset(display_load_issue_bus_read_addr_reset),
         .load_start(display_load_start),
@@ -193,21 +175,13 @@ module xenowing(
         .data_enable(display_data_enable),
         .pixel_data(display_pixel_data));
 
-    assign display_buffer0_write_addr = display_load_return_load_addr;
-    assign display_buffer0_write_data = display_load_return_load_data;
-    assign display_buffer0_write_enable = display_load_return_load_data_valid & display_buffer_select;
-    assign display_buffer0_read_addr = display_buffer_addr;
-
-    assign display_buffer1_write_addr = display_load_return_load_addr;
-    assign display_buffer1_write_data = display_load_return_load_data;
-    assign display_buffer1_write_enable = display_load_return_load_data_valid & ~display_buffer_select;
-    assign display_buffer1_read_addr = display_buffer_addr;
+    assign display_buffer_write_addr = display_load_return_load_addr;
+    assign display_buffer_write_data = display_load_return_load_data;
+    assign display_buffer_write_enable = display_load_return_load_data_valid;
 
     assign display_load_issue_start = display_load_start;
 
     assign display_load_return_start = display_load_start;
-
-    assign display_buffer_data = display_buffer_select ? display_buffer1_read_data : display_buffer0_read_data;
 
     logic [1:0] display_interface_addr;
     logic [26:0] display_interface_write_data;

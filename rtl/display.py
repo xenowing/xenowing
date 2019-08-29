@@ -23,10 +23,8 @@ def display():
 
     pixel_addr = reg(9)
     next_pixel_addr = pixel_addr
-    buffer_select = reg(1)
-    next_buffer_select = buffer_select
 
-    mod.output('load_bus_read_addr_reset', pixel_counter_y.eq(lit(41, 10)))
+    mod.output('load_bus_read_addr_reset', pixel_counter_y.eq(lit(44, 10)))
     load_start = LOW
 
     with If(pixel_clock_counter_reset):
@@ -43,19 +41,15 @@ def display():
 
             next_pixel_addr = lit(0, 9)
 
-            # Dispatch new pixel loads at the beginning of all odd scanlines, two scanlines early, and skip the last two lines
-            with If((pixel_counter_y >= lit(42, 10)) & ~pixel_counter_y.bit(0)):
-                with If(pixel_counter_y < lit(522, 10)):
-                    load_start = HIGH
-                next_buffer_select = ~buffer_select
+            # Dispatch new pixel loads at the beginning of all even scanlines in active display area
+            with If((pixel_counter_y >= lit(45, 10)) & ~pixel_counter_y.bit(0)):
+                load_start = HIGH
 
     pixel_counter_x.drive_next_with(next_pixel_counter_x)
     pixel_counter_y.drive_next_with(next_pixel_counter_y)
 
     pixel_addr.drive_next_with(next_pixel_addr)
     mod.output('buffer_addr', pixel_addr.bits(8, 2))
-    buffer_select.drive_next_with(next_buffer_select)
-    mod.output('buffer_select', buffer_select)
     buffer_data = mod.input('buffer_data', 64)
 
     mod.output('load_start', load_start)
