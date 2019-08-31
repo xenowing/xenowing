@@ -55,7 +55,7 @@ DDR3_TEST=$(DDR3_TEST_DIR)/target/release/$(DYNAMIC_LIB_PREFIX)ddr3_test$(DYNAMI
 DDR3_TRACE=$(TRACE_DIR)/ddr3_test.vcd
 
 VERILATOR=verilator
-VERILATOR_FLAGS=--top-module xenowing -Wall -Wno-fatal -O3 --x-assign fast --noassert -CFLAGS "-O3 -std=c++11" --trace
+VERILATOR_FLAGS=-Wall -Wno-fatal -O3 --x-assign fast --noassert -CFLAGS "-O3 -std=c++11" --trace
 
 RM=rm
 RM_FLAGS=-rf
@@ -76,7 +76,7 @@ $(GENERATED_RTL): $(GENERATED_RTL_SRC) $(KAZE)
 	$(GENERATED_RTL_GENERATOR) $(GENERATED_RTL)
 
 $(XENOWING_DRIVER): $(XENOWING_DRIVER_RTL) $(XENOWING_DRIVER_SRC)
-	$(VERILATOR) $(VERILATOR_FLAGS) -cc $(XENOWING_DRIVER_RTL) --exe $(XENOWING_DRIVER_SRC)
+	$(VERILATOR) $(VERILATOR_FLAGS) --top-module xenowing -cc $(XENOWING_DRIVER_RTL) --exe $(XENOWING_DRIVER_SRC)
 	$(MAKE) -j -C $(OBJ_DIR) -f $(XENOWING_VM_PREFIX).mk
 
 $(XENOWING_TEST): $(XENOWING_TEST_SRC) rom/rom.bin
