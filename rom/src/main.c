@@ -30,7 +30,7 @@ int main()
     uint32_t framebuffer_y = FRAMEBUFFER_HEIGHT / 2;
     bool framebuffer_x_rising = true;
     bool framebuffer_y_rising = true;
-    uint16_t color = 0;
+    uint16_t color = (31 << 11) | (63 << 5) | 31;
 
     while (true)
     {
@@ -58,8 +58,14 @@ int main()
                     duty_cycle_rising = true;
             }
 
-            //framebuffer[(FRAMEBUFFER_HEIGHT / 2 * FRAMEBUFFER_WIDTH) + framebuffer_x] = 0;
-            if (framebuffer_x_rising)
+            for (int y = 0; y < FRAMEBUFFER_HEIGHT; y++)
+            {
+                for (int x = 0; x < FRAMEBUFFER_WIDTH; x++)
+                {
+                    framebuffer[y * FRAMEBUFFER_WIDTH + x] = 0;
+                }
+            }
+            /*if (framebuffer_x_rising)
             {
                 framebuffer_x++;
                 if (framebuffer_x == FRAMEBUFFER_WIDTH - 1)
@@ -82,8 +88,8 @@ int main()
                 framebuffer_y--;
                 if (framebuffer_y == 0)
                     framebuffer_y_rising = true;
-            }
-            framebuffer[(framebuffer_y * FRAMEBUFFER_WIDTH) + framebuffer_x] = color++;
+            }*/
+            framebuffer[(framebuffer_y * FRAMEBUFFER_WIDTH) + framebuffer_x] = color;
         }
     }
 
