@@ -3,19 +3,24 @@
 #include <xw/cpu.h>
 #include <xw/display.h>
 
-#define XW_DISPLAY_I2C_READ ((volatile uint8_t *)0x22000000)
-#define XW_DISPLAY_I2C_WRITE ((volatile uint8_t *)0x22000004)
+#define DISPLAY_STATUS ((volatile uint32_t *)0x22000000)
 
-#define XW_DISPLAY_FRAMEBUFFER_ADDR ((volatile uint32_t *)0x22000008)
+#define DISPLAY_STATUS_VBLANK_BIT 0
+#define DISPLAY_STATUS_VBLANK_MASK (1 << DISPLAY_STATUS_VBLANK_BIT)
 
-#define XW_DISPLAY_I2C_CLOCK_BIT 0
-#define XW_DISPLAY_I2C_DATA_BIT 1
-#define XW_DISPLAY_I2C_CLOCK_MASK (1 << XW_DISPLAY_I2C_CLOCK_BIT)
-#define XW_DISPLAY_I2C_DATA_MASK (1 << XW_DISPLAY_I2C_DATA_BIT)
-#define XW_DISPLAY_I2C_CLOCK_LOW 0
-#define XW_DISPLAY_I2C_CLOCK_HIGH XW_DISPLAY_I2C_CLOCK_MASK
-#define XW_DISPLAY_I2C_DATA_LOW 0
-#define XW_DISPLAY_I2C_DATA_HIGH XW_DISPLAY_I2C_DATA_MASK
+#define DISPLAY_FRAMEBUFFER_ADDR ((volatile uint32_t *)0x22000004)
+
+#define DISPLAY_I2C_READ ((volatile uint8_t *)0x22000008)
+#define DISPLAY_I2C_WRITE ((volatile uint8_t *)0x2200000c)
+
+#define DISPLAY_I2C_CLOCK_BIT 0
+#define DISPLAY_I2C_DATA_BIT 1
+#define DISPLAY_I2C_CLOCK_MASK (1 << DISPLAY_I2C_CLOCK_BIT)
+#define DISPLAY_I2C_DATA_MASK (1 << DISPLAY_I2C_DATA_BIT)
+#define DISPLAY_I2C_CLOCK_LOW 0
+#define DISPLAY_I2C_CLOCK_HIGH DISPLAY_I2C_CLOCK_MASK
+#define DISPLAY_I2C_DATA_LOW 0
+#define DISPLAY_I2C_DATA_HIGH DISPLAY_I2C_DATA_MASK
 
 #define I2C_DEVICE_ADDR 0x72
 #define I2C_WRITE_BIT 0x00
@@ -30,6 +35,11 @@ typedef uint8_t i2c_reg_t;
 #define REG_HPD_MONITOR_SENSE 0x42
 #define REG_HPD_MONITOR_SENSE_HPD_MASK (1 << 6)
 
+static uint16_t framebuffer0[XW_FRAMEBUFFER_WIDTH * XW_FRAMEBUFFER_HEIGHT] __attribute__((aligned(8)));
+static uint16_t framebuffer1[XW_FRAMEBUFFER_WIDTH * XW_FRAMEBUFFER_HEIGHT] __attribute__((aligned(8)));
+static uint16_t *back_buffer;
+static uint16_t *front_buffer;
+
 void i2c_delay()
 {
     // Each tick is 1/4 the I2C clock rate, which should be 400khz max
@@ -38,49 +48,49 @@ void i2c_delay()
 
 void i2c_start()
 {
-    *XW_DISPLAY_I2C_WRITE = XW_DISPLAY_I2C_CLOCK_HIGH | XW_DISPLAY_I2C_DATA_HIGH;
+    *DISPLAY_I2C_WRITE = DISPLAY_I2C_CLOCK_HIGH | DISPLAY_I2C_DATA_HIGH;
     i2c_delay();
-    *XW_DISPLAY_I2C_WRITE = XW_DISPLAY_I2C_CLOCK_HIGH | XW_DISPLAY_I2C_DATA_LOW;
+    *DISPLAY_I2C_WRITE = DISPLAY_I2C_CLOCK_HIGH | DISPLAY_I2C_DATA_LOW;
     i2c_delay();
-    *XW_DISPLAY_I2C_WRITE = XW_DISPLAY_I2C_CLOCK_LOW | XW_DISPLAY_I2C_DATA_LOW;
+    *DISPLAY_I2C_WRITE = DISPLAY_I2C_CLOCK_LOW | DISPLAY_I2C_DATA_LOW;
     i2c_delay();
 }
 
 void i2c_stop()
 {
-    *XW_DISPLAY_I2C_WRITE = XW_DISPLAY_I2C_CLOCK_LOW | XW_DISPLAY_I2C_DATA_LOW;
+    *DISPLAY_I2C_WRITE = DISPLAY_I2C_CLOCK_LOW | DISPLAY_I2C_DATA_LOW;
     i2c_delay();
-    *XW_DISPLAY_I2C_WRITE = XW_DISPLAY_I2C_CLOCK_HIGH | XW_DISPLAY_I2C_DATA_LOW;
+    *DISPLAY_I2C_WRITE = DISPLAY_I2C_CLOCK_HIGH | DISPLAY_I2C_DATA_LOW;
     i2c_delay();
-    *XW_DISPLAY_I2C_WRITE = XW_DISPLAY_I2C_CLOCK_HIGH | XW_DISPLAY_I2C_DATA_HIGH;
+    *DISPLAY_I2C_WRITE = DISPLAY_I2C_CLOCK_HIGH | DISPLAY_I2C_DATA_HIGH;
     i2c_delay();
 }
 
 void i2c_write_bit(uint8_t value)
 {
-    uint8_t data_bit = value ? XW_DISPLAY_I2C_DATA_HIGH : XW_DISPLAY_I2C_DATA_LOW;
-    *XW_DISPLAY_I2C_WRITE = XW_DISPLAY_I2C_CLOCK_LOW | data_bit;
+    uint8_t data_bit = value ? DISPLAY_I2C_DATA_HIGH : DISPLAY_I2C_DATA_LOW;
+    *DISPLAY_I2C_WRITE = DISPLAY_I2C_CLOCK_LOW | data_bit;
     i2c_delay();
-    *XW_DISPLAY_I2C_WRITE = XW_DISPLAY_I2C_CLOCK_HIGH | data_bit;
+    *DISPLAY_I2C_WRITE = DISPLAY_I2C_CLOCK_HIGH | data_bit;
     // Wait for potential clock stretching
-    while (!(*XW_DISPLAY_I2C_READ & XW_DISPLAY_I2C_CLOCK_MASK))
+    while (!(*DISPLAY_I2C_READ & DISPLAY_I2C_CLOCK_MASK))
         ;
     i2c_delay();
-    *XW_DISPLAY_I2C_WRITE = XW_DISPLAY_I2C_CLOCK_LOW | data_bit;
+    *DISPLAY_I2C_WRITE = DISPLAY_I2C_CLOCK_LOW | data_bit;
     i2c_delay();
 }
 
 uint8_t i2c_read_bit()
 {
-    *XW_DISPLAY_I2C_WRITE = XW_DISPLAY_I2C_CLOCK_LOW | XW_DISPLAY_I2C_DATA_HIGH;
+    *DISPLAY_I2C_WRITE = DISPLAY_I2C_CLOCK_LOW | DISPLAY_I2C_DATA_HIGH;
     i2c_delay();
-    *XW_DISPLAY_I2C_WRITE = XW_DISPLAY_I2C_CLOCK_HIGH | XW_DISPLAY_I2C_DATA_HIGH;
+    *DISPLAY_I2C_WRITE = DISPLAY_I2C_CLOCK_HIGH | DISPLAY_I2C_DATA_HIGH;
     // Wait for potential clock stretching
-    while (!(*XW_DISPLAY_I2C_READ & XW_DISPLAY_I2C_CLOCK_MASK))
+    while (!(*DISPLAY_I2C_READ & DISPLAY_I2C_CLOCK_MASK))
         ;
     i2c_delay();
-    uint8_t bit = (*XW_DISPLAY_I2C_READ & XW_DISPLAY_I2C_DATA_MASK) ? 1 : 0;
-    *XW_DISPLAY_I2C_WRITE = XW_DISPLAY_I2C_CLOCK_LOW | XW_DISPLAY_I2C_DATA_HIGH;
+    uint8_t bit = (*DISPLAY_I2C_READ & DISPLAY_I2C_DATA_MASK) ? 1 : 0;
+    *DISPLAY_I2C_WRITE = DISPLAY_I2C_CLOCK_LOW | DISPLAY_I2C_DATA_HIGH;
     i2c_delay();
 
     return bit;
@@ -159,9 +169,23 @@ void adv7513_init()
 void xw_display_init()
 {
     adv7513_init();
+
+    back_buffer = framebuffer0;
+    front_buffer = framebuffer1;
+    *DISPLAY_FRAMEBUFFER_ADDR = (uint32_t)front_buffer;
 }
 
-void xw_display_set_framebuffer_addr(uint16_t *addr)
+uint16_t *xw_get_back_buffer()
 {
-    *XW_DISPLAY_FRAMEBUFFER_ADDR = (uint32_t)addr;
+    return back_buffer;
+}
+
+void xw_swap_buffers(bool vsync)
+{
+    uint16_t *temp = back_buffer;
+    back_buffer = front_buffer;
+    front_buffer = temp;
+    while (vsync && !(*DISPLAY_STATUS & DISPLAY_STATUS_VBLANK_MASK))
+        ;
+    *DISPLAY_FRAMEBUFFER_ADDR = (uint32_t)front_buffer;
 }

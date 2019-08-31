@@ -1,10 +1,5 @@
 #include <xw/xw.h>
 
-#define FRAMEBUFFER_WIDTH 320
-#define FRAMEBUFFER_HEIGHT 240
-static uint16_t framebuffer0[FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT] __attribute__((aligned(8)));
-static uint16_t framebuffer1[FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT] __attribute__((aligned(8)));
-
 int main()
 {
     xw_puts("xw online");
@@ -28,10 +23,6 @@ int main()
     uint16_t color = (31 << 11) | (63 << 5) | 31;
     uint32_t box_size = 150;
 
-    uint16_t *back_buffer = framebuffer0;
-    uint16_t *front_buffer = framebuffer1;
-    xw_display_set_framebuffer_addr(front_buffer);
-
     while (true)
     {
         uint64_t t = xw_cycles();
@@ -54,17 +45,18 @@ int main()
                 duty_cycle_rising = true;
         }
 
-        for (int y = 0; y < FRAMEBUFFER_HEIGHT; y++)
+        uint16_t *back_buffer = xw_get_back_buffer();
+        for (int y = 0; y < XW_FRAMEBUFFER_HEIGHT; y++)
         {
-            for (int x = 0; x < FRAMEBUFFER_WIDTH; x++)
+            for (int x = 0; x < XW_FRAMEBUFFER_WIDTH; x++)
             {
-                back_buffer[y * FRAMEBUFFER_WIDTH + x] = 0;
+                back_buffer[y * XW_FRAMEBUFFER_WIDTH + x] = 0;
             }
         }
         if (framebuffer_x_rising)
         {
             framebuffer_x++;
-            if (framebuffer_x == FRAMEBUFFER_WIDTH - box_size)
+            if (framebuffer_x == XW_FRAMEBUFFER_WIDTH - box_size)
                 framebuffer_x_rising = false;
         }
         else
@@ -76,7 +68,7 @@ int main()
         if (framebuffer_y_rising)
         {
             framebuffer_y++;
-            if (framebuffer_y == FRAMEBUFFER_HEIGHT - box_size)
+            if (framebuffer_y == XW_FRAMEBUFFER_HEIGHT - box_size)
                 framebuffer_y_rising = false;
         }
         else
@@ -89,14 +81,11 @@ int main()
         {
             for (int x = 0; x < box_size; x++)
             {
-                back_buffer[(framebuffer_y + y) * FRAMEBUFFER_WIDTH + framebuffer_x + x] = color;
+                back_buffer[(framebuffer_y + y) * XW_FRAMEBUFFER_WIDTH + framebuffer_x + x] = color;
             }
         }
 
-        uint16_t *temp = back_buffer;
-        back_buffer = front_buffer;
-        front_buffer = temp;
-        xw_display_set_framebuffer_addr(front_buffer);
+        xw_swap_buffers(true);
     }
 
     return 0;

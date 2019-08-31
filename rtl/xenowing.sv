@@ -159,6 +159,7 @@ module xenowing(
         .load_data_valid(display_load_return_load_data_valid));
 
     logic display_load_start;
+    logic display_vblank;
     display display0(
         .reset_n(reset_n),
         .clk(clk),
@@ -168,6 +169,8 @@ module xenowing(
 
         .load_bus_read_addr_reset(display_load_issue_bus_read_addr_reset),
         .load_start(display_load_start),
+
+        .vblank(display_vblank),
 
         .pixel_clk(display_pixel_clk),
         .vsync(display_vsync),
@@ -202,13 +205,15 @@ module xenowing(
         .read_data(display_interface_read_data),
         .read_data_valid(display_interface_read_data_valid),
 
+        .display_vblank(display_vblank),
+
+        .display_load_issue_framebuffer_base_addr_data(display_load_issue_framebuffer_base_addr_data),
+        .display_load_issue_framebuffer_base_addr_write_enable(display_load_issue_framebuffer_base_addr_write_enable),
+
         .i2c_clk_out_n(display_i2c_clk_out_n),
         .i2c_data_out_n(display_i2c_data_out_n),
         .i2c_clk_in(display_i2c_clk_in),
-        .i2c_data_in(display_i2c_data_in),
-
-        .display_load_issue_framebuffer_base_addr_data(display_load_issue_framebuffer_base_addr_data),
-        .display_load_issue_framebuffer_base_addr_write_enable(display_load_issue_framebuffer_base_addr_write_enable));
+        .i2c_data_in(display_i2c_data_in));
 
     logic cpu_ddr3_interface_ready;
     logic [24:0] cpu_ddr3_interface_addr;

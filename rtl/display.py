@@ -54,6 +54,8 @@ def display():
 
     mod.output('load_start', load_start)
 
+    mod.output('vblank', pixel_counter_y < lit(45, 10))
+
     vsync = reg(1)
     vsync.drive_next_with((pixel_counter_y >= lit(10, 10)) & (pixel_counter_y < lit(12, 10)))
     mod.output('vsync', vsync)
@@ -149,8 +151,8 @@ def display_interface():
 
     i2c_clk_out_n = reg(1)
     i2c_data_out_n = reg(1)
-    i2c_clk_out_n.drive_next_with(mux(i2c_clk_out_n, ~write_data.bit(0), write_req & ~addr.bit(1) & byte_enable))
-    i2c_data_out_n.drive_next_with(mux(i2c_data_out_n, ~write_data.bit(1), write_req & ~addr.bit(1) & byte_enable))
+    i2c_clk_out_n.drive_next_with(mux(i2c_clk_out_n, ~write_data.bit(0), write_req & addr.bit(1) & byte_enable))
+    i2c_data_out_n.drive_next_with(mux(i2c_data_out_n, ~write_data.bit(1), write_req & addr.bit(1) & byte_enable))
 
     mod.output('i2c_clk_out_n', i2c_clk_out_n)
     mod.output('i2c_data_out_n', i2c_data_out_n)
@@ -164,13 +166,13 @@ def display_interface():
     i2c_data_in = reg(1)
     i2c_data_in.drive_next_with(sync_2)
 
-    mod.output('read_data', concat(i2c_data_in, i2c_clk_in))
+    mod.output('read_data', mux(LOW.concat(mod.input('display_vblank', 1)), concat(i2c_data_in, i2c_clk_in), addr.bit(1)))
 
     read_data_valid = reg(1)
     read_data_valid.drive_next_with(mod.input('read_req', 1))
     mod.output('read_data_valid', read_data_valid)
 
     mod.output('display_load_issue_framebuffer_base_addr_data', write_data.bits(26, 3))
-    mod.output('display_load_issue_framebuffer_base_addr_write_enable', write_req & addr.bit(1))
+    mod.output('display_load_issue_framebuffer_base_addr_write_enable', write_req & ~addr.bit(1))
 
     return mod
