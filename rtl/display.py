@@ -41,8 +41,8 @@ def display():
 
             next_pixel_addr = lit(0, 9)
 
-            # Dispatch new pixel loads at the beginning of all even scanlines in active display area
-            with If((pixel_counter_y >= lit(45, 10)) & ~pixel_counter_y.bit(0)):
+            # Dispatch new pixel loads at the beginning of all odd scanlines in active display area
+            with If((pixel_counter_y >= lit(44, 10)) & pixel_counter_y.ne(lit(524, 10)) & ~pixel_counter_y.bit(0)):
                 load_start = HIGH
 
     pixel_counter_x.drive_next_with(next_pixel_counter_x)
