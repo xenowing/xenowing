@@ -19,6 +19,13 @@ void xw_putc(const char c)
 
 void xw_puts(const char *s)
 {
+    xw_puts_nn(s);
+
+    xw_putc('\n');
+}
+
+void xw_puts_nn(const char *s)
+{
     while (true)
     {
         char c = *s++;
@@ -26,7 +33,4 @@ void xw_puts(const char *s)
             break;
         xw_putc(c);
     }
-
-    xw_putc('\r');
-    xw_putc('\n');
 }

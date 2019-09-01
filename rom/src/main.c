@@ -1,5 +1,21 @@
 #include <xw/xw.h>
 
+void put_u64(uint64_t value)
+{
+    xw_puts_nn("0x");
+    char buf[] = "0000000000000000";
+    uint32_t buf_index = 15;
+    while (value)
+    {
+        uint32_t digit = (uint32_t)value & 0xf;
+        if (digit)
+            buf[buf_index] = digit < 10 ? '0' + digit : 'a' + (digit - 10);
+        value >>= 4;
+        buf_index--;
+    }
+    xw_puts_nn(buf);
+}
+
 int main()
 {
     xw_puts("xw online");
@@ -23,12 +39,10 @@ int main()
     uint16_t color = (31 << 11) | (63 << 5) | 31;
     uint32_t box_size = 150;
 
+    bool first_box = true;
+
     while (true)
     {
-        uint64_t t = xw_cycles();
-        while (xw_cycles() - t < 1000)
-            ;
-
         phase++;
         xw_set_leds((phase & phase_mask) < duty_cycle ? 1 : 0);
 
@@ -45,7 +59,13 @@ int main()
                 duty_cycle_rising = true;
         }
 
+        uint64_t frame_start_time = 0;
+        if (first_box)
+            frame_start_time = xw_cycles();
         uint16_t *back_buffer = xw_get_back_buffer();
+        uint64_t clear_start_time = 0;
+        if (first_box)
+            clear_start_time = xw_cycles();
         for (int y = 0; y < XW_FRAMEBUFFER_HEIGHT; y++)
         {
             for (int x = 0; x < XW_FRAMEBUFFER_WIDTH; x++)
@@ -53,6 +73,9 @@ int main()
                 back_buffer[y * XW_FRAMEBUFFER_WIDTH + x] = 0;
             }
         }
+        uint64_t clear_end_time = 0;
+        if (first_box)
+            clear_end_time = xw_cycles();
         if (framebuffer_x_rising)
         {
             framebuffer_x++;
@@ -77,12 +100,34 @@ int main()
             if (framebuffer_y == 0)
                 framebuffer_y_rising = true;
         }
+        uint64_t box_start_time = 0;
+        if (first_box)
+            box_start_time = xw_cycles();
         for (int y = 0; y < box_size; y++)
         {
             for (int x = 0; x < box_size; x++)
             {
                 back_buffer[(framebuffer_y + y) * XW_FRAMEBUFFER_WIDTH + framebuffer_x + x] = color;
             }
+        }
+        if (first_box)
+        {
+            uint64_t box_end_time = xw_cycles();
+            uint64_t frame_end_time = xw_cycles();
+
+            xw_puts_nn("Total frame cycles: ");
+            put_u64(frame_end_time - frame_start_time);
+            xw_puts("");
+
+            xw_puts_nn("Clear cycles: ");
+            put_u64(clear_end_time - clear_start_time);
+            xw_puts("");
+
+            xw_puts_nn("Box cycles: ");
+            put_u64(box_end_time - box_start_time);
+            xw_puts("");
+
+            first_box = false;
         }
 
         xw_swap_buffers(true);

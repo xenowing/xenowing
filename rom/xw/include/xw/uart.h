@@ -7,5 +7,6 @@ void xw_uart_write(uint8_t byte);
 
 void xw_putc(const char c);
 void xw_puts(const char *s);
+void xw_puts_nn(const char *s);
 
 #endif
