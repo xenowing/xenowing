@@ -230,7 +230,7 @@ endmodule
 // Retrieval info: 	<generic name="ADDR_ORDER" value="0" />
 // Retrieval info: 	<generic name="CTL_LOOK_AHEAD_DEPTH" value="1" />
 // Retrieval info: 	<generic name="CONTROLLER_LATENCY" value="5" />
-// Retrieval info: 	<generic name="CFG_REORDER_DATA" value="false" />
+// Retrieval info: 	<generic name="CFG_REORDER_DATA" value="true" />
 // Retrieval info: 	<generic name="STARVE_LIMIT" value="10" />
 // Retrieval info: 	<generic name="CTL_CSR_ENABLED" value="false" />
 // Retrieval info: 	<generic name="CTL_CSR_CONNECTION" value="INTERNAL_JTAG" />
@@ -434,7 +434,7 @@ endmodule
 // Retrieval info: 	<generic name="NUM_DLL_SHARING_INTERFACES" value="1" />
 // Retrieval info: 	<generic name="OCT_SHARING_MODE" value="None" />
 // Retrieval info: 	<generic name="NUM_OCT_SHARING_INTERFACES" value="1" />
-// Retrieval info: 	<generic name="AUTO_DEVICE" value="Unknown" />
-// Retrieval info: 	<generic name="AUTO_DEVICE_SPEEDGRADE" value="Unknown" />
+// Retrieval info: 	<generic name="AUTO_DEVICE" value="10M02DCU324A6G" />
+// Retrieval info: 	<generic name="AUTO_DEVICE_SPEEDGRADE" value="6" />
 // Retrieval info: </instance>
 // IPFS_FILES : NONE

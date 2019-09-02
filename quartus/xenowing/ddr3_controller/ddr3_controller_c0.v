@@ -147,7 +147,7 @@ module ddr3_controller_c0 (
 		.MEM_AUTO_PD_CYCLES               (0),
 		.CONTINUE_AFTER_CAL_FAIL          (0),
 		.MAX10_CFG                        (1),
-		.CFG_REORDER_DATA                 (0),
+		.CFG_REORDER_DATA                 (1),
 		.CTL_CSR_ENABLED                  (0),
 		.CTL_ECC_ENABLED                  (0),
 		.CTL_ECC_AUTO_CORRECTION_ENABLED  (0),
