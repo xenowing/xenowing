@@ -120,7 +120,7 @@ module ddr3_controller_c0 (
 		.CTL_OUTPUT_REGD                  (0),
 		.CTL_ECC_MULTIPLES_16_24_40_72    (1),
 		.CTL_REGDIMM_ENABLED              (0),
-		.CTL_TBP_NUM                      (1),
+		.CTL_TBP_NUM                      (4),
 		.CTL_USR_REFRESH                  (0),
 		.CFG_TYPE                         (2),
 		.CFG_INTERFACE_WIDTH              (24),

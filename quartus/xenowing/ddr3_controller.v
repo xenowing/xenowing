@@ -228,7 +228,7 @@ endmodule
 // Retrieval info: 	<generic name="CTL_AUTOPCH_EN" value="false" />
 // Retrieval info: 	<generic name="CTL_ZQCAL_EN" value="false" />
 // Retrieval info: 	<generic name="ADDR_ORDER" value="0" />
-// Retrieval info: 	<generic name="CTL_LOOK_AHEAD_DEPTH" value="1" />
+// Retrieval info: 	<generic name="CTL_LOOK_AHEAD_DEPTH" value="4" />
 // Retrieval info: 	<generic name="CONTROLLER_LATENCY" value="5" />
 // Retrieval info: 	<generic name="CFG_REORDER_DATA" value="true" />
 // Retrieval info: 	<generic name="STARVE_LIMIT" value="10" />
