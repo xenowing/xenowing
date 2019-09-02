@@ -1,5 +1,5 @@
 set_global_assignment -entity "ddr3_controller" -library "lib_ddr3_controller" -name IP_TOOL_NAME "altera_mem_if_ddr3_emif"
-set_global_assignment -entity "ddr3_controller" -library "lib_ddr3_controller" -name IP_TOOL_VERSION "17.1"
+set_global_assignment -entity "ddr3_controller" -library "lib_ddr3_controller" -name IP_TOOL_VERSION "18.1"
 set_global_assignment -entity "ddr3_controller" -library "lib_ddr3_controller" -name IP_TOOL_ENV "mwpim"
 set_global_assignment -library "lib_ddr3_controller" -name SPD_FILE [file join $::quartus(sip_path) "ddr3_controller.spd"]
 

@@ -1,4 +1,4 @@
-# (C) 2001-2017 Intel Corporation. All rights reserved.
+# (C) 2001-2019 Intel Corporation. All rights reserved.
 # Your use of Intel Corporation's design tools, logic functions and other 
 # software and tools, and its AMPP partner logic functions, and any output 
 # files from any of the foregoing (including device programming or simulation 
@@ -1186,7 +1186,7 @@ proc ddr3_controller_p0_get_acv_read_offset { period dqs_phase dqs_period } {
 
 	return $offset
 }
-# (C) 2001-2017 Intel Corporation. All rights reserved.
+# (C) 2001-2019 Intel Corporation. All rights reserved.
 # Your use of Intel Corporation's design tools, logic functions and other 
 # software and tools, and its AMPP partner logic functions, and any output 
 # files from any of the foregoing (including device programming or simulation 
