@@ -1,4 +1,4 @@
-// (C) 2001-2017 Intel Corporation. All rights reserved.
+// (C) 2001-2019 Intel Corporation. All rights reserved.
 // Your use of Intel Corporation's design tools, logic functions and other 
 // software and tools, and its AMPP partner logic functions, and any output 
 // files from any of the foregoing (including device programming or simulation 
@@ -17,7 +17,7 @@
 
 `timescale 1 ps / 1 ps
 
-(* altera_attribute = "-name IP_TOOL_NAME common; -name IP_TOOL_VERSION 17.1; -name FITTER_ADJUST_HC_SHORT_PATH_GUARDBAND 100; -name ALLOW_SYNCH_CTRL_USAGE OFF; -name AUTO_CLOCK_ENABLE_RECOGNITION OFF; -name AUTO_SHIFT_REGISTER_RECOGNITION OFF" *)
+(* altera_attribute = "-name IP_TOOL_NAME common; -name IP_TOOL_VERSION 18.1; -name FITTER_ADJUST_HC_SHORT_PATH_GUARDBAND 100; -name ALLOW_SYNCH_CTRL_USAGE OFF; -name AUTO_CLOCK_ENABLE_RECOGNITION OFF; -name AUTO_SHIFT_REGISTER_RECOGNITION OFF" *)
 
 module ddr3_controller_pll0 (
 	global_reset_n,
