@@ -37,7 +37,7 @@ int main()
     bool framebuffer_x_rising = true;
     bool framebuffer_y_rising = true;
     uint16_t color = (31 << 11) | (63 << 5) | 31;
-    uint32_t box_size = 150;
+    uint32_t box_size = 100;
 
     bool first_box = true;
 

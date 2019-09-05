@@ -6,9 +6,9 @@ Notes
 
 High-level map (note that not all addresses within the following ranges are necessarily valid; see detailed map for more info)
 
-0x10000000 - 0x1000ffff: Program ROM
+0x10000000 - 0x10001fff: Program ROM
 0x20000000 - 0x22000007: System regs
-0x30000000 - 0x37ffffff: DDR3 mem
+0x30000000 - 0x3001ffff: RAM
 
 Detailed mem map
 
@@ -20,8 +20,8 @@ Detailed mem map
 0x21000004 - 0x21000007: UART transmitter write (W). Bits 0-7 indicate data to be transmitted. When not busy, a write to this reg will start a new transmission immediately. If busy, the write is ignored.
 
 0x22000000 - 0x22000003: Display status (R). Bit 0 indicates vblank status.
-0x22000004 - 0x22000007: Framebuffer base address (W). This is a 24-bit address to a 64-bit word which contains the first four pixels of the current framebuffer. The address specified is in bytes for convenience, but bits 0-2 and bits 27-31 are all ignored.
+0x22000004 - 0x22000007: Framebuffer base address (W). This is a 14-bit address to a 64-bit word which contains the first four pixels of the current framebuffer. The address specified is in bytes for convenience, but bits 0-2 and bits 17-31 are all ignored.
 0x22000008 - 0x2200000b: Display interface I2C input (R). Bit 0 indicates I2C clock, bit 1 indicates I2C data. Note that values read may be identical to those written (see the following register) for low (0) bits.
 0x2200000c - 0x2200000f: Display interface I2C output (W). Bit 0 controls I2C clock, bit 1 controls I2C data. Low values will pull the corresponding I2C line low; high values will leave them floating (in which case the bus pullups will ensure they're high, unless the slave device is currently pulling them low).
 
-0x30000000 - 0x37ffffff: DDR3 mem
+0x30000000 - 0x3001ffff: RAM

@@ -44,7 +44,7 @@ def led_interface():
 def program_rom_interface():
     mod = Module('program_rom_interface')
 
-    mod.output('program_rom_addr', mod.input('addr', 12))
+    mod.output('program_rom_addr', mod.input('addr', 11))
     mod.output('read_data', mod.input('program_rom_q', 32))
 
     read_data_valid = reg(1)
@@ -62,7 +62,7 @@ def system_bus():
     write_req = mod.input('write_req', 1)
     read_req = mod.input('read_req', 1)
 
-    mod.output('program_rom_interface_addr', addr.bits(11, 0))
+    mod.output('program_rom_interface_addr', addr.bits(10, 0))
 
     mod.output('led_interface_write_data', write_data.bits(2, 0))
     mod.output('led_interface_byte_enable', byte_enable.bit(0))
@@ -72,12 +72,12 @@ def system_bus():
     mod.output('uart_transmitter_interface_byte_enable', byte_enable.bit(0))
 
     mod.output('display_interface_addr', addr.bits(1, 0))
-    mod.output('display_interface_write_data', write_data.bits(26, 0))
+    mod.output('display_interface_write_data', write_data.bits(16, 0))
     mod.output('display_interface_byte_enable', byte_enable.bit(0))
 
-    mod.output('ddr3_interface_addr', addr.bits(24, 0))
-    mod.output('ddr3_interface_write_data', write_data)
-    mod.output('ddr3_interface_byte_enable', byte_enable)
+    mod.output('ram_interface_addr', addr.bits(14, 0))
+    mod.output('ram_interface_write_data', write_data)
+    mod.output('ram_interface_byte_enable', byte_enable)
 
     ready = HIGH
     read_data = mod.input('program_rom_interface_read_data', 32)
@@ -95,8 +95,8 @@ def system_bus():
         read_data = lit(0, 30).concat(mod.input('display_interface_read_data', 2))
         read_data_valid = HIGH
 
-    with If(mod.input('ddr3_interface_read_data_valid', 1)):
-        read_data = mod.input('ddr3_interface_read_data', 32)
+    with If(mod.input('ram_interface_read_data_valid', 1)):
+        read_data = mod.input('ram_interface_read_data', 32)
         read_data_valid = HIGH
 
     program_rom_interface_read_req = LOW
@@ -110,8 +110,8 @@ def system_bus():
     display_interface_write_req = LOW
     display_interface_read_req = LOW
 
-    ddr3_interface_write_req = LOW
-    ddr3_interface_read_req = LOW
+    ram_interface_write_req = LOW
+    ram_interface_read_req = LOW
 
     # TODO: switch/case construct?
     with If(addr.bits(29, 26).eq(lit(1, 4))):
@@ -131,9 +131,9 @@ def system_bus():
             display_interface_read_req = read_req
 
     with If(addr.bits(29, 26).eq(lit(3, 4))):
-        ready = mod.input('ddr3_interface_ready', 1)
-        ddr3_interface_write_req = write_req
-        ddr3_interface_read_req = read_req
+        ready = mod.input('ram_interface_ready', 1)
+        ram_interface_write_req = write_req
+        ram_interface_read_req = read_req
 
     mod.output('ready', ready)
     mod.output('read_data', read_data)
@@ -150,8 +150,8 @@ def system_bus():
     mod.output('display_interface_write_req', display_interface_write_req)
     mod.output('display_interface_read_req', display_interface_read_req)
 
-    mod.output('ddr3_interface_write_req', ddr3_interface_write_req)
-    mod.output('ddr3_interface_read_req', ddr3_interface_read_req)
+    mod.output('ram_interface_write_req', ram_interface_write_req)
+    mod.output('ram_interface_read_req', ram_interface_read_req)
 
     return mod
 
@@ -172,7 +172,7 @@ if __name__ == '__main__':
         led_interface(),
         program_rom_interface(),
         system_bus(),
-        uart.receiver(150000000, 115200),
+        uart.receiver(100000000, 115200),
         display.display(),
         display.display_load_issue(),
         display.display_load_return(),

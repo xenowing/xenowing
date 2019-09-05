@@ -20,7 +20,7 @@ fn main() {
         panic!("Input len ({} bytes) is not divisible by 4", input.len());
     }
 
-    if input.len() >= 0x10000 {
+    if input.len() >= 0x2000 {
         panic!("Input len ({} bytes) is too large", input.len());
     }
 

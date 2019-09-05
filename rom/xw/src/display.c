@@ -43,7 +43,7 @@ static uint16_t *front_buffer;
 void i2c_delay()
 {
     // Each tick is 1/4 the I2C clock rate, which should be 400khz max
-    xw_sleep_cycles(150000000 / 400000 / 4);
+    xw_sleep_cycles(100000000 / 400000 / 4);
 }
 
 void i2c_start()

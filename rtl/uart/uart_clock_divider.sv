@@ -1,6 +1,6 @@
 `default_nettype none
 
-module uart_clock_divider#(parameter clk_freq = 150000000, baud_rate = 9600, baud_clk_acc_width = 16)(
+module uart_clock_divider#(parameter clk_freq = 100000000, baud_rate = 9600, baud_clk_acc_width = 16)(
     input reset_n,
     input clk,
 

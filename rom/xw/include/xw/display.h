@@ -4,8 +4,8 @@
 #include "inttypes.h"
 #include "bool.h"
 
-#define XW_FRAMEBUFFER_WIDTH 320
-#define XW_FRAMEBUFFER_HEIGHT 240
+#define XW_FRAMEBUFFER_WIDTH 160
+#define XW_FRAMEBUFFER_HEIGHT 120
 
 void xw_display_init();
 
