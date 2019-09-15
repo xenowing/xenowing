@@ -1,10 +1,10 @@
 `default_nettype none
 
 module uart_clock_divider#(parameter clk_freq = 100000000, baud_rate = 9600, baud_clk_acc_width = 16)(
-    input reset_n,
-    input clk,
+    input wire reset_n,
+    input wire clk,
 
-    output clock_edge);
+    output wire clock_edge);
 
     localparam BAUD_CLK_ACC_INC = ((baud_rate << (baud_clk_acc_width - 4)) + (clk_freq >> 5)) / (clk_freq >> 4);
 
