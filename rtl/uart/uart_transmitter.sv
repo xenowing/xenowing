@@ -1,12 +1,12 @@
 `default_nettype none
 
 module uart_transmitter(
-    input wire reset_n,
-    input wire clk,
+    input wire logic reset_n,
+    input wire logic clk,
 
-    input wire [7:0] write_data,
-    input wire write_req,
-    output wire ready,
+    input wire logic [7:0] write_data,
+    input wire logic write_req,
+    output wire logic ready,
 
     output logic tx);
 

@@ -1,10 +1,10 @@
 `default_nettype none
 
 module reset_synchronizer(
-    input wire reset_n,
-    input wire clk,
+    input wire logic reset_n,
+    input wire logic clk,
 
-    output wire reset_n_sync);
+    output wire logic reset_n_sync);
 
     logic sync_chain1, sync_chain2;
     always_ff @(posedge clk, negedge reset_n) begin

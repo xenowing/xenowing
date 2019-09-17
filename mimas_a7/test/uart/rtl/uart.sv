@@ -1,10 +1,10 @@
 `default_nettype none
 
 module uart(
-    input wire reset,
-    input wire clk,
+    input wire logic reset,
+    input wire logic clk,
 
-    output wire tx);
+    output wire logic tx);
 
     logic reset_n;
     reset_synchronizer reset_synchronizer0(
