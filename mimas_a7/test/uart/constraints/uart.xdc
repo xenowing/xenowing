@@ -5,13 +5,15 @@ create_clock -name clk -period 10 [get_ports { clk }];
 set_property -dict { PACKAGE_PIN "H4" IOSTANDARD LVCMOS33 } [get_ports { clk }];
 
 set_property -dict { PACKAGE_PIN "M2" IOSTANDARD LVCMOS33 } [get_ports { reset }];
-# Dummy delays to suppress timing warnings for async signal
-set_input_delay -clock clk -min 0 [get_ports { reset }]
-set_input_delay -clock clk -max 1 [get_ports { reset }]
+# Dummy clock/delays to suppress timing warnings for async signal
+create_clock -name reset_dummy_clk -period 10
+set_input_delay -clock reset_dummy_clk -min 0 [get_ports { reset }]
+set_input_delay -clock reset_dummy_clk -max 1 [get_ports { reset }]
 set_false_path -from [get_ports { reset }] -to [all_registers]
 
 set_property -dict { PACKAGE_PIN "Y21" IOSTANDARD LVCMOS33 SLEW FAST } [get_ports { tx }];
-# Dummy delays to suppress timing warnings for async signal
-set_output_delay -clock clk -min 0 [get_ports { tx }]
-set_output_delay -clock clk -max 1 [get_ports { tx }]
+# Dummy clock/delays to suppress timing warnings for async signal
+create_clock -name tx_dummy_clk -period 10
+set_output_delay -clock tx_dummy_clk -min 0 [get_ports { tx }]
+set_output_delay -clock tx_dummy_clk -max 1 [get_ports { tx }]
 set_false_path -from [all_registers] -to [get_ports { tx }]
