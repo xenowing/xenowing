@@ -25,8 +25,8 @@ module uart(
 
         .tx(tx));
 
-    localparam MESSAGE_LEN = 15;
-    localparam MESSAGE_BITS = MESSAGE_LEN * 8;
+    localparam MESSAGE = "Hello, xenowing!\r\n";
+    localparam MESSAGE_BITS = $bits(MESSAGE);
     logic [MESSAGE_BITS - 1:0] message;
     logic [MESSAGE_BITS - 1:0] message_next;
 
@@ -40,9 +40,10 @@ module uart(
             message_next = {message[MESSAGE_BITS - 8:0], 8'd0};
         end
     end
+
     always_ff @(posedge clk, negedge reset_n) begin
         if (~reset_n) begin
-            message <= "Hello, world!\r\n";
+            message <= MESSAGE;
         end
         else begin
             message <= message_next;
