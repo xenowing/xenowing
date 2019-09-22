@@ -53,7 +53,9 @@ fn main() -> Result<(), Error> {
                     }
                 }
 
-                print!("\r{} bytes, {} errors ({:.*}%)            ", total_bytes, total_errors, 2, (total_errors as f64) / (total_bytes as f64));
+                port.write_all(&buf[..t])?;
+
+                print!("\r{} bytes, {} errors ({:.*}%)            ", total_bytes, total_errors, 2, (total_errors as f64) / (total_bytes as f64) * 100.0);
                 io::stdout().flush()?;
             }
             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),

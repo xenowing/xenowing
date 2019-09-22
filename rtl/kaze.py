@@ -487,16 +487,16 @@ class Module:
         w.append_line('module {}('.format(self.name))
         w.indent()
 
-        w.append_line('input reset_n,')
+        w.append_line('input wire logic reset_n,')
         w.append_indent()
-        w.append('input clk')
+        w.append('input wire logic clk')
         if len(self.inputs) > 0 or len(self.outputs) > 0:
             w.append(',')
             w.append_newline()
         w.append_newline()
         for i, input in enumerate(self.inputs.values()):
             w.append_indent()
-            w.append('input ')
+            w.append('input wire logic ')
             if input.num_bits() > 1:
                 w.append('[{}:{}] '.format(input.num_bits() - 1, 0))
             w.append(input.name)
@@ -505,7 +505,7 @@ class Module:
             w.append_newline()
         for i, output in enumerate(self.outputs.values()):
             w.append_indent()
-            w.append('output ')
+            w.append('output wire logic ')
             if output.num_bits() > 1:
                 w.append('[{}:{}] '.format(output.num_bits() - 1, 0))
             w.append(output.name)
