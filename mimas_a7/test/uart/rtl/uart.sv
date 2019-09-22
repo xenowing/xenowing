@@ -13,41 +13,21 @@ module uart(
         .reset_n_sync(reset_n));
 
     logic [7:0] write_data;
-    logic write_req;
     logic ready;
     uart_transmitter uart_transmitter0(
         .reset_n(reset_n),
         .clk(clk),
 
         .write_data(write_data),
-        .write_req(write_req),
+        .write_req(1'b1),
         .ready(ready),
 
         .tx(tx));
 
-    localparam MESSAGE = "Hello, xenowing!\r\n";
-    localparam MESSAGE_BITS = $bits(MESSAGE);
-    logic [MESSAGE_BITS - 1:0] message;
-    logic [MESSAGE_BITS - 1:0] message_next;
-
-    always_comb begin
-        message_next = message;
-
-        write_data = message[MESSAGE_BITS - 1:MESSAGE_BITS - 8];
-        write_req = write_data != 8'd0;
-
-        if (write_req && ready) begin
-            message_next = {message[MESSAGE_BITS - 8:0], 8'd0};
-        end
-    end
-
-    always_ff @(posedge clk, negedge reset_n) begin
-        if (~reset_n) begin
-            message <= MESSAGE;
-        end
-        else begin
-            message <= message_next;
-        end
-    end
+    lfsr lfsr0(
+        .reset_n(reset_n),
+        .clk(clk),
+        .value(write_data),
+        .shift_enable(ready));
 
 endmodule

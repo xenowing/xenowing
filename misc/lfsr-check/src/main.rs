@@ -1,5 +1,6 @@
 use serialport::prelude::*;
 
+use std::env;
 use std::io::{self, Write};
 
 #[derive(Debug)]
@@ -21,13 +22,13 @@ impl From<io::Error> for Error {
 }
 
 fn main() -> Result<(), Error> {
-    let port_name = "COM4";
+    let port_name = env::args().nth(1).expect("No COM port name specified");
     let baud_rate: u32 = 115200;
 
     let mut settings: SerialPortSettings = Default::default();
     settings.baud_rate = baud_rate.into();
 
-    let mut port = serialport::open_with_settings(port_name, &settings)?;
+    let mut port = serialport::open_with_settings(&port_name, &settings)?;
     let mut buf = vec![0; 1000];
 
     let start_state = 0xace1u16;
@@ -40,10 +41,10 @@ fn main() -> Result<(), Error> {
         match port.read(buf.as_mut_slice()) {
             Ok(t) => {
                 for data in &buf[..t] {
+                    let expected = lfsr as u8;
+
                     let bit = (lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5);
                     lfsr = (lfsr >> 1) | (bit << 15);
-
-                    let expected = lfsr as u8;
 
                     total_bytes += 1;
 
