@@ -23,12 +23,16 @@ impl From<io::Error> for Error {
 
 fn main() -> Result<(), Error> {
     let port_name = env::args().nth(1).expect("No COM port name specified");
-    let baud_rate: u32 = 115200;
+    let baud_rate: u32 = 460800;
 
     let mut settings: SerialPortSettings = Default::default();
     settings.baud_rate = baud_rate.into();
 
     let mut port = serialport::open_with_settings(&port_name, &settings)?;
+    let actual_baud_rate = port.baud_rate()?;
+    if actual_baud_rate != baud_rate {
+        panic!("Unable to achieve specified baud rate: got {}, expected {}", actual_baud_rate, baud_rate);
+    }
     let mut buf = vec![0; 1000];
 
     let start_state = 0xace1u16;

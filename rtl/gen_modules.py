@@ -172,7 +172,7 @@ if __name__ == '__main__':
         led_interface(),
         program_rom_interface(),
         system_bus(),
-        uart.receiver(100000000, 115200),
+        uart.receiver(100000000, 460800),
         display.display(),
         display.display_load_issue(),
         display.display_load_return(),
