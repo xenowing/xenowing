@@ -1,28 +1,37 @@
 `default_nettype none
 
-module uart_clock_divider#(parameter clk_freq = 100000000, baud_rate = 9600, baud_clk_acc_width = 16)(
+module uart_clock_divider#(parameter clk_freq = 100000000, baud_rate = 9600)(
     input wire reset_n,
     input wire clk,
 
-    output wire clock_edge);
+    output logic clock_edge);
 
-    localparam BAUD_CLK_ACC_INC = ((baud_rate << (baud_clk_acc_width - 4)) + (clk_freq >> 5)) / (clk_freq >> 4);
+    logic clock_edge_next;
 
-    logic [baud_clk_acc_width:0] acc;
-    logic [baud_clk_acc_width:0] acc_next;
+    localparam baud_counter_max = clk_freq / baud_rate - 1;
+    localparam baud_counter_width = $clog2(baud_counter_max);
 
-    assign clock_edge = acc[baud_clk_acc_width];
+    logic [baud_counter_width - 1:0] baud_counter;
+    logic [baud_counter_width - 1:0] baud_counter_next;
 
     always_comb begin
-        acc_next = acc[baud_clk_acc_width - 1:0] + BAUD_CLK_ACC_INC;
+        clock_edge_next = 1'b0;
+        baud_counter_next = baud_counter + 1;
+
+        if (baud_counter == baud_counter_max) begin
+            clock_edge_next = 1'b1;
+            baud_counter_next = 0;
+        end
     end
 
     always_ff @(posedge clk) begin
         if (!reset_n) begin
-            acc <= 0;
+            clock_edge <= 0;
+            baud_counter <= 0;
         end
         else begin
-            acc <= acc_next;
+            clock_edge <= clock_edge_next;
+            baud_counter <= baud_counter_next;
         end
     end
 
