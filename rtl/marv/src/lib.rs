@@ -296,7 +296,7 @@ fn execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
     }
 
     let pc = m.input("pc", 32);
-    let link_pc = (pc + m.lit(4u32, 32)).bits(31, 0);
+    let link_pc = pc + m.lit(4u32, 32);
     let mut next_pc = link_pc;
 
     let mut rd_value_write_enable = m.high();
