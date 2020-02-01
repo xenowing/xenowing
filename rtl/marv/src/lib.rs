@@ -65,7 +65,6 @@ impl<'a> Instruction<'a> {
 }
 
 pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
-    pc(c);
     cycle_counter(c);
     instructions_retired_counter(c);
     control(c);
@@ -79,7 +78,9 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let control0 = m.instance("control0", "control");
 
-    let pc0 = m.instance("pc0", "pc");
+    let pc = m.reg("pc", 32);
+    pc.default_value(0x10000000u32);
+
     let cycle_counter0 = m.instance("cycle_counter0", "cycle_counter");
     let instructions_retired_counter0 = m.instance("instructions_retired_counter0", "instructions_retired_counter");
 
@@ -90,7 +91,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let instruction_fetch0 = m.instance("instruction_fetch0", "instruction_fetch");
     control0.drive_input("instruction_fetch_ready", instruction_fetch0.output("ready"));
     instruction_fetch0.drive_input("enable", control0.output("instruction_fetch_enable"));
-    instruction_fetch0.drive_input("pc", pc0.output("value").bits(31, 2));
+    instruction_fetch0.drive_input("pc", pc.value.bits(31, 2));
     instruction_fetch0.drive_input("bus_ready", bus_ready);
 
     let decode0 = m.instance("decode0", "decode");
@@ -112,7 +113,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     rs2_value.drive_next(control0.output("reg_wait_enable").mux(m.input("register_file_read_data2", 32), rs2_value.value));
 
     let execute0 = m.instance("execute0", "execute");
-    execute0.drive_input("pc", pc0.output("value"));
+    execute0.drive_input("pc", pc.value);
     execute0.drive_input("instruction", instruction.value);
     execute0.drive_input("register_file_read_data1", m.input("register_file_read_data1", 32));
     execute0.drive_input("register_file_read_data2", m.input("register_file_read_data2", 32));
@@ -143,8 +144,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     writeback0.drive_input("next_pc", execute0.output("next_pc"));
     writeback0.drive_input("rd_value_write_enable", execute0.output("rd_value_write_enable"));
     writeback0.drive_input("rd_value_write_data", execute0.output("rd_value_write_data"));
-    pc0.drive_input("write_data", writeback0.output("pc_write_data"));
-    pc0.drive_input("write_enable", writeback0.output("pc_write_enable"));
+    pc.drive_next(writeback0.output("pc_write_enable").mux(writeback0.output("pc_write_data"), pc.value));
     instructions_retired_counter0.drive_input("increment_enable", writeback0.output("instructions_retired_counter_increment_enable"));
     m.output("register_file_write_enable", writeback0.output("register_file_write_enable"));
     m.output("register_file_write_addr", writeback0.output("register_file_write_addr"));
@@ -158,17 +158,6 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("bus_byte_enable", (mem_bus_read_req | mem_bus_write_req).mux(mem0.output("bus_byte_enable_out"), instruction_fetch0.output("bus_byte_enable")));
     m.output("bus_read_req", mem_bus_read_req | instruction_fetch0.output("bus_read_req"));
     m.output("bus_write_req", mem_bus_write_req);
-
-    m
-}
-
-fn pc<'a>(c: &'a Context<'a>) -> &Module<'a> {
-    let m = c.module("pc");
-
-    let value = m.reg("value", 32);
-    value.default_value(0x10000000u32);
-    value.drive_next(m.input("write_enable", 1).mux(m.input("write_data", 32), value.value));
-    m.output("value", value.value);
 
     m
 }
