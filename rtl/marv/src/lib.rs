@@ -469,7 +469,6 @@ fn mem<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let enable = m.input("enable", 1);
 
-    let bus_ready = m.input("bus_ready", 1);
     let bus_addr = m.reg("bus_addr", 32);
     bus_addr.drive_next(m.input("bus_addr_in", 32));
     m.output("bus_addr_out", bus_addr.value);
@@ -486,14 +485,7 @@ fn mem<'a>(c: &'a Context<'a>) -> &Module<'a> {
     bus_write_req.drive_next(m.input("bus_write_req_in", 1));
     m.output("bus_write_req_out", enable & bus_write_req.value);
 
-    let mut ready = m.high();
-    kaze_sugar! {
-        if (bus_read_req.value | bus_write_req.value) {
-            ready = bus_ready;
-        }
-    }
-
-    m.output("ready", ready);
+    m.output("ready", (bus_read_req.value | bus_write_req.value).mux(m.input("bus_ready", 1), m.high()));
 
     m
 }
