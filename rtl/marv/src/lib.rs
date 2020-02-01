@@ -671,8 +671,8 @@ fn generate_writeback<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let bus_addr_low = m.input("bus_addr_low", 2);
     let bus_read_data = m.input("bus_read_data", 32);
 
-    // Loads
     let (ready, register_file_write_data) = if_(instruction.opcode().eq(m.lit(0b00000u32, 5)), {
+        // Loads
         let register_file_write_data = if_(instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2)), {
             // lb/lbu
             let register_file_write_data = if_(bus_addr_low.eq(m.lit(0b00u32, 2)), {
