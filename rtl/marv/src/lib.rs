@@ -109,16 +109,16 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("register_file_read_addr2", instruction.rs2());
 
     // TODO: If we refactor the register file mem to register its outputs, these can just be inputs (unless writeback causes problems with that somehow!)
-    let rs1_value = m.reg("rs1_value", 32);
-    rs1_value.drive_next(control.output("reg_wait_enable").mux(m.input("register_file_read_data1", 32), rs1_value.value));
-    let rs2_value = m.reg("rs2_value", 32);
-    rs2_value.drive_next(control.output("reg_wait_enable").mux(m.input("register_file_read_data2", 32), rs2_value.value));
+    let rs1 = m.reg("rs1", 32);
+    rs1.drive_next(control.output("reg_wait_enable").mux(m.input("register_file_read_data1", 32), rs1.value));
+    let rs2 = m.reg("rs2", 32);
+    rs2.drive_next(control.output("reg_wait_enable").mux(m.input("register_file_read_data2", 32), rs2.value));
 
     let execute = m.instance("execute", "Execute");
     execute.drive_input("pc", pc.value);
     execute.drive_input("instruction", instruction.value);
-    execute.drive_input("register_file_read_data1", m.input("register_file_read_data1", 32));
-    execute.drive_input("register_file_read_data2", m.input("register_file_read_data2", 32));
+    execute.drive_input("register_file_read_data1", rs1.value);
+    execute.drive_input("register_file_read_data2", rs2.value);
     m.output("alu_op", execute.output("alu_op"));
     m.output("alu_op_mod", execute.output("alu_op_mod"));
     m.output("alu_lhs", execute.output("alu_lhs"));
