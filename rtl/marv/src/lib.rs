@@ -121,6 +121,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("alu_op_mod", execute.output("alu_op_mod"));
     m.output("alu_lhs", execute.output("alu_lhs"));
     m.output("alu_rhs", execute.output("alu_rhs"));
+    m.output("alu_shift_amt", execute.output("alu_shift_amt"));
     execute.drive_input("alu_res", m.input("alu_res", 32));
     execute.drive_input("cycle_counter_value", cycle_counter.value);
     execute.drive_input("instructions_retired_counter_value", instructions_retired_counter.value);
@@ -445,20 +446,15 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let reg1 = m.input("reg1", 32);
     let reg2 = m.input("reg2", 32);
 
-    let alu_op_mod = instruction.value.bit(30);
     m.output("alu_lhs", reg1);
+    m.output("alu_shift_amt", instruction.rs2());
 
     let (alu_op_mod, alu_rhs) = if_(instruction.opcode().bit(3), {
         // Register computation
-        (alu_op_mod, reg2)
+        (instruction.value.bit(30), reg2)
     }).else_({
-        if_(instruction.funct3().eq(m.lit(0b001u32, 3)) | instruction.funct3().eq(m.lit(0b101u32, 3)), {
-            // Shifts treat alu_op_mod the same as register computations and use rs2 directly (not its register value)
-            (alu_op_mod, m.lit(0u32, 27).concat(instruction.rs2()))
-        }).else_({
-            // Immediate computation
-            (m.low(), instruction.i_immediate())
-        })
+        // Immediate computation
+        (m.low(), instruction.i_immediate())
     });
 
     let pc = m.input("pc", 32);
