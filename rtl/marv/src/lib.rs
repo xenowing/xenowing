@@ -459,24 +459,22 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let pc = m.input("pc", 32);
     let link_pc = pc + m.lit(4u32, 32);
-    let next_pc = link_pc;
-
     let alu_res = m.input("alu_res", 32);
 
-    let (alu_rhs, next_pc, rd_value_write_data) = if_(instruction.opcode().eq(m.lit(0b01101u32, 5)), {
+    let (next_pc, rd_value_write_data) = if_(instruction.opcode().eq(m.lit(0b01101u32, 5)), {
         // lui
-        (alu_rhs, next_pc, instruction.u_immediate(m))
+        (link_pc, instruction.u_immediate(m))
     }).else_if(instruction.opcode().eq(m.lit(0b00101u32, 5)), {
         // auipc
-        (alu_rhs, next_pc, instruction.u_immediate(m) + pc)
+        (link_pc, instruction.u_immediate(m) + pc)
     }).else_if(instruction.opcode().eq(m.lit(0b11011u32, 5)), {
         // jal
-        (alu_rhs, pc + instruction.jump_offset(m), link_pc)
+        (pc + instruction.jump_offset(m), link_pc)
     }).else_if(instruction.opcode().eq(m.lit(0b11001u32, 5)), {
         // jalr
-        (instruction.i_immediate(), alu_res, link_pc)
+        (reg1 + instruction.i_immediate(), link_pc)
     }).else_({
-        (alu_rhs, next_pc, alu_res)
+        (link_pc, alu_res)
     });
 
     let bus_addr = alu_res; // TODO: Consider separate adder for load/store offsets
