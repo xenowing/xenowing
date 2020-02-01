@@ -65,12 +65,12 @@ impl<'a> Instruction<'a> {
 }
 
 pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
-    control(c);
-    instruction_fetch(c);
-    decode(c);
-    execute(c);
-    mem(c);
-    writeback(c);
+    generate_control(c);
+    generate_instruction_fetch(c);
+    generate_decode(c);
+    generate_execute(c);
+    generate_mem(c);
+    generate_writeback(c);
 
     let m = c.module("Marv");
 
@@ -165,7 +165,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m
 }
 
-fn control<'a>(c: &'a Context<'a>) -> &Module<'a> {
+fn generate_control<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let m = c.module("Control");
 
     // TODO: Figure out how to use/describe enums properly in kaze!
@@ -211,7 +211,7 @@ fn control<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m
 }
 
-fn instruction_fetch<'a>(c: &'a Context<'a>) -> &Module<'a> {
+fn generate_instruction_fetch<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let m = c.module("InstructionFetch");
 
     m.output("ready", m.input("bus_ready", 1));
@@ -222,7 +222,7 @@ fn instruction_fetch<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m
 }
 
-fn decode<'a>(c: &'a Context<'a>) -> &Module<'a> {
+fn generate_decode<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let m = c.module("Decode");
 
     m.output("ready", m.input("bus_read_data_valid", 1));
@@ -231,7 +231,7 @@ fn decode<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m
 }
 
-fn execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
+fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let m = c.module("Execute");
 
     let instruction = Instruction::new(m.input("instruction", 32));
@@ -464,7 +464,7 @@ fn execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m
 }
 
-fn mem<'a>(c: &'a Context<'a>) -> &Module<'a> {
+fn generate_mem<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let m = c.module("Mem");
 
     let enable = m.input("enable", 1);
@@ -490,7 +490,7 @@ fn mem<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m
 }
 
-fn writeback<'a>(c: &'a Context<'a>) -> &Module<'a> {
+fn generate_writeback<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let m = c.module("Writeback");
 
     let mut ready = m.high();
