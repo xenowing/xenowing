@@ -20,7 +20,7 @@ int main()
 {
     xw_puts("xw online");
 
-    //xw_display_init();
+    xw_display_init();
 
     xw_puts("get ready for some 0xfadebabe");
     const uint32_t phase_bits = 8;
@@ -32,14 +32,14 @@ int main()
     bool duty_cycle_rising = true;
     xw_set_leds(0);
 
-    /*uint32_t framebuffer_x = 0;
+    uint32_t framebuffer_x = 0;
     uint32_t framebuffer_y = 0;
     bool framebuffer_x_rising = true;
     bool framebuffer_y_rising = true;
     uint16_t color = (31 << 11) | (63 << 5) | 31;
     uint32_t box_size = 100;
 
-    bool first_box = true;*/
+    bool first_box = true;
 
     while (true)
     {
@@ -59,7 +59,7 @@ int main()
                 duty_cycle_rising = true;
         }
 
-        /*uint64_t frame_start_time = 0;
+        uint64_t frame_start_time = 0;
         if (first_box)
             frame_start_time = xw_cycles();
         uint16_t *back_buffer = xw_get_back_buffer();
@@ -130,7 +130,7 @@ int main()
             first_box = false;
         }
 
-        xw_swap_buffers(true);*/
+        xw_swap_buffers(true);
     }
 
     return 0;

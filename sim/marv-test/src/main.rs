@@ -51,11 +51,6 @@ fn main() {
         let mut ret = Vec::with_capacity(0x10000);
         file.read_to_end(&mut ret).expect("Couldn't read program ROM file");
 
-        // TODO: Do we actually need this, or are we masking a bug?
-        while ret.len() < 0x10000 {
-            ret.push(0);
-        }
-
         ret
     };
 
@@ -66,7 +61,7 @@ fn main() {
     let mut marv = marv::new();
     marv.reset();
 
-    for _ in 0..1000000 {
+    for _ in 0..100000000 {
         //println!("*** CYCLE {} ***", i);
 
         marv.bus_ready = true;
@@ -115,9 +110,6 @@ fn main() {
                     ((program_rom[byte_addr + 1] as u32) << 8) |
                     ((program_rom[byte_addr + 2] as u32) << 16) |
                     ((program_rom[byte_addr + 3] as u32) << 24);
-                /*if marv.bus_read_req {
-                    println!("*** Read program ROM word 0x{:08x} from byte addr 0x{:04x} ***", marv.bus_read_data, byte_addr);
-                }*/
             }
             0x2 => {
                 let byte_addr = marv.bus_addr << 2;
@@ -149,10 +141,16 @@ fn main() {
                 }
             }
             0x3 => {
-                let mem_addr = marv.bus_addr & 0x1ffffff;
-                marv.bus_read_data = mem[mem_addr as usize];
+                let mem_addr = (marv.bus_addr & 0x1ffffff) as usize;
+                marv.bus_read_data = mem[mem_addr];
                 if marv.bus_write_req {
-                    mem[mem_addr as usize] = marv.bus_write_data;
+                    let read_data = mem[mem_addr];
+                    let mut write_data = 0;
+                    for i in 0..4 {
+                        let sel = (marv.bus_byte_enable & (1 << i)) != 0;
+                        write_data |= if sel { marv.bus_write_data } else { read_data } & (0xff << (8 * i));
+                    }
+                    mem[mem_addr] = write_data;
                 }
             }
             _ => {

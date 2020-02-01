@@ -168,11 +168,11 @@ void adv7513_init()
 
 void xw_display_init()
 {
-    adv7513_init();
+    //adv7513_init();
 
     back_buffer = framebuffer0;
     front_buffer = framebuffer1;
-    *DISPLAY_FRAMEBUFFER_ADDR = (uint32_t)front_buffer;
+    //*DISPLAY_FRAMEBUFFER_ADDR = (uint32_t)front_buffer;
 }
 
 uint16_t *xw_get_back_buffer()
@@ -185,7 +185,7 @@ void xw_swap_buffers(bool vsync)
     uint16_t *temp = back_buffer;
     back_buffer = front_buffer;
     front_buffer = temp;
-    while (vsync && !(*DISPLAY_STATUS & DISPLAY_STATUS_VBLANK_MASK))
+    /*while (vsync && !(*DISPLAY_STATUS & DISPLAY_STATUS_VBLANK_MASK))
         ;
-    *DISPLAY_FRAMEBUFFER_ADDR = (uint32_t)front_buffer;
+    *DISPLAY_FRAMEBUFFER_ADDR = (uint32_t)front_buffer;*/
 }
