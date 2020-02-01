@@ -65,7 +65,6 @@ impl<'a> Instruction<'a> {
 }
 
 pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
-    cycle_counter(c);
     instructions_retired_counter(c);
     control(c);
     instruction_fetch(c);
@@ -81,7 +80,10 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let pc = m.reg("pc", 32);
     pc.default_value(0x10000000u32);
 
-    let cycle_counter0 = m.instance("cycle_counter0", "cycle_counter");
+    let cycle_counter = m.reg("cycle_counter", 64);
+    cycle_counter.default_value(0u64);
+    cycle_counter.drive_next(cycle_counter.value + m.lit(1u64, 64));
+
     let instructions_retired_counter0 = m.instance("instructions_retired_counter0", "instructions_retired_counter");
 
     let bus_ready = m.input("bus_ready", 1);
@@ -122,7 +124,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("alu_lhs", execute0.output("alu_lhs"));
     m.output("alu_rhs", execute0.output("alu_rhs"));
     execute0.drive_input("alu_res", m.input("alu_res", 32));
-    execute0.drive_input("cycle_counter_value", cycle_counter0.output("value"));
+    execute0.drive_input("cycle_counter_value", cycle_counter.value);
     execute0.drive_input("instructions_retired_counter_value", instructions_retired_counter0.output("value"));
 
     let mem0 = m.instance("mem0", "mem");
@@ -158,17 +160,6 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("bus_byte_enable", (mem_bus_read_req | mem_bus_write_req).mux(mem0.output("bus_byte_enable_out"), instruction_fetch0.output("bus_byte_enable")));
     m.output("bus_read_req", mem_bus_read_req | instruction_fetch0.output("bus_read_req"));
     m.output("bus_write_req", mem_bus_write_req);
-
-    m
-}
-
-fn cycle_counter<'a>(c: &'a Context<'a>) -> &Module<'a> {
-    let m = c.module("cycle_counter");
-
-    let value = m.reg("value", 64);
-    value.default_value(0u64);
-    value.drive_next(value.value + m.lit(1u64, 64));
-    m.output("value", value.value);
 
     m
 }
