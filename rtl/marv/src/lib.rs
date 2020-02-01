@@ -107,18 +107,16 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     m.output("register_file_read_addr1", instruction.rs1());
     m.output("register_file_read_addr2", instruction.rs2());
-
-    // TODO: If we refactor the register file mem to register its outputs, these can just be inputs (unless writeback causes problems with that somehow!)
-    let rs1 = m.reg("rs1", 32);
-    rs1.drive_next(control.output("reg_wait_enable").mux(m.input("register_file_read_data1", 32), rs1.value));
-    let rs2 = m.reg("rs2", 32);
-    rs2.drive_next(control.output("reg_wait_enable").mux(m.input("register_file_read_data2", 32), rs2.value));
+    let reg1 = m.reg("rs1", 32);
+    let reg2 = m.reg("rs2", 32);
+    reg1.drive_next(control.output("reg_wait_enable").mux(m.input("register_file_read_data1", 32), reg1.value));
+    reg2.drive_next(control.output("reg_wait_enable").mux(m.input("register_file_read_data2", 32), reg2.value));
 
     let execute = m.instance("execute", "Execute");
     execute.drive_input("pc", pc.value);
     execute.drive_input("instruction", instruction.value);
-    execute.drive_input("register_file_read_data1", rs1.value);
-    execute.drive_input("register_file_read_data2", rs2.value);
+    execute.drive_input("reg1", reg1.value);
+    execute.drive_input("reg2", reg2.value);
     m.output("alu_op", execute.output("alu_op"));
     m.output("alu_op_mod", execute.output("alu_op_mod"));
     m.output("alu_lhs", execute.output("alu_lhs"));
@@ -238,13 +236,13 @@ fn execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let instruction = Instruction::new(m.input("instruction", 32));
 
-    let rs1_value = m.input("register_file_read_data1", 32);
-    let rs2_value = m.input("register_file_read_data2", 32);
+    let reg1 = m.input("reg1", 32);
+    let reg2 = m.input("reg2", 32);
 
     let mut alu_op = instruction.funct3();
     let mut alu_op_mod = m.low();
-    m.output("alu_lhs", rs1_value);
-    let mut alu_rhs = rs2_value;
+    m.output("alu_lhs", reg1);
+    let mut alu_rhs = reg2;
     let alu_res = m.input("alu_res", 32);
 
     let reg_comp = instruction.opcode().bit(3);
@@ -345,7 +343,7 @@ fn execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("bus_read_req", bus_read_req);
 
     // Stores
-    let mut bus_write_data = rs2_value;
+    let mut bus_write_data = reg2;
     let mut bus_write_req = m.low();
 
     kaze_sugar! {
@@ -360,20 +358,20 @@ fn execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
             if (instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2))) {
                 // sh
                 if (bus_addr.bit(1)) {
-                    bus_write_data = rs2_value.bits(15, 0).concat(m.lit(0u32, 16));
+                    bus_write_data = reg2.bits(15, 0).concat(m.lit(0u32, 16));
                 }
             }
 
             if (instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2))) {
                 // sb
                 if (bus_addr.bits(1, 0).eq(m.lit(0b01u32, 2))) {
-                    bus_write_data = m.lit(0u32, 16).concat(rs2_value.bits(7, 0)).concat(m.lit(0u32, 8));
+                    bus_write_data = m.lit(0u32, 16).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 8));
                 }
                 if (bus_addr.bits(1, 0).eq(m.lit(0b10u32, 2))) {
-                    bus_write_data = m.lit(0u32, 8).concat(rs2_value.bits(7, 0)).concat(m.lit(0u32, 16));
+                    bus_write_data = m.lit(0u32, 8).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 16));
                 }
                 if (bus_addr.bits(1, 0).eq(m.lit(0b11u32, 2))) {
-                    bus_write_data = rs2_value.bits(7, 0).concat(m.lit(0u32, 24));
+                    bus_write_data = reg2.bits(7, 0).concat(m.lit(0u32, 24));
                 }
             }
         }
@@ -391,13 +389,13 @@ fn execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
     kaze_sugar! {
         // TODO: switch/case construct?
         if (instruction.funct3().bits(2, 1).eq(m.lit(0b00u32, 2))) {
-            branch_taken = rs1_value.eq(rs2_value);
+            branch_taken = reg1.eq(reg2);
         }
         if (instruction.funct3().bits(2, 1).eq(m.lit(0b10u32, 2))) {
-            branch_taken = rs1_value.lt_signed(rs2_value);
+            branch_taken = reg1.lt_signed(reg2);
         }
         if (instruction.funct3().bits(2, 1).eq(m.lit(0b11u32, 2))) {
-            branch_taken = rs1_value.lt(rs2_value);
+            branch_taken = reg1.lt(reg2);
         }
         if (instruction.funct3().bit(0)) {
             branch_taken = !branch_taken;
