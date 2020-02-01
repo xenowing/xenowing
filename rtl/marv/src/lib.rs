@@ -72,9 +72,9 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     mem(c);
     writeback(c);
 
-    let m = c.module("marv");
+    let m = c.module("Marv");
 
-    let control0 = m.instance("control0", "control");
+    let control = m.instance("control", "Control");
 
     let pc = m.reg("pc", 32);
     pc.default_value(0x10000000u32);
@@ -90,19 +90,19 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let bus_read_data = m.input("bus_read_data", 32);
     let bus_read_data_valid = m.input("bus_read_data_valid", 1);
 
-    let instruction_fetch0 = m.instance("instruction_fetch0", "instruction_fetch");
-    control0.drive_input("instruction_fetch_ready", instruction_fetch0.output("ready"));
-    instruction_fetch0.drive_input("enable", control0.output("instruction_fetch_enable"));
-    instruction_fetch0.drive_input("pc", pc.value.bits(31, 2));
-    instruction_fetch0.drive_input("bus_ready", bus_ready);
+    let instruction_fetch = m.instance("instruction_fetch", "InstructionFetch");
+    control.drive_input("instruction_fetch_ready", instruction_fetch.output("ready"));
+    instruction_fetch.drive_input("enable", control.output("instruction_fetch_enable"));
+    instruction_fetch.drive_input("pc", pc.value.bits(31, 2));
+    instruction_fetch.drive_input("bus_ready", bus_ready);
 
-    let decode0 = m.instance("decode0", "decode");
-    control0.drive_input("decode_ready", decode0.output("ready"));
-    decode0.drive_input("bus_read_data", bus_read_data);
-    decode0.drive_input("bus_read_data_valid", bus_read_data_valid);
+    let decode = m.instance("decode", "Decode");
+    control.drive_input("decode_ready", decode.output("ready"));
+    decode.drive_input("bus_read_data", bus_read_data);
+    decode.drive_input("bus_read_data_valid", bus_read_data_valid);
 
     let instruction = m.reg("instruction", 32);
-    instruction.drive_next(control0.output("decode_enable").mux(decode0.output("instruction"), instruction.value));
+    instruction.drive_next(control.output("decode_enable").mux(decode.output("instruction"), instruction.value));
     let instruction = Instruction::new(instruction.value);
 
     m.output("register_file_read_addr1", instruction.rs1());
@@ -110,65 +110,65 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     // TODO: If we refactor the register file mem to register its outputs, these can just be inputs (unless writeback causes problems with that somehow!)
     let rs1_value = m.reg("rs1_value", 32);
-    rs1_value.drive_next(control0.output("reg_wait_enable").mux(m.input("register_file_read_data1", 32), rs1_value.value));
+    rs1_value.drive_next(control.output("reg_wait_enable").mux(m.input("register_file_read_data1", 32), rs1_value.value));
     let rs2_value = m.reg("rs2_value", 32);
-    rs2_value.drive_next(control0.output("reg_wait_enable").mux(m.input("register_file_read_data2", 32), rs2_value.value));
+    rs2_value.drive_next(control.output("reg_wait_enable").mux(m.input("register_file_read_data2", 32), rs2_value.value));
 
-    let execute0 = m.instance("execute0", "execute");
-    execute0.drive_input("pc", pc.value);
-    execute0.drive_input("instruction", instruction.value);
-    execute0.drive_input("register_file_read_data1", m.input("register_file_read_data1", 32));
-    execute0.drive_input("register_file_read_data2", m.input("register_file_read_data2", 32));
-    m.output("alu_op", execute0.output("alu_op"));
-    m.output("alu_op_mod", execute0.output("alu_op_mod"));
-    m.output("alu_lhs", execute0.output("alu_lhs"));
-    m.output("alu_rhs", execute0.output("alu_rhs"));
-    execute0.drive_input("alu_res", m.input("alu_res", 32));
-    execute0.drive_input("cycle_counter_value", cycle_counter.value);
-    execute0.drive_input("instructions_retired_counter_value", instructions_retired_counter.value);
+    let execute = m.instance("execute", "Execute");
+    execute.drive_input("pc", pc.value);
+    execute.drive_input("instruction", instruction.value);
+    execute.drive_input("register_file_read_data1", m.input("register_file_read_data1", 32));
+    execute.drive_input("register_file_read_data2", m.input("register_file_read_data2", 32));
+    m.output("alu_op", execute.output("alu_op"));
+    m.output("alu_op_mod", execute.output("alu_op_mod"));
+    m.output("alu_lhs", execute.output("alu_lhs"));
+    m.output("alu_rhs", execute.output("alu_rhs"));
+    execute.drive_input("alu_res", m.input("alu_res", 32));
+    execute.drive_input("cycle_counter_value", cycle_counter.value);
+    execute.drive_input("instructions_retired_counter_value", instructions_retired_counter.value);
 
-    let mem0 = m.instance("mem0", "mem");
-    control0.drive_input("mem_ready", mem0.output("ready"));
-    mem0.drive_input("enable", control0.output("mem_enable"));
-    mem0.drive_input("bus_ready", bus_ready);
-    mem0.drive_input("bus_addr_in", execute0.output("bus_addr"));
-    mem0.drive_input("bus_write_data_in", execute0.output("bus_write_data"));
-    mem0.drive_input("bus_byte_enable_in", execute0.output("bus_byte_enable"));
-    mem0.drive_input("bus_read_req_in", execute0.output("bus_read_req"));
-    mem0.drive_input("bus_write_req_in", execute0.output("bus_write_req"));
-    m.output("bus_write_data", mem0.output("bus_write_data_out"));
+    let mem = m.instance("mem", "Mem");
+    control.drive_input("mem_ready", mem.output("ready"));
+    mem.drive_input("enable", control.output("mem_enable"));
+    mem.drive_input("bus_ready", bus_ready);
+    mem.drive_input("bus_addr_in", execute.output("bus_addr"));
+    mem.drive_input("bus_write_data_in", execute.output("bus_write_data"));
+    mem.drive_input("bus_byte_enable_in", execute.output("bus_byte_enable"));
+    mem.drive_input("bus_read_req_in", execute.output("bus_read_req"));
+    mem.drive_input("bus_write_req_in", execute.output("bus_write_req"));
+    m.output("bus_write_data", mem.output("bus_write_data_out"));
 
-    let writeback0 = m.instance("writeback0", "writeback");
-    control0.drive_input("writeback_ready", writeback0.output("ready"));
-    writeback0.drive_input("enable", control0.output("writeback_enable"));
-    writeback0.drive_input("instruction", instruction.value);
-    writeback0.drive_input("bus_addr_low", mem0.output("bus_addr_out").bits(1, 0));
-    writeback0.drive_input("next_pc", execute0.output("next_pc"));
-    writeback0.drive_input("rd_value_write_enable", execute0.output("rd_value_write_enable"));
-    writeback0.drive_input("rd_value_write_data", execute0.output("rd_value_write_data"));
-    pc.drive_next(writeback0.output("pc_write_enable").mux(writeback0.output("pc_write_data"), pc.value));
+    let writeback = m.instance("writeback", "Writeback");
+    control.drive_input("writeback_ready", writeback.output("ready"));
+    writeback.drive_input("enable", control.output("writeback_enable"));
+    writeback.drive_input("instruction", instruction.value);
+    writeback.drive_input("bus_addr_low", mem.output("bus_addr_out").bits(1, 0));
+    writeback.drive_input("next_pc", execute.output("next_pc"));
+    writeback.drive_input("rd_value_write_enable", execute.output("rd_value_write_enable"));
+    writeback.drive_input("rd_value_write_data", execute.output("rd_value_write_data"));
+    pc.drive_next(writeback.output("pc_write_enable").mux(writeback.output("pc_write_data"), pc.value));
     instructions_retired_counter.drive_next(
-        writeback0.output("instructions_retired_counter_increment_enable").mux(
+        writeback.output("instructions_retired_counter_increment_enable").mux(
             instructions_retired_counter.value + m.lit(1u64, 64),
             instructions_retired_counter.value));
-    m.output("register_file_write_enable", writeback0.output("register_file_write_enable"));
-    m.output("register_file_write_addr", writeback0.output("register_file_write_addr"));
-    m.output("register_file_write_data", writeback0.output("register_file_write_data"));
-    writeback0.drive_input("bus_read_data", bus_read_data);
-    writeback0.drive_input("bus_read_data_valid", bus_read_data_valid);
+    m.output("register_file_write_enable", writeback.output("register_file_write_enable"));
+    m.output("register_file_write_addr", writeback.output("register_file_write_addr"));
+    m.output("register_file_write_data", writeback.output("register_file_write_data"));
+    writeback.drive_input("bus_read_data", bus_read_data);
+    writeback.drive_input("bus_read_data_valid", bus_read_data_valid);
 
-    let mem_bus_read_req = mem0.output("bus_read_req_out");
-    let mem_bus_write_req = mem0.output("bus_write_req_out");
-    m.output("bus_addr", (mem_bus_read_req | mem_bus_write_req).mux(mem0.output("bus_addr_out").bits(31, 2), instruction_fetch0.output("bus_addr")));
-    m.output("bus_byte_enable", (mem_bus_read_req | mem_bus_write_req).mux(mem0.output("bus_byte_enable_out"), instruction_fetch0.output("bus_byte_enable")));
-    m.output("bus_read_req", mem_bus_read_req | instruction_fetch0.output("bus_read_req"));
+    let mem_bus_read_req = mem.output("bus_read_req_out");
+    let mem_bus_write_req = mem.output("bus_write_req_out");
+    m.output("bus_addr", (mem_bus_read_req | mem_bus_write_req).mux(mem.output("bus_addr_out").bits(31, 2), instruction_fetch.output("bus_addr")));
+    m.output("bus_byte_enable", (mem_bus_read_req | mem_bus_write_req).mux(mem.output("bus_byte_enable_out"), instruction_fetch.output("bus_byte_enable")));
+    m.output("bus_read_req", mem_bus_read_req | instruction_fetch.output("bus_read_req"));
     m.output("bus_write_req", mem_bus_write_req);
 
     m
 }
 
 fn control<'a>(c: &'a Context<'a>) -> &Module<'a> {
-    let m = c.module("control");
+    let m = c.module("Control");
 
     // TODO: Figure out how to use/describe enums properly in kaze!
     let state_bit_width = 3;
@@ -214,7 +214,7 @@ fn control<'a>(c: &'a Context<'a>) -> &Module<'a> {
 }
 
 fn instruction_fetch<'a>(c: &'a Context<'a>) -> &Module<'a> {
-    let m = c.module("instruction_fetch");
+    let m = c.module("InstructionFetch");
 
     m.output("ready", m.input("bus_ready", 1));
     m.output("bus_addr", m.input("pc", 30));
@@ -225,7 +225,7 @@ fn instruction_fetch<'a>(c: &'a Context<'a>) -> &Module<'a> {
 }
 
 fn decode<'a>(c: &'a Context<'a>) -> &Module<'a> {
-    let m = c.module("decode");
+    let m = c.module("Decode");
 
     m.output("ready", m.input("bus_read_data_valid", 1));
     m.output("instruction", m.input("bus_read_data", 32));
@@ -234,7 +234,7 @@ fn decode<'a>(c: &'a Context<'a>) -> &Module<'a> {
 }
 
 fn execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
-    let m = c.module("execute");
+    let m = c.module("Execute");
 
     let instruction = Instruction::new(m.input("instruction", 32));
 
@@ -467,7 +467,7 @@ fn execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
 }
 
 fn mem<'a>(c: &'a Context<'a>) -> &Module<'a> {
-    let m = c.module("mem");
+    let m = c.module("Mem");
 
     let enable = m.input("enable", 1);
 
@@ -501,7 +501,7 @@ fn mem<'a>(c: &'a Context<'a>) -> &Module<'a> {
 }
 
 fn writeback<'a>(c: &'a Context<'a>) -> &Module<'a> {
-    let m = c.module("writeback");
+    let m = c.module("Writeback");
 
     let mut ready = m.high();
 

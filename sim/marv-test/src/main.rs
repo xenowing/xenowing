@@ -58,7 +58,7 @@ fn main() {
 
     let mut leds = 0b000;
 
-    let mut marv = marv::new();
+    let mut marv = Marv::new();
     marv.reset();
 
     for _ in 0..100000000 {
