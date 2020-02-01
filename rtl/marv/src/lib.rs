@@ -165,6 +165,65 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m
 }
 
+pub struct If_<'a> {
+    cond: &'a Signal<'a>,
+    when_true: &'a Signal<'a>,
+}
+
+impl<'a> If_<'a> {
+    fn new(cond: &'a Signal<'a>, when_true: &'a Signal<'a>) -> If_<'a> {
+        If_ {
+            cond,
+            when_true,
+        }
+    }
+
+    pub fn else_if(self, cond: &'a Signal<'a>, when_true: &'a Signal<'a>) -> ElseIf<'a> {
+        ElseIf {
+            parent: ElseIfParent::If_(self),
+            cond,
+            when_true,
+        }
+    }
+
+    pub fn else_(self, when_false: &'a Signal<'a>) -> &'a Signal<'a> {
+        self.cond.mux(self.when_true, when_false)
+    }
+}
+
+pub fn if_<'a>(cond: &'a Signal<'a>, when_true: &'a Signal<'a>) -> If_<'a> {
+    If_::new(cond, when_true)
+}
+
+enum ElseIfParent<'a> {
+    If_(If_<'a>),
+    ElseIf(Box<ElseIf<'a>>),
+}
+
+pub struct ElseIf<'a> {
+    parent: ElseIfParent<'a>,
+    cond: &'a Signal<'a>,
+    when_true: &'a Signal<'a>,
+}
+
+impl<'a> ElseIf<'a> {
+    pub fn else_if(self, cond: &'a Signal<'a>, when_true: &'a Signal<'a>) -> ElseIf<'a> {
+        ElseIf {
+            parent: ElseIfParent::ElseIf(Box::new(self)),
+            cond,
+            when_true,
+        }
+    }
+
+    pub fn else_(self, when_false: &'a Signal<'a>) -> &'a Signal<'a> {
+        let ret = self.cond.mux(self.when_true, when_false);
+        match self.parent {
+            ElseIfParent::If_(parent) => parent.else_(ret),
+            ElseIfParent::ElseIf(parent) => parent.else_(ret),
+        }
+    }
+}
+
 fn generate_control<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let m = c.module("Control");
 
@@ -178,29 +237,22 @@ fn generate_control<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let state_writeback = 5u32;
     let state = m.reg("state", state_bit_width);
     state.default_value(state_instruction_fetch);
-    let mut next_state = state.value;
-    kaze_sugar! {
-        // TODO: Enum matching sugar
-        if (state.value.eq(m.lit(state_instruction_fetch, state_bit_width)) & m.input("instruction_fetch_ready", 1)) {
-            next_state = m.lit(state_decode, state_bit_width);
-        }
-        if (state.value.eq(m.lit(state_decode, state_bit_width)) & m.input("decode_ready", 1)) {
-            next_state = m.lit(state_reg_wait, state_bit_width);
-        }
-        if (state.value.eq(m.lit(state_reg_wait, state_bit_width))) {
-            next_state = m.lit(state_execute, state_bit_width);
-        }
-        if (state.value.eq(m.lit(state_execute, state_bit_width))) {
-            next_state = m.lit(state_mem, state_bit_width);
-        }
-        if (state.value.eq(m.lit(state_mem, state_bit_width)) & m.input("mem_ready", 1)) {
-            next_state = m.lit(state_writeback, state_bit_width);
-        }
-        if (state.value.eq(m.lit(state_writeback, state_bit_width)) & m.input("writeback_ready", 1)) {
-            next_state = m.lit(state_instruction_fetch, state_bit_width);
-        }
-    }
-    state.drive_next(next_state);
+    // TODO: (Enum) matching sugar
+    state.drive_next(if_(state.value.eq(m.lit(state_instruction_fetch, state_bit_width)) & m.input("instruction_fetch_ready", 1), {
+        m.lit(state_decode, state_bit_width)
+    }).else_if(state.value.eq(m.lit(state_decode, state_bit_width)) & m.input("decode_ready", 1), {
+        m.lit(state_reg_wait, state_bit_width)
+    }).else_if(state.value.eq(m.lit(state_reg_wait, state_bit_width)), {
+        m.lit(state_execute, state_bit_width)
+    }).else_if(state.value.eq(m.lit(state_execute, state_bit_width)), {
+        m.lit(state_mem, state_bit_width)
+    }).else_if(state.value.eq(m.lit(state_mem, state_bit_width)) & m.input("mem_ready", 1), {
+        m.lit(state_writeback, state_bit_width)
+    }).else_if(state.value.eq(m.lit(state_writeback, state_bit_width)) & m.input("writeback_ready", 1), {
+        m.lit(state_instruction_fetch, state_bit_width)
+    }).else_({
+        state.value
+    }));
 
     m.output("instruction_fetch_enable", state.value.eq(m.lit(state_instruction_fetch, state_bit_width)));
     m.output("decode_enable", state.value.eq(m.lit(state_decode, state_bit_width)));
@@ -299,33 +351,29 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let bus_addr = alu_res; // TODO: Consider separate adder for load/store offsets
     m.output("bus_addr", bus_addr);
-    let mut bus_byte_enable = m.lit(0b1111u32, 4);
-
-    kaze_sugar! {
-        if (instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2))) {
-            // lh/lhu/sh
-            bus_byte_enable = m.lit(0b0011u32, 4);
-            if (bus_addr.bit(1)) {
-                bus_byte_enable = m.lit(0b1100u32, 4);
-            }
-        }
-
-        if (instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2))) {
-            // lb/lbu/sb
-            bus_byte_enable = m.lit(0b0001u32, 4);
-            if (bus_addr.bits(1, 0).eq(m.lit(0b01u32, 2))) {
-                bus_byte_enable = m.lit(0b0010u32, 4);
-            }
-            if (bus_addr.bits(1, 0).eq(m.lit(0b10u32, 2))) {
-                bus_byte_enable = m.lit(0b0100u32, 4);
-            }
-            if (bus_addr.bits(1, 0).eq(m.lit(0b11u32, 2))) {
-                bus_byte_enable = m.lit(0b1000u32, 4);
-            }
-        }
-    }
-
-    m.output("bus_byte_enable", bus_byte_enable);
+    m.output("bus_byte_enable", if_(instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2)), {
+        // lh/lhu/sh
+        if_(!bus_addr.bit(1), {
+            m.lit(0b0011u32, 4)
+        }).else_({
+            m.lit(0b1100u32, 4)
+        })
+    }).else_if(instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2)), {
+        // lb/lbu/sb
+        let bus_addr_low = bus_addr.bits(1, 0);
+        // TODO: Express with shift?
+        if_(bus_addr_low.eq(m.lit(0b00u32, 2)), {
+            m.lit(0b0001u32, 4)
+        }).else_if(bus_addr_low.eq(m.lit(0b01u32, 2)), {
+            m.lit(0b0010u32, 4)
+        }).else_if(bus_addr_low.eq(m.lit(0b10u32, 2)), {
+            m.lit(0b0100u32, 4)
+        }).else_({
+            m.lit(0b1000u32, 4)
+        })
+    }).else_({
+        m.lit(0b1111u32, 4)
+    }));
 
     // Loads
     let mut bus_read_req = m.low();
@@ -355,13 +403,6 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
             rd_value_write_enable = m.low();
             bus_write_req = m.high();
 
-            if (instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2))) {
-                // sh
-                if (bus_addr.bit(1)) {
-                    bus_write_data = reg2.bits(15, 0).concat(m.lit(0u32, 16));
-                }
-            }
-
             if (instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2))) {
                 // sb
                 if (bus_addr.bits(1, 0).eq(m.lit(0b01u32, 2))) {
@@ -372,6 +413,13 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
                 }
                 if (bus_addr.bits(1, 0).eq(m.lit(0b11u32, 2))) {
                     bus_write_data = reg2.bits(7, 0).concat(m.lit(0u32, 24));
+                }
+            }
+
+            if (instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2))) {
+                // sh
+                if (bus_addr.bit(1)) {
+                    bus_write_data = reg2.bits(15, 0).concat(m.lit(0u32, 16));
                 }
             }
         }
@@ -385,21 +433,20 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("bus_write_req", bus_write_req);
 
     // Branch instructions
-    let mut branch_taken = m.low();
+    let funct3_low = instruction.funct3().bits(2, 1);
+    // TODO: switch/case construct?
+    let branch_taken = if_(funct3_low.eq(m.lit(0b00u32, 2)), {
+        reg1.eq(reg2)
+    }).else_if(funct3_low.eq(m.lit(0b01u32, 2)), {
+        m.low()
+    }).else_if(funct3_low.eq(m.lit(0b10u32, 2)), {
+        reg1.lt_signed(reg2)
+    }).else_({
+        reg1.lt(reg2)
+    });
+    // TODO: Conditional invert construct?
+    let branch_taken = if_(instruction.funct3().bit(0), !branch_taken).else_(branch_taken);
     kaze_sugar! {
-        // TODO: switch/case construct?
-        if (instruction.funct3().bits(2, 1).eq(m.lit(0b00u32, 2))) {
-            branch_taken = reg1.eq(reg2);
-        }
-        if (instruction.funct3().bits(2, 1).eq(m.lit(0b10u32, 2))) {
-            branch_taken = reg1.lt_signed(reg2);
-        }
-        if (instruction.funct3().bits(2, 1).eq(m.lit(0b11u32, 2))) {
-            branch_taken = reg1.lt(reg2);
-        }
-        if (instruction.funct3().bit(0)) {
-            branch_taken = !branch_taken;
-        }
         if (instruction.opcode().eq(m.lit(0b11000u32, 5))) {
             rd_value_write_enable = m.low();
 
@@ -412,12 +459,12 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("next_pc", next_pc);
 
     // Fence instructions
-    kaze_sugar! {
-        if (instruction.opcode().eq(m.lit(0b00011u32, 5))) {
-            // Do nothing (nop)
-            rd_value_write_enable = m.low();
-        }
-    }
+    let mut rd_value_write_enable = if_(instruction.opcode().eq(m.lit(0b00011u32, 5)), {
+        // Do nothing (nop)
+        m.low()
+    }).else_({
+        rd_value_write_enable
+    });
 
     let cycle_counter_value = m.input("cycle_counter_value", 64);
     let instructions_retired_counter_value = m.input("instructions_retired_counter_value", 64);
@@ -430,31 +477,31 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
                 rd_value_write_enable = m.low();
             }
 
-            if (
-                instruction.funct3().eq(m.lit(0b001u32, 3)) |
-                instruction.funct3().eq(m.lit(0b010u32, 3)) |
-                instruction.funct3().eq(m.lit(0b011u32, 3)) |
-                instruction.funct3().eq(m.lit(0b101u32, 3)) |
-                instruction.funct3().eq(m.lit(0b110u32, 3)) |
-                instruction.funct3().eq(m.lit(0b111u32, 3))) {
+            rd_value_write_data = if_(instruction.funct3().bits(1, 0).ne(m.lit(0b00u32, 2)), {
                 // csrrw, csrrs, csrrc, csrrwi, csrrsi, csrrci
-                if (instruction.csr().bits(1, 0).eq(m.lit(0b00u32, 2)) | instruction.csr().bits(1, 0).eq(m.lit(0b01u32, 2))) {
+                let csr_low = instruction.csr().bits(1, 0);
+                if_(csr_low.eq(m.lit(0b00u32, 2)) | csr_low.eq(m.lit(0b01u32, 2)), {
                     // cycle, time
-                    rd_value_write_data = cycle_counter_value.bits(31, 0);
-                    if (instruction.csr().bit(7)) {
+                    if_(!instruction.csr().bit(7), {
+                        cycle_counter_value.bits(31, 0)
+                    }).else_({
                         // cycleh, timeh
-                        rd_value_write_data = cycle_counter_value.bits(63, 32);
-                    }
-                }
-                if (instruction.csr().bits(1, 0).eq(m.lit(0b10u32, 2))) {
+                        cycle_counter_value.bits(63, 32)
+                    })
+                }).else_if(csr_low.eq(m.lit(0b10u32, 2)), {
                     // instret
-                    rd_value_write_data = instructions_retired_counter_value.bits(31, 0);
-                    if (instruction.csr().bit(7)) {
+                    if_(!instruction.csr().bit(7), {
+                        instructions_retired_counter_value.bits(31, 0)
+                    }).else_({
                         // instreth
-                        rd_value_write_data = instructions_retired_counter_value.bits(63, 32);
-                    }
-                }
-            }
+                        instructions_retired_counter_value.bits(63, 32)
+                    })
+                }).else_({
+                    rd_value_write_data
+                })
+            }).else_({
+                rd_value_write_data
+            });
         }
     }
 
@@ -508,6 +555,24 @@ fn generate_writeback<'a>(c: &'a Context<'a>) -> &Module<'a> {
             ready = m.input("bus_read_data_valid", 1);
             register_file_write_data = bus_read_data;
 
+            if (instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2))) {
+                // lb/lbu
+                register_file_write_data = bus_read_data.bit(7).repeat(24).concat(bus_read_data.bits(7, 0));
+                if (bus_addr_low.eq(m.lit(0b01u32, 2))) {
+                    register_file_write_data = bus_read_data.bit(15).repeat(24).concat(bus_read_data.bits(15, 8));
+                }
+                if (bus_addr_low.eq(m.lit(0b10u32, 2))) {
+                    register_file_write_data = bus_read_data.bit(23).repeat(24).concat(bus_read_data.bits(23, 16));
+                }
+                if (bus_addr_low.eq(m.lit(0b11u32, 2))) {
+                    register_file_write_data = bus_read_data.bit(31).repeat(24).concat(bus_read_data.bits(31, 24));
+                }
+
+                if (instruction.funct3().bit(2)) {
+                    register_file_write_data = m.lit(0u32, 24).concat(register_file_write_data.bits(7, 0));
+                }
+            }
+
             if (instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2))) {
                 // lh/lhu
                 register_file_write_data = bus_read_data.bit(15).repeat(16).concat(bus_read_data.bits(15, 0));
@@ -517,24 +582,6 @@ fn generate_writeback<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
                 if (instruction.funct3().bit(2)) {
                     register_file_write_data = m.lit(0u32, 16).concat(register_file_write_data.bits(15, 0));
-                }
-            }
-
-            if (instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2))) {
-                // lb/lbu
-                register_file_write_data = bus_read_data.bit(7).repeat(24).concat(bus_read_data.bits(7, 0));
-                if (bus_addr_low.bits(1, 0).eq(m.lit(0b01u32, 2))) {
-                    register_file_write_data = bus_read_data.bit(15).repeat(24).concat(bus_read_data.bits(15, 8));
-                }
-                if (bus_addr_low.bits(1, 0).eq(m.lit(0b10u32, 2))) {
-                    register_file_write_data = bus_read_data.bit(23).repeat(24).concat(bus_read_data.bits(23, 16));
-                }
-                if (bus_addr_low.bits(1, 0).eq(m.lit(0b11u32, 2))) {
-                    register_file_write_data = bus_read_data.bit(31).repeat(24).concat(bus_read_data.bits(31, 24));
-                }
-
-                if (instruction.funct3().bit(2)) {
-                    register_file_write_data = m.lit(0u32, 24).concat(register_file_write_data.bits(7, 0));
                 }
             }
         }
