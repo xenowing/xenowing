@@ -193,11 +193,65 @@ impl<'a> If_<'a, &'a Signal<'a>> {
     }
 }
 
+impl<'a> If_<'a, (&'a Signal<'a>,)> {
+    pub fn else_(self, when_false: (&'a Signal<'a>,)) -> (&Signal<'a>,) {
+        (
+            self.cond.mux(self.when_true.0, when_false.0),
+        )
+    }
+}
+
 impl<'a> If_<'a, (&'a Signal<'a>, &'a Signal<'a>)> {
     pub fn else_(self, when_false: (&'a Signal<'a>, &'a Signal<'a>)) -> (&Signal<'a>, &Signal<'a>) {
         (
             self.cond.mux(self.when_true.0, when_false.0),
             self.cond.mux(self.when_true.1, when_false.1),
+        )
+    }
+}
+
+impl<'a> If_<'a, (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)> {
+    pub fn else_(self, when_false: (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)) -> (&Signal<'a>, &Signal<'a>, &'a Signal<'a>) {
+        (
+            self.cond.mux(self.when_true.0, when_false.0),
+            self.cond.mux(self.when_true.1, when_false.1),
+            self.cond.mux(self.when_true.2, when_false.2),
+        )
+    }
+}
+
+impl<'a> If_<'a, (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)> {
+    pub fn else_(self, when_false: (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)) -> (&Signal<'a>, &Signal<'a>, &'a Signal<'a>, &'a Signal<'a>) {
+        (
+            self.cond.mux(self.when_true.0, when_false.0),
+            self.cond.mux(self.when_true.1, when_false.1),
+            self.cond.mux(self.when_true.2, when_false.2),
+            self.cond.mux(self.when_true.3, when_false.3),
+        )
+    }
+}
+
+impl<'a> If_<'a, (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)> {
+    pub fn else_(self, when_false: (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)) -> (&Signal<'a>, &Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>) {
+        (
+            self.cond.mux(self.when_true.0, when_false.0),
+            self.cond.mux(self.when_true.1, when_false.1),
+            self.cond.mux(self.when_true.2, when_false.2),
+            self.cond.mux(self.when_true.3, when_false.3),
+            self.cond.mux(self.when_true.4, when_false.4),
+        )
+    }
+}
+
+impl<'a> If_<'a, (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)> {
+    pub fn else_(self, when_false: (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)) -> (&Signal<'a>, &'a Signal<'a>, &Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>) {
+        (
+            self.cond.mux(self.when_true.0, when_false.0),
+            self.cond.mux(self.when_true.1, when_false.1),
+            self.cond.mux(self.when_true.2, when_false.2),
+            self.cond.mux(self.when_true.3, when_false.3),
+            self.cond.mux(self.when_true.4, when_false.4),
+            self.cond.mux(self.when_true.5, when_false.5),
         )
     }
 }
@@ -237,11 +291,85 @@ impl<'a> ElseIf<'a, &'a Signal<'a>> {
     }
 }
 
+impl<'a> ElseIf<'a, (&'a Signal<'a>,)> {
+    pub fn else_(self, when_false: (&'a Signal<'a>,)) -> (&Signal<'a>,) {
+        let ret = (
+            self.cond.mux(self.when_true.0, when_false.0),
+        );
+        match self.parent {
+            ElseIfParent::If_(parent) => parent.else_(ret),
+            ElseIfParent::ElseIf(parent) => parent.else_(ret),
+        }
+    }
+}
+
 impl<'a> ElseIf<'a, (&'a Signal<'a>, &'a Signal<'a>)> {
     pub fn else_(self, when_false: (&'a Signal<'a>, &'a Signal<'a>)) -> (&Signal<'a>, &Signal<'a>) {
         let ret = (
             self.cond.mux(self.when_true.0, when_false.0),
             self.cond.mux(self.when_true.1, when_false.1),
+        );
+        match self.parent {
+            ElseIfParent::If_(parent) => parent.else_(ret),
+            ElseIfParent::ElseIf(parent) => parent.else_(ret),
+        }
+    }
+}
+
+impl<'a> ElseIf<'a, (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)> {
+    pub fn else_(self, when_false: (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)) -> (&Signal<'a>, &Signal<'a>, &'a Signal<'a>) {
+        let ret = (
+            self.cond.mux(self.when_true.0, when_false.0),
+            self.cond.mux(self.when_true.1, when_false.1),
+            self.cond.mux(self.when_true.2, when_false.2),
+        );
+        match self.parent {
+            ElseIfParent::If_(parent) => parent.else_(ret),
+            ElseIfParent::ElseIf(parent) => parent.else_(ret),
+        }
+    }
+}
+
+impl<'a> ElseIf<'a, (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)> {
+    pub fn else_(self, when_false: (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)) -> (&Signal<'a>, &Signal<'a>, &'a Signal<'a>, &'a Signal<'a>) {
+        let ret = (
+            self.cond.mux(self.when_true.0, when_false.0),
+            self.cond.mux(self.when_true.1, when_false.1),
+            self.cond.mux(self.when_true.2, when_false.2),
+            self.cond.mux(self.when_true.3, when_false.3),
+        );
+        match self.parent {
+            ElseIfParent::If_(parent) => parent.else_(ret),
+            ElseIfParent::ElseIf(parent) => parent.else_(ret),
+        }
+    }
+}
+
+impl<'a> ElseIf<'a, (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)> {
+    pub fn else_(self, when_false: (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)) -> (&Signal<'a>, &Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>) {
+        let ret = (
+            self.cond.mux(self.when_true.0, when_false.0),
+            self.cond.mux(self.when_true.1, when_false.1),
+            self.cond.mux(self.when_true.2, when_false.2),
+            self.cond.mux(self.when_true.3, when_false.3),
+            self.cond.mux(self.when_true.4, when_false.4),
+        );
+        match self.parent {
+            ElseIfParent::If_(parent) => parent.else_(ret),
+            ElseIfParent::ElseIf(parent) => parent.else_(ret),
+        }
+    }
+}
+
+impl<'a> ElseIf<'a, (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)> {
+    pub fn else_(self, when_false: (&'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>)) -> (&Signal<'a>, &Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>, &'a Signal<'a>) {
+        let ret = (
+            self.cond.mux(self.when_true.0, when_false.0),
+            self.cond.mux(self.when_true.1, when_false.1),
+            self.cond.mux(self.when_true.2, when_false.2),
+            self.cond.mux(self.when_true.3, when_false.3),
+            self.cond.mux(self.when_true.4, when_false.4),
+            self.cond.mux(self.when_true.5, when_false.5),
         );
         match self.parent {
             ElseIfParent::If_(parent) => parent.else_(ret),
@@ -317,12 +445,10 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let reg1 = m.input("reg1", 32);
     let reg2 = m.input("reg2", 32);
 
-    let mut alu_op = instruction.funct3();
     let alu_op_mod = instruction.value.bit(30);
     m.output("alu_lhs", reg1);
-    let alu_res = m.input("alu_res", 32);
 
-    let (mut alu_op_mod, mut alu_rhs) = if_(instruction.opcode().bit(3), {
+    let (alu_op_mod, alu_rhs) = if_(instruction.opcode().bit(3), {
         // Register computation
         (alu_op_mod, reg2)
     }).else_({
@@ -337,40 +463,31 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let pc = m.input("pc", 32);
     let link_pc = pc + m.lit(4u32, 32);
-    let mut next_pc = link_pc;
+    let next_pc = link_pc;
 
-    let mut rd_value_write_enable = m.high();
-    let mut rd_value_write_data = alu_res;
+    let alu_res = m.input("alu_res", 32);
 
-    kaze_sugar! {
-        if (instruction.opcode().eq(m.lit(0b01101u32, 5))) {
-            // lui
-            rd_value_write_data = instruction.u_immediate(m);
-        }
-
-        if (instruction.opcode().eq(m.lit(0b00101u32, 5))) {
-            // auipc
-            rd_value_write_data = instruction.u_immediate(m) + pc;
-        }
-
-        if (instruction.opcode().eq(m.lit(0b11011u32, 5))) {
-            // jal
-            next_pc = pc + instruction.jump_offset(m);
-            rd_value_write_data = link_pc;
-        }
-
-        if (instruction.opcode().eq(m.lit(0b11001u32, 5))) {
-            // jalr
-            alu_rhs = instruction.i_immediate();
-            next_pc = alu_res;
-            rd_value_write_data = link_pc;
-        }
-    }
+    let (alu_rhs, next_pc, rd_value_write_data) = if_(instruction.opcode().eq(m.lit(0b01101u32, 5)), {
+        // lui
+        (alu_rhs, next_pc, instruction.u_immediate(m))
+    }).else_if(instruction.opcode().eq(m.lit(0b00101u32, 5)), {
+        // auipc
+        (alu_rhs, next_pc, instruction.u_immediate(m) + pc)
+    }).else_if(instruction.opcode().eq(m.lit(0b11011u32, 5)), {
+        // jal
+        (alu_rhs, pc + instruction.jump_offset(m), link_pc)
+    }).else_if(instruction.opcode().eq(m.lit(0b11001u32, 5)), {
+        // jalr
+        (instruction.i_immediate(), alu_res, link_pc)
+    }).else_({
+        (alu_rhs, next_pc, alu_res)
+    });
 
     let bus_addr = alu_res; // TODO: Consider separate adder for load/store offsets
     m.output("bus_addr", bus_addr);
     m.output("bus_byte_enable", if_(instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2)), {
         // lh/lhu/sh
+        // TODO: Express with shift?
         if_(!bus_addr.bit(1), {
             m.lit(0b0011u32, 4)
         }).else_({
@@ -394,54 +511,46 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
     }));
 
     // Loads
-    let mut bus_read_req = m.low();
-
-    kaze_sugar! {
-        if (instruction.opcode().eq(m.lit(0b00000u32, 5))) {
-            // lw
-            alu_op = m.lit(0u32, 3);
-            alu_op_mod = m.low();
-            alu_rhs = instruction.load_offset();
-            bus_read_req = m.high();
-        }
-    }
+    let (alu_op, alu_op_mod, alu_rhs, bus_read_req) = if_(instruction.opcode().eq(m.lit(0b00000u32, 5)), {
+        // lw
+        (m.lit(0u32, 3), m.low(), instruction.load_offset(), m.high())
+    }).else_({
+        (instruction.funct3(), alu_op_mod, alu_rhs, m.low())
+    });
 
     m.output("bus_read_req", bus_read_req);
 
     // Stores
-    let mut bus_write_data = reg2;
-    let mut bus_write_req = m.low();
+    let (alu_op, alu_op_mod, alu_rhs, rd_value_write_enable, bus_write_data, bus_write_req) = if_(instruction.opcode().eq(m.lit(0b01000u32, 5)), {
+        // sw
+        let bus_write_data = if_(instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2)), {
+            // sb
+            let bus_addr_low = bus_addr.bits(1, 0);
+            // TODO: Express with shift?
+            if_(bus_addr_low.eq(m.lit(0b00u32, 2)), {
+                reg2
+            }).else_if(bus_addr_low.eq(m.lit(0b01u32, 2)), {
+                m.lit(0u32, 16).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 8))
+            }).else_if(bus_addr_low.eq(m.lit(0b10u32, 2)), {
+                m.lit(0u32, 8).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 16))
+            }).else_({
+                reg2.bits(7, 0).concat(m.lit(0u32, 24))
+            })
+        }).else_if(instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2)), {
+            // sh
+            if_(bus_addr.bit(1), {
+                reg2.bits(15, 0).concat(m.lit(0u32, 16))
+            }).else_({
+                reg2
+            })
+        }).else_({
+            reg2
+        });
 
-    kaze_sugar! {
-        if (instruction.opcode().eq(m.lit(0b01000u32, 5))) {
-            // sw
-            alu_op = m.lit(0u32, 3);
-            alu_op_mod = m.low();
-            alu_rhs = instruction.store_offset();
-            rd_value_write_enable = m.low();
-            bus_write_req = m.high();
-
-            if (instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2))) {
-                // sb
-                if (bus_addr.bits(1, 0).eq(m.lit(0b01u32, 2))) {
-                    bus_write_data = m.lit(0u32, 16).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 8));
-                }
-                if (bus_addr.bits(1, 0).eq(m.lit(0b10u32, 2))) {
-                    bus_write_data = m.lit(0u32, 8).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 16));
-                }
-                if (bus_addr.bits(1, 0).eq(m.lit(0b11u32, 2))) {
-                    bus_write_data = reg2.bits(7, 0).concat(m.lit(0u32, 24));
-                }
-            }
-
-            if (instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2))) {
-                // sh
-                if (bus_addr.bit(1)) {
-                    bus_write_data = reg2.bits(15, 0).concat(m.lit(0u32, 16));
-                }
-            }
-        }
-    }
+        (m.lit(0u32, 3), m.low(), instruction.store_offset(), m.low(), bus_write_data, m.high())
+    }).else_({
+        (alu_op, alu_op_mod, alu_rhs, m.high(), reg2, m.low())
+    });
 
     m.output("alu_op", alu_op);
     m.output("alu_op_mod", alu_op_mod);
