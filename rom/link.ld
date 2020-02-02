@@ -9,7 +9,7 @@ MEMORY
 
 __text_va = ORIGIN(rom);
 __data_va = ORIGIN(ram);
-__stack_va = ORIGIN(ram) + LENGTH(ram) - 4;
+__stack_va = ORIGIN(ram) + LENGTH(ram);
 
 SECTIONS
 {
