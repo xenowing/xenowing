@@ -235,14 +235,20 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     m.output("alu_lhs", reg1);
     m.output("alu_shift_amt", instruction.rs2());
+    m.output("alu_op", instruction.funct3());
 
-    let (alu_op_mod, alu_rhs) = if_(instruction.opcode().bit(3), {
+    let alu_op_mod = instruction.value.bit(30);
+    let (alu_rhs, alu_op_mod) = if_(instruction.opcode().bit(3), {
         // Register computation
-        (instruction.value.bit(30), reg2)
+        (reg2, alu_op_mod)
     }).else_({
         // Immediate computation
-        (m.low(), instruction.i_immediate())
+        //  These use the alu_op_mod bit as part of the immediate operand except for SRAI
+        (instruction.i_immediate(), instruction.funct3().eq(m.lit(0b101u32, 3)) & alu_op_mod)
     });
+
+    m.output("alu_rhs", alu_rhs);
+    m.output("alu_op_mod", alu_op_mod);
 
     let pc = m.input("pc", 32);
     let link_pc = pc + m.lit(4u32, 32);
@@ -264,10 +270,52 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
         (link_pc, alu_res)
     });
 
-    let bus_addr = alu_res; // TODO: Consider separate adder for load/store offsets
+    // Loads
+    m.output("bus_read_req", instruction.opcode().eq(m.lit(0b00000u32, 5)));
+
+    let bus_addr_offset = instruction.load_offset();
+
+    // Stores
+    let (rd_value_write_enable, bus_addr_offset, bus_write_req) = if_(instruction.opcode().eq(m.lit(0b01000u32, 5)), {
+        (m.low(), instruction.store_offset(), m.high())
+    }).else_({
+        (m.high(), bus_addr_offset, m.low())
+    });
+
+    m.output("bus_write_req", bus_write_req);
+
+    let bus_addr = reg1 + bus_addr_offset;
     m.output("bus_addr", bus_addr);
+
+    // sw
+    let bus_write_data = if_(instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2)), {
+        // sb
+        let bus_addr_low = bus_addr.bits(1, 0);
+        // TODO: Express with shift?
+        if_(bus_addr_low.eq(m.lit(0b00u32, 2)), {
+            reg2
+        }).else_if(bus_addr_low.eq(m.lit(0b01u32, 2)), {
+            m.lit(0u32, 16).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 8))
+        }).else_if(bus_addr_low.eq(m.lit(0b10u32, 2)), {
+            m.lit(0u32, 8).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 16))
+        }).else_({
+            reg2.bits(7, 0).concat(m.lit(0u32, 24))
+        })
+    }).else_if(instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2)), {
+        // sh
+        if_(bus_addr.bit(1), {
+            reg2.bits(15, 0).concat(m.lit(0u32, 16))
+        }).else_({
+            reg2
+        })
+    }).else_({
+        reg2
+    });
+
+    m.output("bus_write_data", bus_write_data);
+
     m.output("bus_write_byte_enable", if_(instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2)), {
-        // lh/lhu/sh
+        // sh
         // TODO: Express with shift?
         if_(!bus_addr.bit(1), {
             m.lit(0b0011u32, 4)
@@ -275,7 +323,7 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
             m.lit(0b1100u32, 4)
         })
     }).else_if(instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2)), {
-        // lb/lbu/sb
+        // sb
         let bus_addr_low = bus_addr.bits(1, 0);
         // TODO: Express with shift?
         if_(bus_addr_low.eq(m.lit(0b00u32, 2)), {
@@ -290,55 +338,6 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
     }).else_({
         m.lit(0b1111u32, 4)
     }));
-
-    // Loads
-    let (alu_op, alu_op_mod, alu_rhs, bus_read_req) = if_(instruction.opcode().eq(m.lit(0b00000u32, 5)), {
-        // lw
-        (m.lit(0u32, 3), m.low(), instruction.load_offset(), m.high())
-    }).else_({
-        (instruction.funct3(), alu_op_mod, alu_rhs, m.low())
-    });
-
-    m.output("bus_read_req", bus_read_req);
-
-    // Stores
-    let (alu_op, alu_op_mod, alu_rhs, rd_value_write_enable, bus_write_data, bus_write_req) = if_(instruction.opcode().eq(m.lit(0b01000u32, 5)), {
-        // sw
-        let bus_write_data = if_(instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2)), {
-            // sb
-            let bus_addr_low = bus_addr.bits(1, 0);
-            // TODO: Express with shift?
-            if_(bus_addr_low.eq(m.lit(0b00u32, 2)), {
-                reg2
-            }).else_if(bus_addr_low.eq(m.lit(0b01u32, 2)), {
-                m.lit(0u32, 16).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 8))
-            }).else_if(bus_addr_low.eq(m.lit(0b10u32, 2)), {
-                m.lit(0u32, 8).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 16))
-            }).else_({
-                reg2.bits(7, 0).concat(m.lit(0u32, 24))
-            })
-        }).else_if(instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2)), {
-            // sh
-            if_(bus_addr.bit(1), {
-                reg2.bits(15, 0).concat(m.lit(0u32, 16))
-            }).else_({
-                reg2
-            })
-        }).else_({
-            reg2
-        });
-
-        (m.lit(0u32, 3), m.low(), instruction.store_offset(), m.low(), bus_write_data, m.high())
-    }).else_({
-        (alu_op, alu_op_mod, alu_rhs, m.high(), reg2, m.low())
-    });
-
-    m.output("alu_op", alu_op);
-    m.output("alu_op_mod", alu_op_mod);
-    m.output("alu_rhs", alu_rhs);
-
-    m.output("bus_write_data", bus_write_data);
-    m.output("bus_write_req", bus_write_req);
 
     // Branch instructions
     let funct3_low = instruction.funct3().bits(2, 1);
