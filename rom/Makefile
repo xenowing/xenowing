@@ -22,17 +22,12 @@ LD_SCRIPT=link.ld
 LD_FLAGS=-march=$(ARCH) -nostartfiles -T$(LD_SCRIPT)
 ROM_ELF=rom.elf
 ROM_BIN=rom.bin
-ROM_MIF=rom.mif
-
-MIFFED_DIR=../misc/miffed
-MIFFED_SRC=$(wildcard $(MIFFED_DIR)/**/*.rs)
-MIFFED=$(MIFFED_DIR)/target/debug/miffed$(EXE_EXT)
 
 RM=rm
 RM_FLAGS=-f
 
 .PHONY: all
-all: $(ROM_MIF)
+all: $(ROM_BIN)
 
 .s.o:
 	$(AS) $(AS_FLAGS) -o $@ $<
@@ -46,13 +41,6 @@ $(ROM_ELF): $(OBJS) $(LD_SCRIPT)
 $(ROM_BIN): $(ROM_ELF)
 	$(TARGET_PREFIX)objcopy -O binary $(ROM_ELF) $@
 
-$(ROM_MIF): $(ROM_BIN) $(MIFFED)
-	$(MIFFED) $(ROM_BIN) $@
-
-$(MIFFED): $(MIFFED_SRC)
-	cd $(MIFFED_DIR) && cargo build
-
 .PHONY: clean
 clean:
-	$(RM) $(RM_FLAGS) $(ROM_ELF) $(ROM_BIN) $(ROM_MIF) $(OBJS)
-	cd $(MIFFED_DIR) && cargo clean
+	$(RM) $(RM_FLAGS) $(ROM_ELF) $(ROM_BIN) $(OBJS)
