@@ -70,7 +70,7 @@ def system_bus():
     mod.output('uart_transmitter_interface_write_data', write_data.bits(7, 0))
     mod.output('uart_transmitter_interface_byte_enable', byte_enable.bit(0))
 
-    mod.output('display_interface_addr', addr.bits(1, 0))
+    mod.output('display_interface_addr', addr.bit(0))
     mod.output('display_interface_write_data', write_data.bits(16, 0))
     mod.output('display_interface_byte_enable', byte_enable.bit(0))
 

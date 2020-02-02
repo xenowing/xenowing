@@ -9,8 +9,6 @@ module hw_top(
     output uart_tx,
     input uart_rx,
 
-    inout hdmi_scl,
-    inout hdmi_sda,
     output hdmi_pixel_clk,
     output hdmi_vsync,
     output hdmi_hsync,
@@ -32,8 +30,6 @@ module hw_top(
         .reset_n_sync(reset_n));
 
     logic [2:0] xenowing_leds;
-    logic xenowing_display_i2c_clk_out_n;
-    logic xenowing_display_i2c_data_out_n;
     xenowing xenowing0(
         .reset_n(reset_n & ~rom_loader_system_soft_reset),
         .clk(clk),
@@ -53,8 +49,6 @@ module hw_top(
 
         .display_i2c_clk_out_n(xenowing_display_i2c_clk_out_n),
         .display_i2c_data_out_n(xenowing_display_i2c_data_out_n),
-        .display_i2c_clk_in(hdmi_scl),
-        .display_i2c_data_in(hdmi_sda),
         .display_pixel_clk(hdmi_pixel_clk),
         .display_vsync(hdmi_vsync),
         .display_hsync(hdmi_hsync),
@@ -62,9 +56,6 @@ module hw_top(
         .display_pixel_data(hdmi_pixel_data));
 
     assign leds_n = ~xenowing_leds;
-
-    assign hdmi_scl = xenowing_display_i2c_clk_out_n ? 1'b0 : 1'bZ;
-    assign hdmi_sda = xenowing_display_i2c_data_out_n ? 1'b0 : 1'bZ;
 
     logic [31:0] program_rom_data;
     logic [10:0] program_rom_rdaddress;

@@ -16,8 +16,6 @@ digraph mem_topology {
 
     display [label="Display"];
 
-    adv7513 [label="ADV7513"];
-
     ddr3_bus [label="DDR3 bus"];
 
     ddr3_controller [label="DDR3 controller"];
@@ -35,13 +33,11 @@ digraph mem_topology {
 
     ddr3_interface -> ddr3_bus [dir="both"];
 
-    display -> adv7513 [dir="both"];
     display -> ddr3_bus [dir="both"];
 
     ddr3_bus -> ddr3_controller [dir="both"];
 
     { rank=same; program_rom led_interface uart_tx_interface display_interface ddr3_interface }
     { rank=same; uart_tx display }
-    { rank=same; adv7513 ddr3_bus }
     { rank=same; ddr3_controller }
 }

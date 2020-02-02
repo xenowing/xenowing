@@ -17,10 +17,6 @@ module xenowing(
 
     output uart_tx,
 
-    output display_i2c_clk_out_n,
-    output display_i2c_data_out_n,
-    input display_i2c_clk_in,
-    input display_i2c_data_in,
     output display_pixel_clk,
     output display_vsync,
     output display_hsync,
@@ -181,7 +177,7 @@ module xenowing(
 
     assign display_load_return_start = display_load_start;
 
-    logic [1:0] display_interface_addr;
+    logic display_interface_addr;
     logic [16:0] display_interface_write_data;
     logic display_interface_byte_enable;
     logic display_interface_write_req;
@@ -203,12 +199,7 @@ module xenowing(
         .display_vblank(display_vblank),
 
         .display_load_issue_framebuffer_base_addr_data(display_load_issue_framebuffer_base_addr_data),
-        .display_load_issue_framebuffer_base_addr_write_enable(display_load_issue_framebuffer_base_addr_write_enable),
-
-        .i2c_clk_out_n(display_i2c_clk_out_n),
-        .i2c_data_out_n(display_i2c_data_out_n),
-        .i2c_clk_in(display_i2c_clk_in),
-        .i2c_data_in(display_i2c_data_in));
+        .display_load_issue_framebuffer_base_addr_write_enable(display_load_issue_framebuffer_base_addr_write_enable));
 
     logic cpu_ram_interface_ready;
     logic [14:0] cpu_ram_interface_addr;
