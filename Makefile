@@ -19,29 +19,19 @@ endif
 KAZE=rtl/kaze.py
 
 GENERATED_RTL=rtl/_generated.sv
-GENERATED_RTL_SRC=rtl/gen_modules.py rtl/cpu.py rtl/uart.py rtl/display.py
+GENERATED_RTL_SRC=rtl/gen_modules.py rtl/uart.py rtl/display.py
 GENERATED_RTL_GENERATOR=rtl/gen_modules.py
 
 XENOWING_PREFIX=xenowing
 XENOWING_VM_PREFIX=V$(XENOWING_PREFIX)
 XENOWING_DRIVER=$(OBJ_DIR)/$(XENOWING_VM_PREFIX)
-XENOWING_DRIVER_RTL=rtl/xenowing.sv $(GENERATED_RTL) rtl/uart/uart_clock_divider.sv rtl/uart/uart_transmitter.sv rtl/uart/uart_transmitter_interface.sv rtl/fifo.sv rtl/ram_interface.sv rtl/cpu_ram_interface.sv rtl/cpu/register_file.sv rtl/cpu/alu.sv rtl/cpu/cpu.sv rtl/display_buffer.sv
+XENOWING_DRIVER_RTL=rtl/xenowing.sv $(GENERATED_RTL) rtl/uart/uart_clock_divider.sv rtl/uart/uart_transmitter.sv rtl/uart/uart_transmitter_interface.sv rtl/fifo.sv rtl/ram_interface.sv rtl/display_buffer.sv
 XENOWING_DRIVER_SRC=sim/xenowing_driver.cpp
 
 XENOWING_TEST_DIR=sim/xenowing-test
 XENOWING_TEST_SRC=$(wildcard $(XENOWING_TEST_DIR)/**/*.rs)
 XENOWING_TEST=$(XENOWING_TEST_DIR)/target/release/$(DYNAMIC_LIB_PREFIX)xenowing_test$(DYNAMIC_LIB_EXT)
 XENOWING_TRACE=$(TRACE_DIR)/xenowing_test.vcd
-
-ALU_PREFIX=alu
-ALU_VM_PREFIX=V$(ALU_PREFIX)
-ALU_DRIVER=$(OBJ_DIR)/$(ALU_VM_PREFIX)
-ALU_DRIVER_RTL=rtl/cpu/alu.sv
-ALU_DRIVER_SRC=sim/alu_driver.cpp
-
-ALU_TEST_DIR=sim/alu-test
-ALU_TEST_SRC=$(wildcard $(ALU_TEST_DIR)/**/*.rs)
-ALU_TEST=$(ALU_TEST_DIR)/target/release/$(DYNAMIC_LIB_PREFIX)alu_test$(DYNAMIC_LIB_EXT)
 
 DDR3_TEST_PREFIX=test
 DDR3_TEST_VM_PREFIX=V$(DDR3_TEST_PREFIX)
@@ -62,7 +52,7 @@ RM_FLAGS=-rf
 
 .PHONY: all dirs test docs clean
 
-all: dirs $(GENERATED_RTL) $(XENOWING_DRIVER) $(XENOWING_TEST) $(ALU_DRIVER) $(ALU_TEST) $(DDR3_TEST_DRIVER) $(DDR3_TEST) docs
+all: dirs $(GENERATED_RTL) $(XENOWING_DRIVER) $(XENOWING_TEST) $(DDR3_TEST_DRIVER) $(DDR3_TEST) docs
 
 dirs: $(OBJ_DIR) $(TRACE_DIR)
 
@@ -82,13 +72,6 @@ $(XENOWING_DRIVER): $(XENOWING_DRIVER_RTL) $(XENOWING_DRIVER_SRC)
 $(XENOWING_TEST): $(XENOWING_TEST_SRC) rom/rom.bin
 	cd $(XENOWING_TEST_DIR) && cargo build --release
 
-$(ALU_DRIVER): $(ALU_DRIVER_RTL) $(ALU_DRIVER_SRC)
-	$(VERILATOR) $(VERILATOR_FLAGS) -cc $(ALU_DRIVER_RTL) --exe $(ALU_DRIVER_SRC)
-	$(MAKE) -j -C $(OBJ_DIR) -f $(ALU_VM_PREFIX).mk
-
-$(ALU_TEST): $(ALU_TEST_SRC)
-	cd $(ALU_TEST_DIR) && cargo build --release
-
 $(DDR3_TEST_DRIVER): $(DDR3_TEST_DRIVER_RTL) $(DDR3_TEST_DRIVER_SRC)
 	$(VERILATOR) $(VERILATOR_FLAGS) -cc $(DDR3_TEST_DRIVER_RTL) --exe $(DDR3_TEST_DRIVER_SRC)
 	$(MAKE) -j -C $(OBJ_DIR) -f $(DDR3_TEST_VM_PREFIX).mk
@@ -101,9 +84,8 @@ docs: $(DOC_DIR)/mem_topology.pdf
 $(DOC_DIR)/mem_topology.pdf: $(DOC_DIR)/mem_topology.dot
 	dot -Tpdf $(DOC_DIR)/mem_topology.dot -o $(DOC_DIR)/mem_topology.pdf
 
-test: dirs $(XENOWING_DRIVER) $(XENOWING_TEST) $(ALU_DRIVER) $(ALU_TEST) $(DDR3_TEST_DRIVER) $(DDR3_TEST)
+test: dirs $(XENOWING_DRIVER) $(XENOWING_TEST) $(DDR3_TEST_DRIVER) $(DDR3_TEST)
 	$(XENOWING_DRIVER) $(XENOWING_TEST) $(XENOWING_TRACE)
-#	$(ALU_DRIVER) $(ALU_TEST)
 #	$(DDR3_TEST_DRIVER) $(DDR3_TEST) $(DDR3_TRACE)
 #	$(DDR3_TEST_DRIVER) $(DDR3_TEST)
 
@@ -112,5 +94,4 @@ clean:
 	$(RM) $(RM_FLAGS) $(TRACE_DIR)
 	$(RM) $(RM_FLAGS) $(GENERATED_RTL)
 	cd $(XENOWING_TEST_DIR) && cargo clean
-	cd $(ALU_TEST_DIR) && cargo clean
 	cd $(DDR3_TEST_DIR) && cargo clean

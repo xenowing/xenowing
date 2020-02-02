@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from kaze import *
-import cpu
 import uart
 import display
 from sys import argv
@@ -159,15 +158,6 @@ if __name__ == '__main__':
     output_file_name = argv[1]
 
     modules = [
-        cpu.pc(),
-        cpu.cycle_counter(),
-        cpu.instructions_retired_counter(),
-        cpu.control(),
-        cpu.instruction_fetch(),
-        cpu.decode(),
-        cpu.execute(),
-        cpu.mem(),
-        cpu.writeback(),
         #fifo(),
         led_interface(),
         program_rom_interface(),
