@@ -52,7 +52,7 @@ fn main() {
         ret
     };
 
-    let mut mem = vec![0; 0x2000000];
+    let mut mem = vec![0; 0x20000 / 4];
 
     let mut leds = 0b000;
 
