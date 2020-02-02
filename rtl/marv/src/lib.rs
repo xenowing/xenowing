@@ -132,7 +132,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     mem.drive_input("bus_ready", bus_ready);
     mem.drive_input("bus_addr_in", execute.output("bus_addr"));
     mem.drive_input("bus_write_data_in", execute.output("bus_write_data"));
-    mem.drive_input("bus_byte_enable_in", execute.output("bus_byte_enable"));
+    mem.drive_input("bus_write_byte_enable_in", execute.output("bus_write_byte_enable"));
     mem.drive_input("bus_read_req_in", execute.output("bus_read_req"));
     mem.drive_input("bus_write_req_in", execute.output("bus_write_req"));
     m.output("bus_write_data", mem.output("bus_write_data_out"));
@@ -159,7 +159,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let mem_bus_read_req = mem.output("bus_read_req_out");
     let mem_bus_write_req = mem.output("bus_write_req_out");
     m.output("bus_addr", (mem_bus_read_req | mem_bus_write_req).mux(mem.output("bus_addr_out").bits(31, 2), instruction_fetch.output("bus_addr")));
-    m.output("bus_byte_enable", (mem_bus_read_req | mem_bus_write_req).mux(mem.output("bus_byte_enable_out"), instruction_fetch.output("bus_byte_enable")));
+    m.output("bus_write_byte_enable", (mem_bus_read_req | mem_bus_write_req).mux(mem.output("bus_write_byte_enable_out"), instruction_fetch.output("bus_write_byte_enable")));
     m.output("bus_read_req", mem_bus_read_req | instruction_fetch.output("bus_read_req"));
     m.output("bus_write_req", mem_bus_write_req);
 
@@ -210,7 +210,7 @@ fn generate_instruction_fetch<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     m.output("ready", m.input("bus_ready", 1));
     m.output("bus_addr", m.input("pc", 30));
-    m.output("bus_byte_enable", m.high().repeat(4));
+    m.output("bus_write_byte_enable", m.high().repeat(4));
     m.output("bus_read_req", m.input("enable", 1));
 
     m
@@ -266,7 +266,7 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let bus_addr = alu_res; // TODO: Consider separate adder for load/store offsets
     m.output("bus_addr", bus_addr);
-    m.output("bus_byte_enable", if_(instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2)), {
+    m.output("bus_write_byte_enable", if_(instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2)), {
         // lh/lhu/sh
         // TODO: Express with shift?
         if_(!bus_addr.bit(1), {
@@ -434,9 +434,9 @@ fn generate_mem<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let bus_write_data = m.reg("bus_write_data", 32);
     bus_write_data.drive_next(m.input("bus_write_data_in", 32));
     m.output("bus_write_data_out", bus_write_data.value);
-    let bus_byte_enable = m.reg("bus_byte_enable", 4);
-    bus_byte_enable.drive_next(m.input("bus_byte_enable_in", 4));
-    m.output("bus_byte_enable_out", bus_byte_enable.value);
+    let bus_write_byte_enable = m.reg("bus_write_byte_enable", 4);
+    bus_write_byte_enable.drive_next(m.input("bus_write_byte_enable_in", 4));
+    m.output("bus_write_byte_enable_out", bus_write_byte_enable.value);
     let bus_read_req = m.reg("bus_read_req", 1);
     bus_read_req.drive_next(m.input("bus_read_req_in", 1));
     m.output("bus_read_req_out", enable & bus_read_req.value);

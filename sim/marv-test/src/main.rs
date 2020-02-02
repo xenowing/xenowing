@@ -81,7 +81,7 @@ fn main() {
         println!("alu_op_mod: {}", marv.alu_op_mod);
         println!("alu_rhs: 0x{:08x}", marv.alu_rhs);
         println!("bus_addr: 0x{:08x} (byte addr: 0x{:08x})", marv.bus_addr, marv.bus_addr << 2);
-        println!("bus_byte_enable: 0b{:04b}", marv.bus_byte_enable);
+        println!("bus_write_byte_enable: 0b{:04b}", marv.bus_write_byte_enable);
         println!("bus_read_req: {}", marv.bus_read_req);
         println!("bus_write_data: 0x{:08x}", marv.bus_write_data);
         println!("bus_write_req: {}", marv.bus_write_req);
@@ -145,7 +145,7 @@ fn main() {
                     let read_data = mem[mem_addr];
                     let mut write_data = 0;
                     for i in 0..4 {
-                        let sel = (marv.bus_byte_enable & (1 << i)) != 0;
+                        let sel = (marv.bus_write_byte_enable & (1 << i)) != 0;
                         write_data |= if sel { marv.bus_write_data } else { read_data } & (0xff << (8 * i));
                     }
                     mem[mem_addr] = write_data;
