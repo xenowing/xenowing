@@ -399,28 +399,26 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m
 }
 
+fn reg_next<'a, S: Into<String>>(name: S, next: &'a Signal<'a>, m: &'a Module<'a>) -> &'a Signal<'a> {
+    let reg = m.reg(name, next.bit_width());
+    reg.drive_next(next);
+    reg.value
+}
+
 fn generate_mem<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let m = c.module("Mem");
 
     let enable = m.input("enable", 1);
 
-    let bus_addr = m.reg("bus_addr", 32);
-    bus_addr.drive_next(m.input("bus_addr_in", 32));
-    m.output("bus_addr_out", bus_addr.value);
-    let bus_write_data = m.reg("bus_write_data", 32);
-    bus_write_data.drive_next(m.input("bus_write_data_in", 32));
-    m.output("bus_write_data_out", bus_write_data.value);
-    let bus_write_byte_enable = m.reg("bus_write_byte_enable", 4);
-    bus_write_byte_enable.drive_next(m.input("bus_write_byte_enable_in", 4));
-    m.output("bus_write_byte_enable_out", bus_write_byte_enable.value);
-    let bus_read_req = m.reg("bus_read_req", 1);
-    bus_read_req.drive_next(m.input("bus_read_req_in", 1));
-    m.output("bus_read_req_out", enable & bus_read_req.value);
-    let bus_write_req = m.reg("bus_write_req", 1);
-    bus_write_req.drive_next(m.input("bus_write_req_in", 1));
-    m.output("bus_write_req_out", enable & bus_write_req.value);
+    m.output("bus_addr_out", reg_next("bus_addr", m.input("bus_addr_in", 32), m));
+    m.output("bus_write_data_out", reg_next("bus_write_data", m.input("bus_write_data_in", 32), m));
+    m.output("bus_write_byte_enable_out", reg_next("bus_write_byte_enable", m.input("bus_write_byte_enable_in", 4), m));
+    let bus_read_req = reg_next("bus_read_req", m.input("bus_read_req_in", 1), m);
+    m.output("bus_read_req_out", enable & bus_read_req);
+    let bus_write_req = reg_next("bus_write_req", m.input("bus_write_req_in", 1), m);
+    m.output("bus_write_req_out", enable & bus_write_req);
 
-    m.output("ready", (bus_read_req.value | bus_write_req.value).mux(m.input("bus_ready", 1), m.high()));
+    m.output("ready", (bus_read_req | bus_write_req).mux(m.input("bus_ready", 1), m.high()));
 
     m
 }
