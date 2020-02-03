@@ -130,11 +130,11 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     control.drive_input("mem_ready", mem.output("ready"));
     mem.drive_input("enable", control.output("mem_enable"));
     mem.drive_input("bus_ready", bus_ready);
+    mem.drive_input("bus_enable_in", execute.output("bus_enable"));
     mem.drive_input("bus_addr_in", execute.output("bus_addr"));
     mem.drive_input("bus_write_data_in", execute.output("bus_write_data"));
     mem.drive_input("bus_write_byte_enable_in", execute.output("bus_write_byte_enable"));
-    mem.drive_input("bus_read_req_in", execute.output("bus_read_req"));
-    mem.drive_input("bus_write_req_in", execute.output("bus_write_req"));
+    mem.drive_input("bus_write_in", execute.output("bus_write"));
     m.output("bus_write_data", mem.output("bus_write_data_out"));
 
     let writeback = m.instance("writeback", "Writeback");
@@ -156,12 +156,11 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     writeback.drive_input("bus_read_data", bus_read_data);
     writeback.drive_input("bus_read_data_valid", bus_read_data_valid);
 
-    let mem_bus_read_req = mem.output("bus_read_req_out");
-    let mem_bus_write_req = mem.output("bus_write_req_out");
-    m.output("bus_addr", (mem_bus_read_req | mem_bus_write_req).mux(mem.output("bus_addr_out").bits(31, 2), instruction_fetch.output("bus_addr")));
-    m.output("bus_write_byte_enable", (mem_bus_read_req | mem_bus_write_req).mux(mem.output("bus_write_byte_enable_out"), instruction_fetch.output("bus_write_byte_enable")));
-    m.output("bus_read_req", mem_bus_read_req | instruction_fetch.output("bus_read_req"));
-    m.output("bus_write_req", mem_bus_write_req);
+    let mem_bus_enable = mem.output("bus_enable_out");
+    m.output("bus_enable", instruction_fetch.output("bus_enable") | mem_bus_enable);
+    m.output("bus_addr", mem_bus_enable.mux(mem.output("bus_addr_out").bits(31, 2), instruction_fetch.output("bus_addr")));
+    m.output("bus_write_byte_enable", mem_bus_enable.mux(mem.output("bus_write_byte_enable_out"), instruction_fetch.output("bus_write_byte_enable")));
+    m.output("bus_write", mem_bus_enable & mem.output("bus_write_out"));
 
     m
 }
@@ -209,9 +208,9 @@ fn generate_instruction_fetch<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let m = c.module("InstructionFetch");
 
     m.output("ready", m.input("bus_ready", 1));
+    m.output("bus_enable", m.input("enable", 1));
     m.output("bus_addr", m.input("pc", 30));
     m.output("bus_write_byte_enable", m.high().repeat(4));
-    m.output("bus_read_req", m.input("enable", 1));
 
     m
 }
@@ -271,18 +270,19 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
     });
 
     // Loads
-    m.output("bus_read_req", instruction.opcode().eq(m.lit(0b00000u32, 5)));
+    let bus_enable = instruction.opcode().eq(m.lit(0b00000u32, 5));
 
     let bus_addr_offset = instruction.load_offset();
 
     // Stores
-    let (rd_value_write_enable, bus_addr_offset, bus_write_req) = if_(instruction.opcode().eq(m.lit(0b01000u32, 5)), {
-        (m.low(), instruction.store_offset(), m.high())
+    let (rd_value_write_enable, bus_addr_offset, bus_enable, bus_write) = if_(instruction.opcode().eq(m.lit(0b01000u32, 5)), {
+        (m.low(), instruction.store_offset(), m.high(), m.high())
     }).else_({
-        (m.high(), bus_addr_offset, m.low())
+        (m.high(), bus_addr_offset, bus_enable, m.low())
     });
 
-    m.output("bus_write_req", bus_write_req);
+    m.output("bus_enable", bus_enable);
+    m.output("bus_write", bus_write);
 
     let bus_addr = reg1 + bus_addr_offset;
     m.output("bus_addr", bus_addr);
@@ -410,15 +410,14 @@ fn generate_mem<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let enable = m.input("enable", 1);
 
+    let bus_enable = reg_next("bus_enable", m.input("bus_enable_in", 1), m);
+    m.output("bus_enable_out", enable & bus_enable);
     m.output("bus_addr_out", reg_next("bus_addr", m.input("bus_addr_in", 32), m));
     m.output("bus_write_data_out", reg_next("bus_write_data", m.input("bus_write_data_in", 32), m));
     m.output("bus_write_byte_enable_out", reg_next("bus_write_byte_enable", m.input("bus_write_byte_enable_in", 4), m));
-    let bus_read_req = reg_next("bus_read_req", m.input("bus_read_req_in", 1), m);
-    m.output("bus_read_req_out", enable & bus_read_req);
-    let bus_write_req = reg_next("bus_write_req", m.input("bus_write_req_in", 1), m);
-    m.output("bus_write_req_out", enable & bus_write_req);
+    m.output("bus_write_out", reg_next("bus_write", m.input("bus_write_in", 1), m));
 
-    m.output("ready", (bus_read_req | bus_write_req).mux(m.input("bus_ready", 1), m.high()));
+    m.output("ready", bus_enable.mux(m.input("bus_ready", 1), m.high()));
 
     m
 }

@@ -82,9 +82,9 @@ fn main() {
         println!("alu_rhs: 0x{:08x}", marv.alu_rhs);
         println!("bus_addr: 0x{:08x} (byte addr: 0x{:08x})", marv.bus_addr, marv.bus_addr << 2);
         println!("bus_write_byte_enable: 0b{:04b}", marv.bus_write_byte_enable);
-        println!("bus_read_req: {}", marv.bus_read_req);
         println!("bus_write_data: 0x{:08x}", marv.bus_write_data);
-        println!("bus_write_req: {}", marv.bus_write_req);
+        println!("bus_enable: {}", marv.bus_enable);
+        println!("bus_write: {}", marv.bus_write);
         println!("register_file_read_addr1: 0x{:02x}", marv.register_file_read_addr1);
         println!("register_file_read_addr2: 0x{:02x}", marv.register_file_read_addr2);
         println!("register_file_write_addr: 0x{:02x}", marv.register_file_write_addr);
@@ -99,7 +99,7 @@ fn main() {
 
         match marv.bus_addr >> 26 {
             0x1 => {
-                if marv.bus_write_req {
+                if marv.bus_enable && marv.bus_write {
                     panic!("Attempted write to program ROM");
                 }
                 let byte_addr = ((marv.bus_addr << 2) & 0x3fff) as usize;
@@ -111,37 +111,38 @@ fn main() {
             }
             0x2 => {
                 let byte_addr = marv.bus_addr << 2;
-                if marv.bus_read_req {
-                    marv.bus_read_data = match byte_addr {
-                        0x21000000 => {
-                            // UART transmitter status
-                            1 // Always return ready
-                        }
-                        _ => panic!("Attempted read unknown system reg (byte addr: 0x{:08x})", byte_addr)
-                    };
-                }
-                if marv.bus_write_req {
-                    match byte_addr {
-                        0x20000000 => {
-                            // LED interface
-                            let new_leds = marv.bus_write_data & 0b111;
-                            if new_leds != leds {
-                                leds = new_leds;
-                                println!("LEDs changed: 0b{:03b}", leds);
+                if marv.bus_enable {
+                    if marv.bus_write {
+                        match byte_addr {
+                            0x20000000 => {
+                                // LED interface
+                                let new_leds = marv.bus_write_data & 0b111;
+                                if new_leds != leds {
+                                    leds = new_leds;
+                                    println!("LEDs changed: 0b{:03b}", leds);
+                                }
                             }
+                            0x21000004 => {
+                                // UART transmitter write
+                                print!("{}", marv.bus_write_data as u8 as char);
+                            }
+                            _ => panic!("Attempted write to system regs (byte addr: 0x{:08x})", marv.bus_addr << 2)
                         }
-                        0x21000004 => {
-                            // UART transmitter write
-                            print!("{}", marv.bus_write_data as u8 as char);
-                        }
-                        _ => panic!("Attempted write to system regs (byte addr: 0x{:08x})", marv.bus_addr << 2)
+                    } else {
+                        marv.bus_read_data = match byte_addr {
+                            0x21000000 => {
+                                // UART transmitter status
+                                1 // Always return ready
+                            }
+                            _ => panic!("Attempted read unknown system reg (byte addr: 0x{:08x})", byte_addr)
+                        };
                     }
                 }
             }
             0x3 => {
                 let mem_addr = (marv.bus_addr & 0x1ffffff) as usize;
                 marv.bus_read_data = mem[mem_addr];
-                if marv.bus_write_req {
+                if marv.bus_enable && marv.bus_write {
                     let read_data = mem[mem_addr];
                     let mut write_data = 0;
                     for i in 0..4 {
@@ -152,12 +153,12 @@ fn main() {
                 }
             }
             _ => {
-                if marv.bus_read_req || marv.bus_write_req {
+                if marv.bus_enable {
                     panic!("Attempted read/write to unmapped address: 0x{:08x}", marv.bus_addr << 2);
                 }
             }
         }
-        marv.bus_read_data_valid = marv.bus_read_req;
+        marv.bus_read_data_valid = marv.bus_enable && !marv.bus_write;
 
         //println!("");
     }
