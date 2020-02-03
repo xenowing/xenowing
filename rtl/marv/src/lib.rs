@@ -287,57 +287,34 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let bus_addr = reg1 + bus_addr_offset;
     m.output("bus_addr", bus_addr);
 
-    // sw
-    let bus_write_data = if_(instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2)), {
+    let (bus_write_data, bus_write_byte_enable) = if_(instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2)), {
         // sb
         let bus_addr_low = bus_addr.bits(1, 0);
         // TODO: Express with shift?
         if_(bus_addr_low.eq(m.lit(0b00u32, 2)), {
-            reg2
+            (reg2, m.lit(0b0001u32, 4))
         }).else_if(bus_addr_low.eq(m.lit(0b01u32, 2)), {
-            m.lit(0u32, 16).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 8))
+            (m.lit(0u32, 16).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 8)), m.lit(0b0010u32, 4))
         }).else_if(bus_addr_low.eq(m.lit(0b10u32, 2)), {
-            m.lit(0u32, 8).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 16))
+            (m.lit(0u32, 8).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 16)), m.lit(0b0100u32, 4))
         }).else_({
-            reg2.bits(7, 0).concat(m.lit(0u32, 24))
+            (reg2.bits(7, 0).concat(m.lit(0u32, 24)), m.lit(0b1000u32, 4))
         })
     }).else_if(instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2)), {
         // sh
-        if_(bus_addr.bit(1), {
-            reg2.bits(15, 0).concat(m.lit(0u32, 16))
+        // TODO: Express with shift?
+        if_(!bus_addr.bit(1), {
+            (reg2, m.lit(0b0011u32, 4))
         }).else_({
-            reg2
+            (reg2.bits(15, 0).concat(m.lit(0u32, 16)), m.lit(0b1100u32, 4))
         })
     }).else_({
-        reg2
+        // sw
+        (reg2, m.lit(0b1111u32, 4))
     });
 
     m.output("bus_write_data", bus_write_data);
-
-    m.output("bus_write_byte_enable", if_(instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2)), {
-        // sh
-        // TODO: Express with shift?
-        if_(!bus_addr.bit(1), {
-            m.lit(0b0011u32, 4)
-        }).else_({
-            m.lit(0b1100u32, 4)
-        })
-    }).else_if(instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2)), {
-        // sb
-        let bus_addr_low = bus_addr.bits(1, 0);
-        // TODO: Express with shift?
-        if_(bus_addr_low.eq(m.lit(0b00u32, 2)), {
-            m.lit(0b0001u32, 4)
-        }).else_if(bus_addr_low.eq(m.lit(0b01u32, 2)), {
-            m.lit(0b0010u32, 4)
-        }).else_if(bus_addr_low.eq(m.lit(0b10u32, 2)), {
-            m.lit(0b0100u32, 4)
-        }).else_({
-            m.lit(0b1000u32, 4)
-        })
-    }).else_({
-        m.lit(0b1111u32, 4)
-    }));
+    m.output("bus_write_byte_enable", bus_write_byte_enable);
 
     // Branch instructions
     let funct3_low = instruction.funct3().bits(2, 1);
