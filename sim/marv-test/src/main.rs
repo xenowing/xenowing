@@ -4,9 +4,11 @@ mod modules {
 
 use modules::*;
 
+use goblin::Object;
+
 use std::env;
-use std::fs::File;
-use std::io::Read;
+use std::fs::{self, File};
+use std::io::Write;
 
 fn alu(lhs: u32, rhs: u32, shift_amt: u32, op: u32, op_mod: bool) -> u32 {
     match op {
@@ -41,20 +43,14 @@ fn alu(lhs: u32, rhs: u32, shift_amt: u32, op: u32, op_mod: bool) -> u32 {
 
 fn main() {
     let program_rom_file_name = env::args().nth(1).expect("No program ROM file name specified");
+    let program_elf_file_name = env::args().nth(2).expect("No program elf file name specified");
+    let signature_file_name = env::args().nth(3).expect("No signature file name specified");
 
     let mut register_file = vec![0; 32];
 
-    let program_rom = {
-        let mut file = File::open(program_rom_file_name).expect("Couldn't open program ROM file");
-        let mut ret = Vec::with_capacity(0x10000);
-        file.read_to_end(&mut ret).expect("Couldn't read program ROM file");
-
-        ret
-    };
+    let program_rom = fs::read(program_rom_file_name).expect("Couldn't read program ROM file");
 
     let mut mem = vec![0; 0x20000 / 4];
-
-    let mut leds = 0b000;
 
     let mut marv = Marv::new();
     marv.reset();
@@ -115,12 +111,48 @@ fn main() {
                     if marv.bus_write {
                         match byte_addr {
                             0x20000000 => {
-                                // LED interface
-                                let new_leds = marv.bus_write_data & 0b111;
-                                if new_leds != leds {
-                                    leds = new_leds;
-                                    println!("LEDs changed: 0b{:03b}", leds);
+                                // Test complete!
+                                println!("");
+                                println!("Test complete!");
+                                println!("");
+                                let return_code = marv.bus_write_data & 0xff;
+                                if return_code == 0 {
+                                    println!("Parsing program elf file {}", program_elf_file_name);
+
+                                    let program_elf = fs::read(program_elf_file_name).expect("Couldn't read program elf file");
+                                    let mut begin_signature = None;
+                                    let mut end_signature = None;
+                                    match Object::parse(&program_elf).expect("Couldn't parse program elf file") {
+                                        Object::Elf(elf) => {
+                                            for sym in &elf.syms {
+                                                let name = elf.strtab.get(sym.st_name).unwrap().unwrap();
+                                                if name == "begin_signature" {
+                                                    begin_signature = Some(sym.st_value as u32);
+                                                }
+                                                if name == "end_signature" {
+                                                    end_signature = Some(sym.st_value as u32);
+                                                }
+                                            }
+                                        }
+                                        _ => panic!("Program elf file is not an elf file")
+                                    };
+
+                                    let begin_signature = ((begin_signature.expect("Couldn't find `begin_signature` symbol") >> 2) & 0x1ffffff) as usize;
+                                    let end_signature = ((end_signature.expect("Couldn't find `end_signature` symbol") >> 2) & 0x1ffffff) as usize;
+
+                                    println!("Dumping signature to file {}", signature_file_name);
+
+                                    let mut f = File::create(signature_file_name).expect("Couldn't open signature file");
+                                    for i in begin_signature..end_signature {
+                                        writeln!(f, "{:08x}", mem[i]).expect("Couldn't write to signature file");
+                                    }
+
+                                    println!("SUCCESS");
+                                } else {
+                                    println!("FAIL, return code: 0x{:02x}", return_code);
                                 }
+                                println!("");
+                                return;
                             }
                             0x21000004 => {
                                 // UART transmitter write

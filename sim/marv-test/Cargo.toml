@@ -12,3 +12,4 @@ kaze = "0.1"
 marv = { path = "../../rtl/marv" }
 
 [dependencies]
+goblin = "0.2"
