@@ -154,20 +154,14 @@ fn main() {
                                 println!("");
                                 return;
                             }
-                            0x21000004 => {
-                                // UART transmitter write
+                            0x21000000 => {
+                                // Serial write
                                 print!("{}", marv.bus_write_data as u8 as char);
                             }
                             _ => panic!("Attempted write to system regs (byte addr: 0x{:08x})", marv.bus_addr << 2)
                         }
                     } else {
-                        marv.bus_read_data = match byte_addr {
-                            0x21000000 => {
-                                // UART transmitter status
-                                1 // Always return ready
-                            }
-                            _ => panic!("Attempted read unknown system reg (byte addr: 0x{:08x})", byte_addr)
-                        };
+                        panic!("Attempted read unknown system reg (byte addr: 0x{:08x})", byte_addr);
                     }
                 }
             }
