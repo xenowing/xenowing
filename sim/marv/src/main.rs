@@ -96,7 +96,7 @@ fn main() {
         match marv.bus_addr >> 26 {
             0x1 => {
                 if marv.bus_enable && marv.bus_write {
-                    panic!("Attempted write to program ROM");
+                    println!("WARNING: write to program ROM (byte addr: 0x{:08x})", marv.bus_addr << 2);
                 }
                 let byte_addr = ((marv.bus_addr << 2) & 0x3fff) as usize;
                 marv.bus_read_data =
