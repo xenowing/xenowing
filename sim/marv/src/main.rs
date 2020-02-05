@@ -10,7 +10,8 @@ use std::env;
 use std::fs::{self, File};
 use std::io::Write;
 
-fn alu(lhs: u32, rhs: u32, shift_amt: u32, op: u32, op_mod: bool) -> u32 {
+fn alu(lhs: u32, rhs: u32, op: u32, op_mod: bool) -> u32 {
+    let shift_amt = rhs & 0x1f;
     match op {
         0b000 => {
             if !op_mod {
@@ -62,7 +63,7 @@ fn main() {
 
         marv.prop();
 
-        marv.alu_res = alu(marv.alu_lhs, marv.alu_rhs, marv.alu_shift_amt, marv.alu_op, marv.alu_op_mod);
+        marv.alu_res = alu(marv.alu_lhs, marv.alu_rhs, marv.alu_op, marv.alu_op_mod);
         //println!("alu_res: 0x{:08x}", marv.alu_res);
 
         marv.register_file_read_data1 = register_file[marv.register_file_read_addr1 as usize];
