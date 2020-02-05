@@ -10,7 +10,7 @@ ARCH=rv32i
 ABI=ilp32
 INCLUDE_DIRS=xw/include
 CC=$(TARGET_PREFIX)gcc
-CC_FLAGS=-march=$(ARCH) -mabi=$(ABI) -fno-builtin -nostdinc -nodefaultlibs -Wall -O3 $(foreach d,$(INCLUDE_DIRS),-I$d)
+CC_FLAGS=-march=$(ARCH) -mabi=$(ABI) -mstrict-align -fno-builtin -nostdinc -nodefaultlibs -Wall -O2 $(foreach d,$(INCLUDE_DIRS),-I$d)
 CC_SOURCES=$(wildcard src/*.c) $(wildcard xw/src/*.c)
 CC_OBJS=$(CC_SOURCES:.c=.o)
 AS=$(TARGET_PREFIX)as
