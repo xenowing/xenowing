@@ -2,10 +2,10 @@ RM=rm
 RM_FLAGS=-rf
 
 .PHONY: all
-all: rtl sim test doc generated-rtl-old
+all: rtl sim doc generated-rtl-old
 
 .PHONY: clean
-clean: rtl-clean sim-clean test-clean doc-clean generated-rtl-old-clean
+clean: rtl-clean sim-clean doc-clean generated-rtl-old-clean test-clean
 
 RTL_DIR=rtl
 
@@ -33,16 +33,6 @@ sim-clean: marv-clean
 .PHONY: marv-clean
 marv-clean:
 	cd $(SIM_DIR)/marv && cargo clean
-
-TEST_DIR=test
-
-.PHONY: test
-test:
-	make -C $(TEST_DIR)/riscv-compliance
-
-.PHONY: test-clean
-test-clean:
-	make clean -C $(TEST_DIR)/riscv-compliance
 
 DOC_DIR=doc
 MEM_TOPOLOGY=$(DOC_DIR)/mem_topology.pdf
@@ -75,3 +65,13 @@ $(GENERATED_RTL_OLD): $(GENERATED_RTL_OLD_SRC) $(KAZE_OLD)
 generated-rtl-old-clean:
 	$(RM) $(RM_FLAGS) $(GENERATED_RTL_OLD)
 	$(RM) $(RM_FLAGS) $(RTL_OLD_PYCACHE)
+
+TEST_DIR=test
+
+.PHONY: test
+test:
+	make -C $(TEST_DIR)/riscv-compliance
+
+.PHONY: test-clean
+test-clean:
+	make clean -C $(TEST_DIR)/riscv-compliance
