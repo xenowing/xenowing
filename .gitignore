@@ -5,4 +5,4 @@ target/
 Cargo.lock
 output_files/
 __pycache__/
-rtl/_generated.sv
+rtl-old/_generated.sv

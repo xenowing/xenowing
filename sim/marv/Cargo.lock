@@ -39,16 +39,9 @@ dependencies = [
 name = "marv"
 version = "0.1.0"
 dependencies = [
- "kaze",
-]
-
-[[package]]
-name = "marv-test"
-version = "0.1.0"
-dependencies = [
  "goblin",
  "kaze",
- "marv",
+ "rtl",
 ]
 
 [[package]]
@@ -73,6 +66,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "053a8c8bcc71fcce321828dc897a98ab9760bef03a4fc36693c231e5b3216cfe"
 dependencies = [
  "proc-macro2",
+]
+
+[[package]]
+name = "rtl"
+version = "0.1.0"
+dependencies = [
+ "kaze",
 ]
 
 [[package]]
