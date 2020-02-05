@@ -69,7 +69,7 @@ generated-rtl-old-clean:
 TEST_DIR=test
 
 .PHONY: test
-test:
+test: marv
 	make -C $(TEST_DIR)/riscv-compliance
 
 .PHONY: test-clean
