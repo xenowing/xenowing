@@ -36,23 +36,23 @@ impl<'a> Instruction<'a> {
     }
 
     fn load_offset(&self) -> &'a Signal<'a> {
-        self.value.bit(31).repeat(20).concat(self.value.bits(31, 20))
+        self.value.bit(31).repeat(21).concat(self.value.bits(30, 20))
     }
 
     fn store_offset(&self) -> &'a Signal<'a> {
-        self.value.bit(31).repeat(20).concat(self.value.bits(31, 25)).concat(self.value.bits(11, 7))
+        self.value.bit(31).repeat(21).concat(self.value.bits(30, 25)).concat(self.value.bits(11, 7))
     }
 
     fn jump_offset(&self, m: &'a Module<'a>) -> &'a Signal<'a> {
-        self.value.bit(31).repeat(11).concat(self.value.bit(31)).concat(self.value.bits(19, 12)).concat(self.value.bit(20)).concat(self.value.bits(30, 21)).concat(m.low())
+        self.value.bit(31).repeat(12).concat(self.value.bits(19, 12)).concat(self.value.bit(20)).concat(self.value.bits(30, 21)).concat(m.low())
     }
 
     fn branch_offset(&self, m: &'a Module<'a>) -> &'a Signal<'a> {
-        self.value.bit(31).repeat(19).concat(self.value.bit(31)).concat(self.value.bit(7)).concat(self.value.bits(30, 25)).concat(self.value.bits(11, 8)).concat(m.low())
+        self.value.bit(31).repeat(20).concat(self.value.bit(7)).concat(self.value.bits(30, 25)).concat(self.value.bits(11, 8)).concat(m.low())
     }
 
     fn i_immediate(&self) -> &'a Signal<'a> {
-        self.value.bit(31).repeat(20).concat(self.value.bits(31, 20))
+        self.value.bit(31).repeat(21).concat(self.value.bits(30, 20))
     }
 
     fn u_immediate(&self, m: &'a Module<'a>) -> &'a Signal<'a> {

@@ -49,7 +49,14 @@ fn main() {
 
     let mut register_file = vec![0; 32];
 
-    let program_rom = fs::read(program_rom_file_name).expect("Couldn't read program ROM file");
+    let program_rom = {
+        let mut ret = fs::read(program_rom_file_name).expect("Couldn't read program ROM file");
+        // Zero-pad ROM, since all ROM reads are interpreted as 32-bit reads in sim
+        while (ret.len() % 4) != 0 {
+            ret.push(0);
+        }
+        ret
+    };
 
     let mut mem = vec![0; 0x20000 / 4];
 
@@ -99,7 +106,7 @@ fn main() {
                 if marv.bus_enable && marv.bus_write {
                     println!("WARNING: write to program ROM (byte addr: 0x{:08x})", marv.bus_addr << 2);
                 }
-                let byte_addr = ((marv.bus_addr << 2) & 0x3fff) as usize;
+                let byte_addr = ((marv.bus_addr << 2) & 0xffff) as usize;
                 marv.bus_read_data =
                     ((program_rom[byte_addr + 0] as u32) << 0) |
                     ((program_rom[byte_addr + 1] as u32) << 8) |
@@ -181,7 +188,11 @@ fn main() {
             }
             _ => {
                 if marv.bus_enable {
-                    panic!("Attempted read/write to unmapped address: 0x{:08x}", marv.bus_addr << 2);
+                    if marv.bus_write {
+                        panic!("Attempted write to unmapped address: 0x{:08x}", marv.bus_addr << 2);
+                    } else {
+                        panic!("Attempted read from unmapped address: 0x{:08x}", marv.bus_addr << 2);
+                    }
                 }
             }
         }
