@@ -68,6 +68,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     generate_control(c);
     generate_instruction_fetch(c);
     generate_decode(c);
+    generate_alu(c);
     generate_execute(c);
     generate_mem(c);
     generate_writeback(c);
@@ -112,16 +113,18 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     reg1.drive_next(control.output("reg_wait_enable").mux(m.input("register_file_read_data1", 32), reg1.value));
     reg2.drive_next(control.output("reg_wait_enable").mux(m.input("register_file_read_data2", 32), reg2.value));
 
+    let alu = m.instance("alu", "Alu");
+
     let execute = m.instance("execute", "Execute");
     execute.drive_input("pc", pc.value);
     execute.drive_input("instruction", instruction.value);
     execute.drive_input("reg1", reg1.value);
     execute.drive_input("reg2", reg2.value);
-    m.output("alu_op", execute.output("alu_op"));
-    m.output("alu_op_mod", execute.output("alu_op_mod"));
-    m.output("alu_lhs", execute.output("alu_lhs"));
-    m.output("alu_rhs", execute.output("alu_rhs"));
-    execute.drive_input("alu_res", m.input("alu_res", 32));
+    alu.drive_input("op", execute.output("alu_op"));
+    alu.drive_input("op_mod", execute.output("alu_op_mod"));
+    alu.drive_input("lhs", execute.output("alu_lhs"));
+    alu.drive_input("rhs", execute.output("alu_rhs"));
+    execute.drive_input("alu_res", alu.output("res"));
     execute.drive_input("cycle_counter_value", cycle_counter.value);
     execute.drive_input("instructions_retired_counter_value", instructions_retired_counter.value);
 
@@ -219,6 +222,55 @@ fn generate_decode<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     m.output("ready", m.input("bus_read_data_valid", 1));
     m.output("instruction", m.input("bus_read_data", 32));
+
+    m
+}
+
+fn generate_alu<'a>(c: &'a Context<'a>) -> &Module<'a> {
+    let m = c.module("Alu");
+
+    let lhs = m.input("lhs", 32);
+    let rhs = m.input("rhs", 32);
+    let op = m.input("op", 3);
+    let op_mod = m.input("op_mod", 1);
+
+    let shift_amt = rhs.bits(4, 0);
+
+    m.output("res", if_(op.eq(m.lit(0b000u32, 3)), {
+        if_(!op_mod, {
+            // ADD
+            lhs + rhs
+        }).else_({
+            // SUB
+            lhs - rhs
+        })
+    }).else_if(op.eq(m.lit(0b001u32, 3)), {
+        // SLL
+        lhs << shift_amt
+    }).else_if(op.eq(m.lit(0b010u32, 3)), {
+        // LT
+        m.lit(0u32, 31).concat(lhs.lt_signed(rhs))
+    }).else_if(op.eq(m.lit(0b011u32, 3)), {
+        // LTU
+        m.lit(0u32, 31).concat(lhs.lt(rhs))
+    }).else_if(op.eq(m.lit(0b100u32, 3)), {
+        // XOR
+        lhs ^ rhs
+    }).else_if(op.eq(m.lit(0b101u32, 3)), {
+        if_(!op_mod, {
+            // SRL
+            lhs >> shift_amt
+        }).else_({
+            // SRA
+            lhs.shr_arithmetic(shift_amt)
+        })
+    }).else_if(op.eq(m.lit(0b110u32, 3)), {
+        // OR
+        lhs | rhs
+    }).else_({
+        // AND
+        lhs & rhs
+    }));
 
     m
 }

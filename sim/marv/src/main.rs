@@ -10,38 +10,6 @@ use std::env;
 use std::fs::{self, File};
 use std::io::Write;
 
-fn alu(lhs: u32, rhs: u32, op: u32, op_mod: bool) -> u32 {
-    let shift_amt = rhs & 0x1f;
-    match op {
-        0b000 => {
-            if !op_mod {
-                // ADD
-                lhs.wrapping_add(rhs)
-            } else {
-                // SUB
-                lhs.wrapping_sub(rhs)
-            }
-        }
-        0b001 => lhs << shift_amt, // SLL
-        0b010 => if (lhs as i32) < (rhs as i32) { 1 } else { 0 }, // LT
-        0b011 => if lhs < rhs { 1 } else { 0 }, // LTU
-        0b100 => lhs ^ rhs, // XOR
-        0b101 => {
-            if !op_mod {
-                // SRL
-                lhs >> shift_amt
-            }
-            else {
-                // SRA
-                ((lhs as i32) >> shift_amt) as _
-            }
-        }
-        0b110 => lhs | rhs, // OR
-        0b111 => lhs & rhs, // AND
-        _ => unreachable!()
-    }
-}
-
 fn main() {
     let program_rom_file_name = env::args().nth(1).expect("No program ROM file name specified");
     let program_elf_file_name = env::args().nth(2).expect("No program elf file name specified");
@@ -70,9 +38,6 @@ fn main() {
 
         marv.prop();
 
-        marv.alu_res = alu(marv.alu_lhs, marv.alu_rhs, marv.alu_op, marv.alu_op_mod);
-        //println!("alu_res: 0x{:08x}", marv.alu_res);
-
         marv.register_file_read_data1 = register_file[marv.register_file_read_addr1 as usize];
         marv.register_file_read_data2 = register_file[marv.register_file_read_addr2 as usize];
         /*println!("register_file_read_data1: 0x{:08x}", marv.register_file_read_data1);
@@ -80,11 +45,7 @@ fn main() {
 
         marv.prop();
 
-        /*println!("alu_lhs: 0x{:08x}", marv.alu_lhs);
-        println!("alu_op: 0b{:03b}", marv.alu_op);
-        println!("alu_op_mod: {}", marv.alu_op_mod);
-        println!("alu_rhs: 0x{:08x}", marv.alu_rhs);
-        println!("bus_addr: 0x{:08x} (byte addr: 0x{:08x})", marv.bus_addr, marv.bus_addr << 2);
+        /*println!("bus_addr: 0x{:08x} (byte addr: 0x{:08x})", marv.bus_addr, marv.bus_addr << 2);
         println!("bus_write_byte_enable: 0b{:04b}", marv.bus_write_byte_enable);
         println!("bus_write_data: 0x{:08x}", marv.bus_write_data);
         println!("bus_enable: {}", marv.bus_enable);
