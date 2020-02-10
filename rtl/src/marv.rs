@@ -102,12 +102,14 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     decode.drive_input("bus_read_data", bus_read_data);
     decode.drive_input("bus_read_data_valid", bus_read_data_valid);
 
+    let decode_instruction = Instruction::new(decode.output("instruction"));
+
     let instruction = m.reg("instruction", 32);
-    instruction.drive_next(control.output("decode_enable").mux(decode.output("instruction"), instruction.value));
+    instruction.drive_next(control.output("decode_enable").mux(decode_instruction.value, instruction.value));
     let instruction = Instruction::new(instruction.value);
 
-    m.output("register_file_read_addr1", instruction.rs1());
-    m.output("register_file_read_addr2", instruction.rs2());
+    m.output("register_file_read_addr1", decode_instruction.rs1());
+    m.output("register_file_read_addr2", decode_instruction.rs2());
     let reg1 = m.reg("rs1", 32);
     let reg2 = m.reg("rs2", 32);
     reg1.drive_next(control.output("reg_wait_enable").mux(m.input("register_file_read_data1", 32), reg1.value));

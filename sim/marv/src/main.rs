@@ -38,13 +38,6 @@ fn main() {
 
         marv.prop();
 
-        marv.register_file_read_data1 = register_file[marv.register_file_read_addr1 as usize];
-        marv.register_file_read_data2 = register_file[marv.register_file_read_addr2 as usize];
-        /*println!("register_file_read_data1: 0x{:08x}", marv.register_file_read_data1);
-        println!("register_file_read_data2: 0x{:08x}", marv.register_file_read_data2);*/
-
-        marv.prop();
-
         /*println!("bus_addr: 0x{:08x} (byte addr: 0x{:08x})", marv.bus_addr, marv.bus_addr << 2);
         println!("bus_write_byte_enable: 0b{:04b}", marv.bus_write_byte_enable);
         println!("bus_write_data: 0x{:08x}", marv.bus_write_data);
@@ -61,6 +54,9 @@ fn main() {
         if marv.register_file_write_enable {
             register_file[marv.register_file_write_addr as usize] = marv.register_file_write_data;
         }
+
+        marv.register_file_read_data1 = register_file[marv.register_file_read_addr1 as usize];
+        marv.register_file_read_data2 = register_file[marv.register_file_read_addr2 as usize];
 
         match marv.bus_addr >> 26 {
             0x1 => {
