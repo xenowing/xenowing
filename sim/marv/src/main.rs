@@ -15,8 +15,6 @@ fn main() {
     let program_elf_file_name = env::args().nth(2).expect("No program elf file name specified");
     let signature_file_name = env::args().nth(3).expect("No signature file name specified");
 
-    let mut register_file = vec![0; 32];
-
     let program_rom = {
         let mut ret = fs::read(program_rom_file_name).expect("Couldn't read program ROM file");
         // Zero-pad ROM, since all ROM reads are interpreted as 32-bit reads in sim
@@ -38,13 +36,6 @@ fn main() {
             marv.bus_ready = true;
         } else {
             marv.posedge_clk();
-
-            if marv.register_file_write_enable {
-                register_file[marv.register_file_write_addr as usize] = marv.register_file_write_data;
-            }
-
-            marv.register_file_read_data1 = register_file[marv.register_file_read_addr1 as usize];
-            marv.register_file_read_data2 = register_file[marv.register_file_read_addr2 as usize];
 
             match marv.bus_addr >> 26 {
                 0x1 => {
@@ -150,12 +141,7 @@ fn main() {
         println!("bus_write_byte_enable: 0b{:04b}", marv.bus_write_byte_enable);
         println!("bus_write_data: 0x{:08x}", marv.bus_write_data);
         println!("bus_enable: {}", marv.bus_enable);
-        println!("bus_write: {}", marv.bus_write);
-        println!("register_file_read_addr1: 0x{:02x}", marv.register_file_read_addr1);
-        println!("register_file_read_addr2: 0x{:02x}", marv.register_file_read_addr2);
-        println!("register_file_write_addr: 0x{:02x}", marv.register_file_write_addr);
-        println!("register_file_write_data: 0x{:08x}", marv.register_file_write_data);
-        println!("register_file_write_enable: {}", marv.register_file_write_enable);*/
+        println!("bus_write: {}", marv.bus_write);*/
 
         //println!("");
     }

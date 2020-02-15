@@ -77,6 +77,9 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let control = m.instance("control", "Control");
 
+    let register_file = m.mem("register_file", 5, 32);
+    register_file.initial_contents(&[0u32; 32]);
+
     let pc = m.reg("pc", 32);
     pc.default_value(0x10000000u32);
 
@@ -108,12 +111,10 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     instruction.drive_next(control.output("decode_enable").mux(decode_instruction.value, instruction.value));
     let instruction = Instruction::new(instruction.value);
 
-    m.output("register_file_read_addr1", decode_instruction.rs1());
-    m.output("register_file_read_addr2", decode_instruction.rs2());
     let reg1 = m.reg("rs1", 32);
     let reg2 = m.reg("rs2", 32);
-    reg1.drive_next(control.output("reg_wait_enable").mux(m.input("register_file_read_data1", 32), reg1.value));
-    reg2.drive_next(control.output("reg_wait_enable").mux(m.input("register_file_read_data2", 32), reg2.value));
+    reg1.drive_next(control.output("reg_wait_enable").mux(register_file.read_port(decode_instruction.rs1(), m.high()), reg1.value));
+    reg2.drive_next(control.output("reg_wait_enable").mux(register_file.read_port(decode_instruction.rs2(), m.high()), reg2.value));
 
     let alu = m.instance("alu", "Alu");
 
@@ -154,9 +155,10 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
         writeback.output("instructions_retired_counter_increment_enable").mux(
             instructions_retired_counter.value + m.lit(1u64, 64),
             instructions_retired_counter.value));
-    m.output("register_file_write_enable", writeback.output("register_file_write_enable"));
-    m.output("register_file_write_addr", writeback.output("register_file_write_addr"));
-    m.output("register_file_write_data", writeback.output("register_file_write_data"));
+    register_file.write_port(
+        writeback.output("register_file_write_addr"),
+        writeback.output("register_file_write_data"),
+        writeback.output("register_file_write_enable"));
     writeback.drive_input("bus_read_data", bus_read_data);
     writeback.drive_input("bus_read_data_valid", bus_read_data_valid);
 
