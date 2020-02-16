@@ -86,7 +86,7 @@ compliance-test: marv
 
 .PHONY: fifo-test
 fifo-test: fifo
-	cd $(FIFO_DIR) && cargo test --release
+	cd $(FIFO_DIR) && cargo test --release && cargo run --release -- 10 10000000
 
 .PHONY: test-clean
 test-clean: compliance-test-clean

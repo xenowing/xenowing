@@ -11,3 +11,5 @@ kaze = "0.1"
 rtl = { path = "../../rtl" }
 
 [dependencies]
+rand = "0.7"
+rand_chacha = "0.2"
