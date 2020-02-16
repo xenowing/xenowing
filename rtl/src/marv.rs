@@ -242,37 +242,37 @@ fn generate_alu<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     m.output("res", if_(op.eq(m.lit(0b000u32, 3)), {
         if_(!op_mod, {
-            // ADD
+            // add
             lhs + rhs
         }).else_({
-            // SUB
+            // sub
             lhs - rhs
         })
     }).else_if(op.eq(m.lit(0b001u32, 3)), {
-        // SLL
+        // sll
         lhs << shift_amt
     }).else_if(op.eq(m.lit(0b010u32, 3)), {
-        // LT
+        // lt
         m.lit(0u32, 31).concat(lhs.lt_signed(rhs))
     }).else_if(op.eq(m.lit(0b011u32, 3)), {
-        // LTU
+        // ltu
         m.lit(0u32, 31).concat(lhs.lt(rhs))
     }).else_if(op.eq(m.lit(0b100u32, 3)), {
-        // XOR
+        // xor
         lhs ^ rhs
     }).else_if(op.eq(m.lit(0b101u32, 3)), {
         if_(!op_mod, {
-            // SRL
+            // srl
             lhs >> shift_amt
         }).else_({
-            // SRA
+            // sra
             lhs.shr_arithmetic(shift_amt)
         })
     }).else_if(op.eq(m.lit(0b110u32, 3)), {
-        // OR
+        // or
         lhs | rhs
     }).else_({
-        // AND
+        // and
         lhs & rhs
     }));
 
