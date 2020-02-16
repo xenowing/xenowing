@@ -18,21 +18,30 @@ rtl-clean:
 	cd $(RTL_DIR) && cargo clean
 
 SIM_DIR=sim
+FIFO_DIR=$(SIM_DIR)/fifo
 MARV_DIR=$(SIM_DIR)/marv
 
 .PHONY: sim
-sim: marv
+sim: fifo marv
+
+.PHONY: fifo
+fifo:
+	cd $(FIFO_DIR) && cargo build --release
 
 .PHONY: marv
 marv:
 	cd $(MARV_DIR) && cargo build --release
 
 .PHONY: sim-clean
-sim-clean: marv-clean
+sim-clean: fifo-clean marv-clean
+
+.PHONY: fifo-clean
+fifo-clean:
+	cd $(FIFO_DIR) && cargo clean
 
 .PHONY: marv-clean
 marv-clean:
-	cd $(SIM_DIR)/marv && cargo clean
+	cd $(MARV_DIR) && cargo clean
 
 DOC_DIR=doc
 MEM_TOPOLOGY=$(DOC_DIR)/mem_topology.pdf
@@ -69,9 +78,19 @@ generated-rtl-old-clean:
 TEST_DIR=test
 
 .PHONY: test
-test: marv
+test: compliance-test fifo-test
+
+.PHONY: compliance-test
+compliance-test: marv
 	make -C $(TEST_DIR)/riscv-compliance
 
+.PHONY: fifo-test
+fifo-test: fifo
+	cd $(FIFO_DIR) && cargo test --release
+
 .PHONY: test-clean
-test-clean:
+test-clean: compliance-test-clean
+
+.PHONY: compliance-test-clean
+compliance-test-clean:
 	make clean -C $(TEST_DIR)/riscv-compliance
