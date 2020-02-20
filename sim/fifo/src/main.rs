@@ -42,6 +42,8 @@ fn main() {
             m.write_enable = false;
         }
 
+        m.prop();
+
         // Reads
         if last_read_successful {
             read_data.push(m.read_data);

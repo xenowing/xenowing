@@ -31,7 +31,11 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_depth_
     mem_write_addr.drive_next(next_mem_write_addr);
 
     // Reads
-    let empty = count.value.eq(m.lit(0u32, count_bits));
+    let empty = if_(count.value.eq(m.lit(0u32, count_bits)), {
+        !write_enable
+    }).else_({
+        m.low()
+    });
     m.output("empty", empty);
 
     let read_enable = m.input("read_enable", 1) & !empty;
@@ -50,6 +54,8 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_depth_
     mem_read_addr.drive_next(next_mem_read_addr);
 
     count.drive_next(next_count);
+
+    m.output("debug_count", count.value);
 
     m
 }

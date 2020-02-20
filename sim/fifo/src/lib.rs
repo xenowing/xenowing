@@ -127,4 +127,33 @@ mod tests {
         m.prop();
         assert_eq!(m.empty, true);
     }
+
+    #[test]
+    fn write_through_when_empty() {
+        let mut m = Fifo::new();
+
+        m.reset();
+        m.prop();
+
+        assert_eq!(m.empty, true);
+
+        m.write_enable = true;
+        m.write_data = 0xdeadbeef;
+
+        m.prop();
+
+        assert_eq!(m.empty, false);
+
+        m.read_enable = true;
+
+        m.prop();
+        m.posedge_clk();
+
+        m.write_enable = false;
+
+        m.prop();
+
+        assert_eq!(m.empty, true);
+        assert_eq!(m.read_data, 0xdeadbeef);
+    }
 }
