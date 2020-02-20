@@ -21,9 +21,9 @@ fn main() -> io::Result<()> {
         let issue_bus_ready = m.input("issue_bus_ready", 1);
 
         let (bus_enable, bus_master, bus_addr, master1_bus_ready) = if_(master0_bus_enable, {
-            (m.lit(true, 1), m.lit(false, 1), master0_bus_addr, m.lit(false, 1))
+            (m.high(), m.low(), master0_bus_addr, m.low())
         }).else_({
-            (master1_bus_enable, m.lit(true, 1), master1_bus_addr, issue_bus_ready)
+            (master1_bus_enable, m.high(), master1_bus_addr, issue_bus_ready)
         });
 
         m.output("issue_bus_enable", bus_enable);
@@ -44,7 +44,8 @@ fn main() -> io::Result<()> {
         let issue_arb_bus_addr = m.input("issue_arb_bus_addr", addr_bit_width);
 
         let slave_bus_ready = m.input("slave_bus_ready", 1);
-        let master_fifo_write_ready = m.input("master_fifo_write_ready", 1);
+        let master_fifo_full = m.input("master_fifo_full", 1);
+        let master_fifo_write_ready = !master_fifo_full;
 
         m.output("issue_arb_bus_ready", master_fifo_write_ready & slave_bus_ready);
 
@@ -58,39 +59,26 @@ fn main() -> io::Result<()> {
     }
 
     {
-        let m = c.module("BusterMasterRetBuf");
+        let m = c.module("BusterReturnArbiter");
 
-        let master_fifo_read_ready = m.input("master_fifo_read_ready", 1);
+        let master_fifo_empty = m.input("master_fifo_empty", 1);
+        let master_fifo_read_ready = !master_fifo_empty;
+        let master_fifo_read_data = m.input("master_fifo_read_data", 1);
+        let data_fifo_empty = m.input("data_fifo_empty", 1);
+        let data_fifo_read_ready = !data_fifo_empty;
+        let data_fifo_read_data = m.input("data_fifo_read_data", data_bit_width);
 
-        sim::generate(m, io::stdout())?;
-    }
+        let fifo_read_enable = master_fifo_read_ready & data_fifo_read_ready;
+        m.output("fifo_read_enable", fifo_read_enable);
 
-    {
-        let m = c.module("BusterSlaveRetBuf");
+        let fifo_read_data_valid = m.reg("fifo_read_data_valid", 1);
+        fifo_read_data_valid.default_value(false);
+        fifo_read_data_valid.drive_next(fifo_read_enable);
 
-        let ret_arb_buf_read_enable = m.input("ret_arb_buf_read_enable", 1);
-
-        let slave_read_data = m.input("slave_read_data", data_bit_width);
-        let slave_read_data_valid = m.input("slave_read_data_valid", 1);
-
-        let data = m.reg("data", data_bit_width);
-        let ready = m.reg("ready", 1);
-        ready.default_value(false);
-
-        let (next_data, next_ready) = if_(slave_read_data_valid, {
-            (slave_read_data, m.lit(true, 1))
-        }).else_({
-            (data.value, if_(ret_arb_buf_read_enable, {
-                m.lit(false, 1)
-            }).else_({
-                ready.value
-            }))
-        });
-        data.drive_next(next_data);
-        ready.drive_next(next_ready);
-
-        m.output("data", data.value);
-        m.output("ready", ready.value);
+        m.output("master0_read_data", data_fifo_read_data);
+        m.output("master0_read_data_valid", fifo_read_data_valid.value & !master_fifo_read_data);
+        m.output("master1_read_data", data_fifo_read_data);
+        m.output("master1_read_data_valid", fifo_read_data_valid.value & master_fifo_read_data);
 
         sim::generate(m, io::stdout())?;
     }
@@ -114,18 +102,30 @@ fn main() -> io::Result<()> {
     m.output("slave_bus_enable", issue.output("slave_bus_enable"));
     m.output("slave_bus_addr", issue.output("slave_bus_addr"));
 
-    let master_fifo_depth_bits = 4; // TODO: Adjust for max slave latency
-    fifo::generate(&c, "BusterMasterFifo", master_fifo_depth_bits, 1);
+    let fifo_depth_bits = 4; // TODO: Adjust for max slave latency
+
+    fifo::generate(&c, "BusterMasterFifo", fifo_depth_bits, 1);
     let master_fifo = m.instance("master_fifo", "BusterMasterFifo");
-    issue.drive_input("master_fifo_write_ready", !master_fifo.output("full"));
+    issue.drive_input("master_fifo_full", master_fifo.output("full"));
     master_fifo.drive_input("write_enable", issue.output("master_fifo_write_enable"));
     master_fifo.drive_input("write_data", issue.output("master_fifo_write_data"));
-    master_fifo.drive_input("read_enable", m.lit(false, 1)); // TODO
 
-    let slave_ret_buf = m.instance("slave_ret_buf", "BusterSlaveRetBuf");
-    slave_ret_buf.drive_input("ret_arb_buf_read_enable", m.lit(false, 1)); // TODO
-    slave_ret_buf.drive_input("slave_read_data", m.input("slave_read_data", data_bit_width));
-    slave_ret_buf.drive_input("slave_read_data_valid", m.input("slave_read_data_valid", 1));
+    fifo::generate(&c, "BusterDataFifo", fifo_depth_bits, data_bit_width);
+    let data_fifo = m.instance("data_fifo", "BusterDataFifo");
+    data_fifo.drive_input("write_enable", m.input("slave_read_data_valid", 1));
+    data_fifo.drive_input("write_data", m.input("slave_read_data", data_bit_width));
+
+    let return_arbiter = m.instance("return_arbiter", "BusterReturnArbiter");
+    return_arbiter.drive_input("master_fifo_empty", master_fifo.output("empty"));
+    master_fifo.drive_input("read_enable", return_arbiter.output("fifo_read_enable"));
+    return_arbiter.drive_input("master_fifo_read_data", master_fifo.output("read_data"));
+    return_arbiter.drive_input("data_fifo_empty", data_fifo.output("empty"));
+    data_fifo.drive_input("read_enable", return_arbiter.output("fifo_read_enable"));
+    return_arbiter.drive_input("data_fifo_read_data", data_fifo.output("read_data"));
+    m.output("master0_read_data", return_arbiter.output("master0_read_data"));
+    m.output("master0_read_data_valid", return_arbiter.output("master0_read_data_valid"));
+    m.output("master1_read_data", return_arbiter.output("master1_read_data"));
+    m.output("master1_read_data_valid", return_arbiter.output("master1_read_data_valid"));
 
     sim::generate(m, io::stdout())?;
 
