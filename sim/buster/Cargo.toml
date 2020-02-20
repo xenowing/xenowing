@@ -6,6 +6,8 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
+[build-dependencies]
 kaze = "0.1"
 rtl = { path = "../../rtl" }
+
+[dependencies]
