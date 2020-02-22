@@ -55,7 +55,5 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_depth_
 
     count.drive_next(next_count);
 
-    m.output("debug_count", count.value);
-
     m
 }
