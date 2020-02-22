@@ -77,10 +77,10 @@ mod buster {
             fifo_read_data_valid.default_value(false);
             fifo_read_data_valid.drive_next(fifo_read_enable);
 
-            m.output("master0_read_data", data_fifo_read_data);
-            m.output("master0_read_data_valid", fifo_read_data_valid.value & !master_fifo_read_data);
-            m.output("master1_read_data", data_fifo_read_data);
-            m.output("master1_read_data_valid", fifo_read_data_valid.value & master_fifo_read_data);
+            m.output("master0_bus_read_data", data_fifo_read_data);
+            m.output("master0_bus_read_data_valid", fifo_read_data_valid.value & !master_fifo_read_data);
+            m.output("master1_bus_read_data", data_fifo_read_data);
+            m.output("master1_bus_read_data_valid", fifo_read_data_valid.value & master_fifo_read_data);
         }
 
         let m = c.module("Buster");
@@ -120,10 +120,10 @@ mod buster {
         return_arbiter.drive_input("data_fifo_empty", data_fifo.output("empty"));
         data_fifo.drive_input("read_enable", return_arbiter.output("fifo_read_enable"));
         return_arbiter.drive_input("data_fifo_read_data", data_fifo.output("read_data"));
-        m.output("master0_read_data", return_arbiter.output("master0_read_data"));
-        m.output("master0_read_data_valid", return_arbiter.output("master0_read_data_valid"));
-        m.output("master1_read_data", return_arbiter.output("master1_read_data"));
-        m.output("master1_read_data_valid", return_arbiter.output("master1_read_data_valid"));
+        m.output("master0_bus_read_data", return_arbiter.output("master0_bus_read_data"));
+        m.output("master0_bus_read_data_valid", return_arbiter.output("master0_bus_read_data_valid"));
+        m.output("master1_bus_read_data", return_arbiter.output("master1_bus_read_data"));
+        m.output("master1_bus_read_data_valid", return_arbiter.output("master1_bus_read_data_valid"));
 
         m
     }
