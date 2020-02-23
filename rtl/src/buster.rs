@@ -2,9 +2,11 @@ use crate::fifo;
 
 use kaze::*;
 
-pub fn generate<'a>(c: &'a Context<'a>, addr_bit_width: u32, data_bit_width: u32, fifo_depth_bits: u32) -> &Module<'a> {
+pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, addr_bit_width: u32, data_bit_width: u32, fifo_depth_bits: u32) -> &Module<'a> {
+    let mod_name = mod_name.into();
+
     {
-        let m = c.module("BusterIssueArbiter");
+        let m = c.module(format!("{}IssueArbiter", mod_name));
 
         let master0_bus_enable = m.input("master0_bus_enable", 1);
         let master0_bus_addr = m.input("master0_bus_addr", addr_bit_width);
@@ -29,7 +31,7 @@ pub fn generate<'a>(c: &'a Context<'a>, addr_bit_width: u32, data_bit_width: u32
     }
 
     {
-        let m = c.module("BusterIssue");
+        let m = c.module(format!("{}Issue", mod_name));
 
         let issue_arb_bus_enable = m.input("issue_arb_bus_enable", 1);
         let issue_arb_bus_master = m.input("issue_arb_bus_master", 1);
@@ -49,7 +51,7 @@ pub fn generate<'a>(c: &'a Context<'a>, addr_bit_width: u32, data_bit_width: u32
     }
 
     {
-        let m = c.module("BusterReturnArbiter");
+        let m = c.module(format!("{}ReturnArbiter", mod_name));
 
         let master_fifo_empty = m.input("master_fifo_empty", 1);
         let master_fifo_read_ready = !master_fifo_empty;
@@ -71,9 +73,9 @@ pub fn generate<'a>(c: &'a Context<'a>, addr_bit_width: u32, data_bit_width: u32
         m.output("master1_bus_read_data_valid", fifo_read_data_valid.value & master_fifo_read_data);
     }
 
-    let m = c.module("Buster");
+    let m = c.module(mod_name.clone());
 
-    let issue_arbiter = m.instance("issue_arbiter", "BusterIssueArbiter");
+    let issue_arbiter = m.instance("issue_arbiter", &format!("{}IssueArbiter", mod_name));
     m.output("master0_bus_ready", issue_arbiter.output("master0_bus_ready"));
     issue_arbiter.drive_input("master0_bus_enable", m.input("master0_bus_enable", 1));
     issue_arbiter.drive_input("master0_bus_addr", m.input("master0_bus_addr", addr_bit_width));
@@ -81,7 +83,7 @@ pub fn generate<'a>(c: &'a Context<'a>, addr_bit_width: u32, data_bit_width: u32
     issue_arbiter.drive_input("master1_bus_enable", m.input("master1_bus_enable", 1));
     issue_arbiter.drive_input("master1_bus_addr", m.input("master1_bus_addr", addr_bit_width));
 
-    let issue = m.instance("issue", "BusterIssue");
+    let issue = m.instance("issue", &format!("{}Issue", mod_name));
     issue.drive_input("issue_arb_bus_enable", issue_arbiter.output("issue_bus_enable"));
     issue.drive_input("issue_arb_bus_master", issue_arbiter.output("issue_bus_master"));
     issue.drive_input("issue_arb_bus_addr", issue_arbiter.output("issue_bus_addr"));
@@ -90,14 +92,14 @@ pub fn generate<'a>(c: &'a Context<'a>, addr_bit_width: u32, data_bit_width: u32
     m.output("slave_bus_enable", issue.output("slave_bus_enable"));
     m.output("slave_bus_addr", issue.output("slave_bus_addr"));
 
-    fifo::generate(&c, "BusterMasterFifo", fifo_depth_bits, 1);
-    let master_fifo = m.instance("master_fifo", "BusterMasterFifo");
+    fifo::generate(&c, &format!("{}MasterFifo", mod_name), fifo_depth_bits, 1);
+    let master_fifo = m.instance("master_fifo", &format!("{}MasterFifo", mod_name));
     issue.drive_input("master_fifo_full", master_fifo.output("full"));
     master_fifo.drive_input("write_enable", issue.output("master_fifo_write_enable"));
     master_fifo.drive_input("write_data", issue.output("master_fifo_write_data"));
 
-    fifo::generate(&c, "BusterDataFifo", fifo_depth_bits, data_bit_width);
-    let data_fifo = m.instance("data_fifo", "BusterDataFifo");
+    fifo::generate(&c, &format!("{}DataFifo", mod_name), fifo_depth_bits, data_bit_width);
+    let data_fifo = m.instance("data_fifo", &format!("{}DataFifo", mod_name));
     data_fifo.drive_input("write_enable", m.input("slave_bus_read_data_valid", 1));
     data_fifo.drive_input("write_data", m.input("slave_bus_read_data", data_bit_width));
 
