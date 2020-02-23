@@ -9,12 +9,7 @@ mod buster {
     use kaze::*;
     use rtl::*;
 
-    pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
-        let data_bit_width = 128;
-        let addr_bit_width = 16; // TODO: This is not correct.. :)
-
-        let fifo_depth_bits = 4; // TODO: Adjust for max slave latency
-
+    pub fn generate<'a>(c: &'a Context<'a>, addr_bit_width: u32, data_bit_width: u32, fifo_depth_bits: u32) -> &Module<'a> {
         {
             let m = c.module("BusterIssueArbiter");
 
@@ -110,8 +105,8 @@ mod buster {
 
         fifo::generate(&c, "BusterDataFifo", fifo_depth_bits, data_bit_width);
         let data_fifo = m.instance("data_fifo", "BusterDataFifo");
-        data_fifo.drive_input("write_enable", m.input("slave_read_data_valid", 1));
-        data_fifo.drive_input("write_data", m.input("slave_read_data", data_bit_width));
+        data_fifo.drive_input("write_enable", m.input("slave_bus_read_data_valid", 1));
+        data_fifo.drive_input("write_data", m.input("slave_bus_read_data", data_bit_width));
 
         let return_arbiter = m.instance("return_arbiter", "BusterReturnArbiter");
         return_arbiter.drive_input("master_fifo_empty", master_fifo.output("empty"));
@@ -136,5 +131,5 @@ fn main() -> Result<()> {
 
     let c = Context::new();
 
-    sim::generate(buster::generate(&c), file)
+    sim::generate(buster::generate(&c, 16, 128, 4), file)
 }
