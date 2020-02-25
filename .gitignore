@@ -1,6 +1,5 @@
 obj_dir/
 trace/
-doc/*.pdf
 target/
 Cargo.lock
 output_files/

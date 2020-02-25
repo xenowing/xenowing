@@ -2,10 +2,10 @@ RM=rm
 RM_FLAGS=-rf
 
 .PHONY: all
-all: rtl sim doc generated-rtl-old
+all: rtl sim generated-rtl-old
 
 .PHONY: clean
-clean: rtl-clean sim-clean doc-clean generated-rtl-old-clean test-clean
+clean: rtl-clean sim-clean generated-rtl-old-clean test-clean
 
 RTL_DIR=rtl
 
@@ -42,20 +42,6 @@ fifo-clean:
 .PHONY: marv-clean
 marv-clean:
 	cd $(MARV_DIR) && cargo clean
-
-DOC_DIR=doc
-MEM_TOPOLOGY=$(DOC_DIR)/mem_topology.pdf
-MEM_TOPOLOGY_SRC=$(DOC_DIR)/mem_topology.dot
-
-.PHONY: doc
-doc: $(MEM_TOPOLOGY)
-
-$(MEM_TOPOLOGY): $(MEM_TOPOLOGY_SRC)
-	dot -Tpdf $(MEM_TOPOLOGY_SRC) -o $(MEM_TOPOLOGY)
-
-.PHONY: doc-clean
-doc-clean:
-	$(RM) $(RM_FLAGS) $(MEM_TOPOLOGY)
 
 RTL_OLD_DIR=rtl-old
 GENERATED_RTL_OLD=$(RTL_OLD_DIR)/_generated.sv
