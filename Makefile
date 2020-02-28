@@ -18,12 +18,17 @@ rtl-clean:
 	cd $(RTL_DIR) && cargo clean
 
 SIM_DIR=sim
+BUSTER_DIR=$(SIM_DIR)/buster
 FIFO_DIR=$(SIM_DIR)/fifo
 MARV_DIR=$(SIM_DIR)/marv
 PEEK_BUFFER_DIR=$(SIM_DIR)/peek-buffer
 
 .PHONY: sim
-sim: fifo marv peek-buffer
+sim: buster fifo marv peek-buffer
+
+.PHONY: buster
+buster:
+	cd $(BUSTER_DIR) && cargo build --release
 
 .PHONY: fifo
 fifo:
@@ -73,7 +78,11 @@ generated-rtl-old-clean:
 TEST_DIR=test
 
 .PHONY: test
-test: compliance-test fifo-test peek-buffer-test
+test: buster-test compliance-test fifo-test peek-buffer-test
+
+.PHONY: buster-test
+buster-test: buster
+	cd $(BUSTER_DIR) && cargo test --release
 
 .PHONY: compliance-test
 compliance-test: marv

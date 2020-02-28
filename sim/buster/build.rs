@@ -13,5 +13,5 @@ fn main() -> Result<()> {
 
     let c = Context::new();
 
-    sim::generate(buster::generate(&c, "Buster", 16, 128, 4), file)
+    sim::generate(buster::generate(&c, "Buster", 17, 128, 4), file)
 }
