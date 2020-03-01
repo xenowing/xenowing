@@ -20,9 +20,10 @@ rtl-clean:
 SIM_DIR=sim
 FIFO_DIR=$(SIM_DIR)/fifo
 MARV_DIR=$(SIM_DIR)/marv
+PEEK_BUFFER_DIR=$(SIM_DIR)/peek-buffer
 
 .PHONY: sim
-sim: fifo marv
+sim: fifo marv peek-buffer
 
 .PHONY: fifo
 fifo:
@@ -32,8 +33,12 @@ fifo:
 marv:
 	cd $(MARV_DIR) && cargo build --release
 
+.PHONY: peek-buffer
+peek-buffer:
+	cd $(PEEK_BUFFER_DIR) && cargo build --release
+
 .PHONY: sim-clean
-sim-clean: fifo-clean marv-clean
+sim-clean: fifo-clean marv-clean peek-buffer-clean
 
 .PHONY: fifo-clean
 fifo-clean:
@@ -42,6 +47,10 @@ fifo-clean:
 .PHONY: marv-clean
 marv-clean:
 	cd $(MARV_DIR) && cargo clean
+
+.PHONY: peek-buffer-clean
+peek-buffer-clean:
+	cd $(PEEK_BUFFER_DIR) && cargo clean
 
 RTL_OLD_DIR=rtl-old
 GENERATED_RTL_OLD=$(RTL_OLD_DIR)/_generated.sv
@@ -64,7 +73,7 @@ generated-rtl-old-clean:
 TEST_DIR=test
 
 .PHONY: test
-test: compliance-test fifo-test
+test: compliance-test fifo-test peek-buffer-test
 
 .PHONY: compliance-test
 compliance-test: marv
@@ -73,6 +82,10 @@ compliance-test: marv
 .PHONY: fifo-test
 fifo-test: fifo
 	cd $(FIFO_DIR) && cargo test --release && cargo run --release -- 10 10000000
+
+.PHONY: peek-buffer-test
+peek-buffer-test: peek-buffer
+	cd $(PEEK_BUFFER_DIR) && cargo test --release && cargo run --release -- 10 10000000
 
 .PHONY: test-clean
 test-clean: compliance-test-clean
