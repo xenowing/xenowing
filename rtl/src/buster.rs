@@ -3,10 +3,10 @@ use crate::peek_buffer;
 
 use kaze::*;
 
-pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, addr_bit_width: u32, data_bit_width: u32, fifo_depth_bits: u32) -> &Module<'a> {
+pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, addr_bit_width: u32, replica_select_bit_width: u32, data_bit_width: u32, fifo_depth_bits: u32) -> &Module<'a> {
     let mod_name = mod_name.into();
 
-    let replica_select_bit_width = 1; // TODO: Derive from number of replica ports (is this a good idea? Seems like the memory map will change as we add replicas...)
+    // TODO: replica_select_bit_width bounds checks
     let replica_addr_bit_width = addr_bit_width - replica_select_bit_width; // TODO: Bounds checks
 
     {
