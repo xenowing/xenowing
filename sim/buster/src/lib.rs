@@ -171,7 +171,7 @@ mod tests {
     }
 
     #[test]
-    fn read_all_primary0_replica_0() {
+    fn read_all_primary0_replica0() {
         let data = (0..65536).map(|x| (x + 1) * 4).collect::<Vec<_>>();
 
         let mut primary_read_addr = 0;
@@ -232,7 +232,7 @@ mod tests {
     }
 
     #[test]
-    fn read_all_primary0_replica_1() {
+    fn read_all_primary0_replica1() {
         let data = (0..65536).map(|x| (x + 1) * 4).collect::<Vec<_>>();
 
         let mut primary_read_addr = 0;
