@@ -152,7 +152,7 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, addr_bit_w
     replica1_data_fifo.drive_input("write_enable", m.input("replica_bus_read_data_valid", 1));
     replica1_data_fifo.drive_input("write_data", m.input("replica_bus_read_data", data_bit_width));
 
-    let return_arbiter = m.instance("return_arbiter", "BusterReturnArbiter");
+    let return_arbiter = m.instance("return_arbiter", &format!("{}ReturnArbiter", mod_name));
     return_arbiter.drive_input("primary_fifo_empty", primary_fifo.output("empty"));
     return_arbiter.drive_input("primary_fifo_read_data", primary_fifo.output("read_data"));
     return_arbiter.drive_input("replica_buffer_egress_ready", replica_buffer.output("egress_ready"));

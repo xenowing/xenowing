@@ -8,7 +8,7 @@ mod tests {
 
     #[test]
     fn single_read_primary0_replica0() {
-        let mut m = Buster::new();
+        let mut m = Buster2x2::new();
 
         m.reset();
 
@@ -49,7 +49,7 @@ mod tests {
 
     #[test]
     fn single_read_primary1_replica0() {
-        let mut m = Buster::new();
+        let mut m = Buster2x2::new();
 
         m.reset();
 
@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn single_read_primary0_replica1() {
-        let mut m = Buster::new();
+        let mut m = Buster2x2::new();
 
         m.reset();
 
@@ -131,7 +131,7 @@ mod tests {
 
     #[test]
     fn single_read_primary1_replica1() {
-        let mut m = Buster::new();
+        let mut m = Buster2x2::new();
 
         m.reset();
 
@@ -179,7 +179,7 @@ mod tests {
 
         let mut replica_read_addr = None;
 
-        let mut m = Buster::new();
+        let mut m = Buster2x2::new();
 
         m.reset();
 
@@ -240,7 +240,7 @@ mod tests {
 
         let mut replica_read_addr = None;
 
-        let mut m = Buster::new();
+        let mut m = Buster2x2::new();
 
         m.reset();
 
@@ -301,7 +301,7 @@ mod tests {
 
         let mut replica_read_addr = None;
 
-        let mut m = Buster::new();
+        let mut m = Buster2x2::new();
 
         m.reset();
 
@@ -362,7 +362,7 @@ mod tests {
 
         let mut replica_read_addr = None;
 
-        let mut m = Buster::new();
+        let mut m = Buster2x2::new();
 
         m.reset();
 
