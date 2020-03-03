@@ -3,42 +3,63 @@ use crate::peek_buffer;
 
 use kaze::*;
 
-pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, addr_bit_width: u32, replica_select_bit_width: u32, data_bit_width: u32, fifo_depth_bits: u32) -> &Module<'a> {
+pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_primaries: u32, addr_bit_width: u32, replica_select_bit_width: u32, data_bit_width: u32, fifo_depth_bits: u32) -> &Module<'a> {
     let mod_name = mod_name.into();
 
-    // TODO: replica_select_bit_width bounds checks
+    // TODO: num_primaries, replica_select_bit_width bounds checks
+    let primary_select_bit_width = 31 - num_primaries.leading_zeros(); // TODO: Add tests for single-primary and remove FIFO/connections in that case
     let replica_addr_bit_width = addr_bit_width - replica_select_bit_width; // TODO: Bounds checks
 
     {
         let m = c.module(format!("{}IssueArbiter", mod_name));
 
-        let primary0_bus_enable = m.input("primary0_bus_enable", 1);
-        let primary0_bus_addr = m.input("primary0_bus_addr", addr_bit_width);
+        struct Primary<'a> {
+            name: String,
+            bus_enable: &'a Signal<'a>,
+            bus_addr: &'a Signal<'a>,
+        }
 
-        let primary1_bus_enable = m.input("primary1_bus_enable", 1);
-        let primary1_bus_addr = m.input("primary1_bus_addr", addr_bit_width);
+        let primaries: Vec<_> = (0..num_primaries).map(|i| {
+            let name = format!("primary{}", i);
+            Primary {
+                name: name.clone(),
+                bus_enable: m.input(format!("{}_bus_enable", name), 1),
+                bus_addr: m.input(format!("{}_bus_addr", name), addr_bit_width),
+            }
+        }).collect();
 
-        let issue_bus_ready = m.input("issue_bus_ready", 1);
+        let mut bus_enable = primaries.last().unwrap().bus_enable;
+        let mut bus_primary = m.lit((primaries.len() - 1) as u32, primary_select_bit_width);
+        let mut bus_addr = primaries.last().unwrap().bus_addr;
 
-        let (bus_enable, bus_primary, bus_addr, primary1_bus_ready) = if_(primary0_bus_enable, {
-            (m.high(), m.low(), primary0_bus_addr, m.low())
-        }).else_({
-            (primary1_bus_enable, m.high(), primary1_bus_addr, issue_bus_ready)
-        });
+        for (i, primary) in primaries.iter().enumerate().rev().skip(1) {
+            let (new_bus_enable, new_bus_primary, new_bus_addr) = if_(primary.bus_enable, {
+                (m.high(), m.lit(i as u32, primary_select_bit_width), primary.bus_addr)
+            }).else_({
+                (bus_enable, bus_primary, bus_addr)
+            });
+            bus_enable = new_bus_enable;
+            bus_primary = new_bus_primary;
+            bus_addr = new_bus_addr;
+        }
 
         m.output("issue_bus_enable", bus_enable);
         m.output("issue_bus_primary", bus_primary);
         m.output("issue_bus_addr", bus_addr);
 
-        m.output("primary0_bus_ready", issue_bus_ready);
-        m.output("primary1_bus_ready", primary1_bus_ready);
+        let mut bus_ready = m.input("issue_bus_ready", 1);
+
+        for primary in primaries.iter() {
+            m.output(format!("{}_bus_ready", primary.name), bus_ready);
+            bus_ready = bus_ready & !primary.bus_enable;
+        }
     }
 
     {
         let m = c.module(format!("{}Issue", mod_name));
 
         let issue_arb_bus_enable = m.input("issue_arb_bus_enable", 1);
-        let issue_arb_bus_primary = m.input("issue_arb_bus_primary", 1);
+        let issue_arb_bus_primary = m.input("issue_arb_bus_primary", primary_select_bit_width);
         let issue_arb_bus_addr = m.input("issue_arb_bus_addr", addr_bit_width);
         let replica_select = issue_arb_bus_addr.bits(addr_bit_width - 1, replica_addr_bit_width);
 
@@ -70,7 +91,7 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, addr_bit_w
 
         let primary_fifo_empty = m.input("primary_fifo_empty", 1);
         let primary_fifo_read_ready = !primary_fifo_empty;
-        let primary_fifo_read_data = m.input("primary_fifo_read_data", 1);
+        let primary_fifo_read_data = m.input("primary_fifo_read_data", primary_select_bit_width);
         let replica_buffer_egress_ready = m.input("replica_buffer_egress_ready", 1);
         let replica_buffer_egress_data = m.input("replica_buffer_egress_data", replica_select_bit_width);
         let replica0_data_fifo_empty = m.input("replica0_data_fifo_empty", 1);
@@ -95,21 +116,20 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, addr_bit_w
         replica_data_fifo_select.drive_next(replica_buffer_egress_data);
 
         let replica_data = replica_data_fifo_select.value.mux(replica1_data_fifo_read_data, replica0_data_fifo_read_data);
-        m.output("primary0_bus_read_data", replica_data);
-        m.output("primary0_bus_read_data_valid", fifo_read_data_valid.value & !primary_fifo_read_data);
-        m.output("primary1_bus_read_data", replica_data);
-        m.output("primary1_bus_read_data_valid", fifo_read_data_valid.value & primary_fifo_read_data);
+        for i in 0..num_primaries {
+            m.output(format!("primary{}_bus_read_data", i), replica_data);
+            m.output(format!("primary{}_bus_read_data_valid", i), fifo_read_data_valid.value & primary_fifo_read_data.eq(m.lit(i as u32, primary_select_bit_width)));
+        }
     }
 
     let m = c.module(mod_name.clone());
 
     let issue_arbiter = m.instance("issue_arbiter", &format!("{}IssueArbiter", mod_name));
-    m.output("primary0_bus_ready", issue_arbiter.output("primary0_bus_ready"));
-    issue_arbiter.drive_input("primary0_bus_enable", m.input("primary0_bus_enable", 1));
-    issue_arbiter.drive_input("primary0_bus_addr", m.input("primary0_bus_addr", addr_bit_width));
-    m.output("primary1_bus_ready", issue_arbiter.output("primary1_bus_ready"));
-    issue_arbiter.drive_input("primary1_bus_enable", m.input("primary1_bus_enable", 1));
-    issue_arbiter.drive_input("primary1_bus_addr", m.input("primary1_bus_addr", addr_bit_width));
+    for i in 0..num_primaries {
+        m.output(&format!("primary{}_bus_ready", i), issue_arbiter.output(&format!("primary{}_bus_ready", i)));
+        issue_arbiter.drive_input(&format!("primary{}_bus_enable", i), m.input(&format!("primary{}_bus_enable", i), 1));
+        issue_arbiter.drive_input(&format!("primary{}_bus_addr", i), m.input(&format!("primary{}_bus_addr", i), addr_bit_width));
+    }
 
     let issue = m.instance("issue", &format!("{}Issue", mod_name));
     issue.drive_input("issue_arb_bus_enable", issue_arbiter.output("issue_bus_enable"));
@@ -123,13 +143,13 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, addr_bit_w
     m.output("replica1_bus_enable", issue.output("replica1_bus_enable"));
     m.output("replica1_bus_addr", issue.output("replica1_bus_addr"));
 
-    fifo::generate(&c, &format!("{}PrimaryFifo", mod_name), fifo_depth_bits, 1);
+    fifo::generate(&c, &format!("{}PrimaryFifo", mod_name), fifo_depth_bits, primary_select_bit_width);
     let primary_fifo = m.instance("primary_fifo", &format!("{}PrimaryFifo", mod_name));
     issue.drive_input("primary_fifo_full", primary_fifo.output("full"));
     primary_fifo.drive_input("write_enable", issue.output("primary_fifo_write_enable"));
     primary_fifo.drive_input("write_data", issue.output("primary_fifo_write_data"));
 
-    fifo::generate(&c, &format!("{}ReplicaFifo", mod_name), fifo_depth_bits, 1);
+    fifo::generate(&c, &format!("{}ReplicaFifo", mod_name), fifo_depth_bits, replica_select_bit_width);
     let replica_fifo = m.instance("replica_fifo", &format!("{}ReplicaFifo", mod_name));
     issue.drive_input("replica_fifo_full", replica_fifo.output("full"));
     replica_fifo.drive_input("write_enable", issue.output("replica_fifo_write_enable"));
@@ -165,10 +185,10 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, addr_bit_w
     return_arbiter.drive_input("replica0_data_fifo_read_data", replica0_data_fifo.output("read_data"));
     return_arbiter.drive_input("replica1_data_fifo_empty", replica1_data_fifo.output("empty"));
     return_arbiter.drive_input("replica1_data_fifo_read_data", replica1_data_fifo.output("read_data"));
-    m.output("primary0_bus_read_data", return_arbiter.output("primary0_bus_read_data"));
-    m.output("primary0_bus_read_data_valid", return_arbiter.output("primary0_bus_read_data_valid"));
-    m.output("primary1_bus_read_data", return_arbiter.output("primary1_bus_read_data"));
-    m.output("primary1_bus_read_data_valid", return_arbiter.output("primary1_bus_read_data_valid"));
+    for i in 0..num_primaries {
+        m.output(format!("primary{}_bus_read_data", i), return_arbiter.output(format!("primary{}_bus_read_data", i)));
+        m.output(format!("primary{}_bus_read_data_valid", i), return_arbiter.output(format!("primary{}_bus_read_data_valid", i)));
+    }
 
     m
 }
