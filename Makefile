@@ -78,7 +78,7 @@ generated-rtl-old-clean:
 TEST_DIR=test
 
 .PHONY: test
-test: buster-test compliance-test fifo-test peek-buffer-test
+test: buster-test compliance-test fifo-test peek-buffer-test rtl-test
 
 .PHONY: buster-test
 buster-test: buster
@@ -95,6 +95,10 @@ fifo-test: fifo
 .PHONY: peek-buffer-test
 peek-buffer-test: peek-buffer
 	cd $(PEEK_BUFFER_DIR) && cargo test --release && cargo run --release -- 10 10000000
+
+.PHONY: rtl-test
+rtl-test: rtl
+	cd $(RTL_DIR) && cargo test --release
 
 .PHONY: test-clean
 test-clean: compliance-test-clean
