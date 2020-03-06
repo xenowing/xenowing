@@ -14,6 +14,7 @@ fn main() -> Result<()> {
     let c = Context::new();
 
     sim::generate(buster::generate(&c, "Buster1x2", 1, 2, 17, 1, 32, 2), &mut file)?;
+    sim::generate(buster::generate(&c, "Buster2x1", 2, 1, 16, 0, 32, 2), &mut file)?;
     sim::generate(buster::generate(&c, "Buster2x2", 2, 2, 17, 1, 128, 4), &mut file)?;
 
     Ok(())

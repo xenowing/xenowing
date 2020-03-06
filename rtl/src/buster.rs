@@ -121,14 +121,14 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_primar
         let primary_fifo_empty = if num_primaries > 1 { m.input("primary_fifo_empty", 1) } else { m.low() };
         let primary_fifo_read_ready = !primary_fifo_empty;
 
-        let replica_buffer_egress_ready = m.input("replica_buffer_egress_ready", 1);
-        let replica_buffer_egress_data = m.input("replica_buffer_egress_data", replica_select_bit_width);
+        let (replica_buffer_egress_ready, replica_buffer_egress_data, replica_data_fifo_read_ready, replica_data) = if num_replicas > 1 {
+            let replica_buffer_egress_ready = m.input("replica_buffer_egress_ready", 1);
+            let replica_buffer_egress_data = m.input("replica_buffer_egress_data", replica_select_bit_width);
 
-        let (replica_data_fifo_read_ready, replica_data) = if num_replicas > 1 {
             let replica_data_fifo_select = m.reg("replica_data_fifo_select", replica_select_bit_width);
             replica_data_fifo_select.drive_next(replica_buffer_egress_data);
 
-            (0..num_replicas).rev().skip(1).fold((!m.input(format!("replica{}_data_fifo_empty", num_replicas - 1), 1), m.input(format!("replica{}_data_fifo_read_data", num_replicas - 1), data_bit_width)), |acc, x| {
+            let (replica_data_fifo_ready, replica_data) = (0..num_replicas).rev().skip(1).fold((!m.input(format!("replica{}_data_fifo_empty", num_replicas - 1), 1), m.input(format!("replica{}_data_fifo_read_data", num_replicas - 1), data_bit_width)), |acc, x| {
                 let replica_data_fifo_empty = m.input(format!("replica{}_data_fifo_empty", x), 1);
                 let replica_data_fifo_read_ready = !replica_data_fifo_empty;
                 let replica_data_fifo_read_data = m.input(format!("replica{}_data_fifo_read_data", x), data_bit_width);
@@ -145,16 +145,18 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_primar
                         acc.1
                     }),
                 )
-            })
+            });
+
+            (Some(replica_buffer_egress_ready), Some(replica_buffer_egress_data), replica_data_fifo_ready, replica_data)
         } else {
-            (!m.input("replica0_data_fifo_empty", 1), m.input("replica0_data_fifo_read_data", data_bit_width))
+            (None, None, !m.input("replica0_data_fifo_empty", 1), m.input("replica0_data_fifo_read_data", data_bit_width))
         };
 
-        let fifo_read_enable = primary_fifo_read_ready & replica_buffer_egress_ready & replica_data_fifo_read_ready;
+        let fifo_read_enable = primary_fifo_read_ready & replica_buffer_egress_ready.unwrap_or(m.high()) & replica_data_fifo_read_ready;
         m.output("primary_fifo_read_enable", fifo_read_enable);
         m.output("replica_buffer_egress_read_enable", fifo_read_enable);
         for i in 0..num_replicas {
-            m.output(format!("replica{}_data_fifo_read_enable", i), fifo_read_enable & replica_buffer_egress_data.eq(m.lit(i, replica_select_bit_width)));
+            m.output(format!("replica{}_data_fifo_read_enable", i), fifo_read_enable & replica_buffer_egress_data.map(|x| x.eq(m.lit(i, replica_select_bit_width))).unwrap_or(m.high()));
         }
 
         let fifo_read_data_valid = m.reg("fifo_read_data_valid", 1);
