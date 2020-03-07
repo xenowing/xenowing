@@ -521,6 +521,7 @@ mod tests {
         m.reset();
 
         m.primary0_bus_enable = true;
+        m.primary0_bus_write = false;
         m.primary0_bus_addr = 0x0babe;
         m.primary1_bus_enable = false;
         m.primary1_bus_addr = 0;
@@ -558,12 +559,42 @@ mod tests {
     }
 
     #[test]
+    fn buster2x2_single_write_primary0_replica0() {
+        let mut m = Buster2x2::new();
+
+        m.reset();
+
+        m.primary0_bus_enable = true;
+        m.primary0_bus_write = true;
+        m.primary0_bus_addr = 0x0babe;
+        m.primary0_bus_write_data = 0xdeadbeef;
+        m.primary0_bus_write_byte_enable = 0b1010;
+        m.primary1_bus_enable = false;
+        m.primary1_bus_addr = 0;
+        m.replica0_bus_ready = true;
+        m.replica0_bus_read_data = 0xffffffff;
+        m.replica0_bus_read_data_valid = false;
+
+        m.prop();
+
+        assert_eq!(m.primary0_bus_ready, true);
+        assert_eq!(m.primary1_bus_ready, false);
+        assert_eq!(m.replica0_bus_enable, true);
+        assert_eq!(m.replica0_bus_addr, 0xbabe);
+        assert_eq!(m.replica0_bus_write, true);
+        assert_eq!(m.replica0_bus_write_data, 0xdeadbeef);
+        assert_eq!(m.replica0_bus_write_byte_enable, 0b1010);
+        assert_eq!(m.replica1_bus_enable, false);
+    }
+
+    #[test]
     fn buster2x2_single_read_primary0_replica1() {
         let mut m = Buster2x2::new();
 
         m.reset();
 
         m.primary0_bus_enable = true;
+        m.primary0_bus_write = false;
         m.primary0_bus_addr = 0x1babe;
         m.primary1_bus_enable = false;
         m.primary1_bus_addr = 0;
@@ -601,6 +632,35 @@ mod tests {
     }
 
     #[test]
+    fn buster2x2_single_write_primary0_replica1() {
+        let mut m = Buster2x2::new();
+
+        m.reset();
+
+        m.primary0_bus_enable = true;
+        m.primary0_bus_write = true;
+        m.primary0_bus_addr = 0x1babe;
+        m.primary0_bus_write_data = 0xdeadbeef;
+        m.primary0_bus_write_byte_enable = 0b1010;
+        m.primary1_bus_enable = false;
+        m.primary1_bus_addr = 0;
+        m.replica1_bus_ready = true;
+        m.replica1_bus_read_data = 0xffffffff;
+        m.replica1_bus_read_data_valid = false;
+
+        m.prop();
+
+        assert_eq!(m.primary0_bus_ready, true);
+        assert_eq!(m.primary1_bus_ready, false);
+        assert_eq!(m.replica1_bus_enable, true);
+        assert_eq!(m.replica1_bus_addr, 0xbabe);
+        assert_eq!(m.replica1_bus_write, true);
+        assert_eq!(m.replica1_bus_write_data, 0xdeadbeef);
+        assert_eq!(m.replica1_bus_write_byte_enable, 0b1010);
+        assert_eq!(m.replica0_bus_enable, false);
+    }
+
+    #[test]
     fn buster2x2_single_read_primary1_replica0() {
         let mut m = Buster2x2::new();
 
@@ -609,6 +669,7 @@ mod tests {
         m.primary0_bus_enable = false;
         m.primary0_bus_addr = 0;
         m.primary1_bus_enable = true;
+        m.primary1_bus_write = false;
         m.primary1_bus_addr = 0x0beef;
         m.replica0_bus_ready = true;
         m.replica1_bus_ready = false;
@@ -644,6 +705,35 @@ mod tests {
     }
 
     #[test]
+    fn buster2x2_single_write_primary1_replica0() {
+        let mut m = Buster2x2::new();
+
+        m.reset();
+
+        m.primary1_bus_enable = true;
+        m.primary1_bus_write = true;
+        m.primary1_bus_addr = 0x0babe;
+        m.primary1_bus_write_data = 0xdeadbeef;
+        m.primary1_bus_write_byte_enable = 0b1010;
+        m.primary0_bus_enable = false;
+        m.primary0_bus_addr = 0;
+        m.replica0_bus_ready = true;
+        m.replica0_bus_read_data = 0xffffffff;
+        m.replica0_bus_read_data_valid = false;
+
+        m.prop();
+
+        assert_eq!(m.primary1_bus_ready, true);
+        assert_eq!(m.primary0_bus_ready, true);
+        assert_eq!(m.replica0_bus_enable, true);
+        assert_eq!(m.replica0_bus_addr, 0xbabe);
+        assert_eq!(m.replica0_bus_write, true);
+        assert_eq!(m.replica0_bus_write_data, 0xdeadbeef);
+        assert_eq!(m.replica0_bus_write_byte_enable, 0b1010);
+        assert_eq!(m.replica1_bus_enable, false);
+    }
+
+    #[test]
     fn buster2x2_single_read_primary1_replica1() {
         let mut m = Buster2x2::new();
 
@@ -652,6 +742,7 @@ mod tests {
         m.primary0_bus_enable = false;
         m.primary0_bus_addr = 0;
         m.primary1_bus_enable = true;
+        m.primary1_bus_write = false;
         m.primary1_bus_addr = 0x1beef;
         m.replica0_bus_ready = false;
         m.replica1_bus_ready = true;
@@ -684,6 +775,35 @@ mod tests {
         assert_eq!(m.primary1_bus_read_data, 0xdeadbeeffadebabeabad1deacafebabe);
 
         assert_eq!(m.primary0_bus_read_data_valid, false);
+    }
+
+    #[test]
+    fn buster2x2_single_write_primary1_replica1() {
+        let mut m = Buster2x2::new();
+
+        m.reset();
+
+        m.primary1_bus_enable = true;
+        m.primary1_bus_write = true;
+        m.primary1_bus_addr = 0x1babe;
+        m.primary1_bus_write_data = 0xdeadbeef;
+        m.primary1_bus_write_byte_enable = 0b1010;
+        m.primary0_bus_enable = false;
+        m.primary0_bus_addr = 0;
+        m.replica1_bus_ready = true;
+        m.replica1_bus_read_data = 0xffffffff;
+        m.replica1_bus_read_data_valid = false;
+
+        m.prop();
+
+        assert_eq!(m.primary1_bus_ready, true);
+        assert_eq!(m.primary0_bus_ready, true);
+        assert_eq!(m.replica1_bus_enable, true);
+        assert_eq!(m.replica1_bus_addr, 0xbabe);
+        assert_eq!(m.replica1_bus_write, true);
+        assert_eq!(m.replica1_bus_write_data, 0xdeadbeef);
+        assert_eq!(m.replica1_bus_write_byte_enable, 0b1010);
+        assert_eq!(m.replica0_bus_enable, false);
     }
 
     #[test]
