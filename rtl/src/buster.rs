@@ -17,6 +17,8 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_primar
     let primary_select_bit_width = 31 - num_primaries.leading_zeros();
     let replica_addr_bit_width = addr_bit_width - replica_select_bit_width; // TODO: Bounds checks
 
+    let data_byte_width = data_bit_width / 8;
+
     {
         let m = c.module(format!("{}IssueArbiter", mod_name));
 
@@ -24,6 +26,9 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_primar
             name: String,
             bus_enable: &'a Signal<'a>,
             bus_addr: &'a Signal<'a>,
+            bus_write: &'a Signal<'a>,
+            bus_write_data: &'a Signal<'a>,
+            bus_write_byte_enable: &'a Signal<'a>,
         }
 
         let primaries: Vec<_> = (0..num_primaries).map(|i| {
@@ -32,24 +37,37 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_primar
                 name: name.clone(),
                 bus_enable: m.input(format!("{}_bus_enable", name), 1),
                 bus_addr: m.input(format!("{}_bus_addr", name), addr_bit_width),
+                bus_write: m.input(format!("{}_bus_write", name), 1),
+                bus_write_data: m.input(format!("{}_bus_write_data", name), data_bit_width),
+                bus_write_byte_enable: m.input(format!("{}_bus_write_byte_enable", name), data_byte_width),
             }
         }).collect();
 
-        let mut bus_enable = primaries.last().unwrap().bus_enable;
-        let mut bus_addr = primaries.last().unwrap().bus_addr;
+        let last_primary = primaries.last().unwrap();
+        let mut bus_enable = last_primary.bus_enable;
+        let mut bus_addr = last_primary.bus_addr;
+        let mut bus_write = last_primary.bus_write;
+        let mut bus_write_data = last_primary.bus_write_data;
+        let mut bus_write_byte_enable = last_primary.bus_write_byte_enable;
 
         for primary in primaries.iter().rev().skip(1) {
-            let (new_bus_enable, new_bus_addr) = if_(primary.bus_enable, {
-                (m.high(), primary.bus_addr)
+            let (new_bus_enable, new_bus_addr, new_bus_write, new_bus_write_data, new_bus_write_byte_enable) = if_(primary.bus_enable, {
+                (m.high(), primary.bus_addr, primary.bus_write, primary.bus_write_data, primary.bus_write_byte_enable)
             }).else_({
-                (bus_enable, bus_addr)
+                (bus_enable, bus_addr, bus_write, bus_write_data, bus_write_byte_enable)
             });
             bus_enable = new_bus_enable;
             bus_addr = new_bus_addr;
+            bus_write = new_bus_write;
+            bus_write_data = new_bus_write_data;
+            bus_write_byte_enable = new_bus_write_byte_enable;
         }
 
         m.output("issue_bus_enable", bus_enable);
         m.output("issue_bus_addr", bus_addr);
+        m.output("issue_bus_write", bus_write);
+        m.output("issue_bus_write_data", bus_write_data);
+        m.output("issue_bus_write_byte_enable", bus_write_byte_enable);
 
         if num_primaries > 1 {
             let mut bus_primary = m.lit(num_primaries - 1, primary_select_bit_width);
@@ -78,13 +96,18 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_primar
 
         let issue_arb_bus_enable = m.input("issue_arb_bus_enable", 1);
         let issue_arb_bus_addr = m.input("issue_arb_bus_addr", addr_bit_width);
+        let issue_arb_bus_write = m.input("issue_arb_bus_write", 1);
+        let issue_arb_bus_write_data = m.input("issue_arb_bus_write_data", data_bit_width);
+        let issue_arb_bus_write_byte_enable = m.input("issue_arb_bus_write_byte_enable", data_byte_width);
 
         let primary_fifo_full = if num_primaries > 1 { m.input("primary_fifo_full", 1) } else { m.low() };
         let primary_fifo_write_ready = !primary_fifo_full;
         let replica_fifo_full = if num_replicas > 1 { m.input("replica_fifo_full", 1) } else { m.low() };
         let replica_fifo_write_ready = !replica_fifo_full;
 
-        let replica_bus_enable = issue_arb_bus_enable & primary_fifo_write_ready & replica_fifo_write_ready;
+        let buster_issue_ready = issue_arb_bus_write | (primary_fifo_write_ready & replica_fifo_write_ready);
+
+        let replica_bus_enable = issue_arb_bus_enable & buster_issue_ready;
 
         let (replica_select, replica_bus_ready) = if num_replicas > 1 {
             let replica_select = issue_arb_bus_addr.bits(addr_bit_width - 1, replica_addr_bit_width);
@@ -92,7 +115,7 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_primar
                 acc | (m.input(format!("replica{}_bus_ready", x), 1) & replica_select.eq(m.lit(x, replica_select_bit_width)))
             });
 
-            m.output("replica_fifo_write_enable", issue_arb_bus_enable & primary_fifo_write_ready & replica_fifo_write_ready & replica_bus_ready);
+            m.output("replica_fifo_write_enable", issue_arb_bus_enable & !issue_arb_bus_write & buster_issue_ready & replica_bus_ready);
             m.output("replica_fifo_write_data", replica_select);
 
             (Some(replica_select), replica_bus_ready)
@@ -100,11 +123,11 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_primar
             (None, m.input("replica0_bus_ready", 1))
         };
 
-        m.output("issue_arb_bus_ready", primary_fifo_write_ready & replica_fifo_write_ready & replica_bus_ready);
+        m.output("issue_arb_bus_ready", buster_issue_ready & replica_bus_ready);
 
         if num_primaries > 1 {
             let issue_arb_bus_primary = m.input("issue_arb_bus_primary", primary_select_bit_width);
-            m.output("primary_fifo_write_enable", issue_arb_bus_enable & primary_fifo_write_ready & replica_fifo_write_ready & replica_bus_ready);
+            m.output("primary_fifo_write_enable", issue_arb_bus_enable & !issue_arb_bus_write & buster_issue_ready & replica_bus_ready);
             m.output("primary_fifo_write_data", issue_arb_bus_primary);
         }
 
@@ -112,6 +135,9 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_primar
         for i in 0..num_replicas {
             m.output(format!("replica{}_bus_enable", i), replica_bus_enable & replica_select.map(|x| x.eq(m.lit(i, replica_select_bit_width))).unwrap_or(m.high()));
             m.output(format!("replica{}_bus_addr", i), replica_bus_addr);
+            m.output(format!("replica{}_bus_write", i), issue_arb_bus_write);
+            m.output(format!("replica{}_bus_write_data", i), issue_arb_bus_write_data);
+            m.output(format!("replica{}_bus_write_byte_enable", i), issue_arb_bus_write_byte_enable);
         }
     }
 
@@ -182,16 +208,25 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_primar
         m.output(format!("primary{}_bus_ready", i), issue_arbiter.output(format!("primary{}_bus_ready", i)));
         issue_arbiter.drive_input(format!("primary{}_bus_enable", i), m.input(format!("primary{}_bus_enable", i), 1));
         issue_arbiter.drive_input(format!("primary{}_bus_addr", i), m.input(format!("primary{}_bus_addr", i), addr_bit_width));
+        issue_arbiter.drive_input(format!("primary{}_bus_write", i), m.input(format!("primary{}_bus_write", i), 1));
+        issue_arbiter.drive_input(format!("primary{}_bus_write_data", i), m.input(format!("primary{}_bus_write_data", i), data_bit_width));
+        issue_arbiter.drive_input(format!("primary{}_bus_write_byte_enable", i), m.input(format!("primary{}_bus_write_byte_enable", i), data_byte_width));
     }
 
     let issue = m.instance("issue", &format!("{}Issue", mod_name));
     issue.drive_input("issue_arb_bus_enable", issue_arbiter.output("issue_bus_enable"));
     issue.drive_input("issue_arb_bus_addr", issue_arbiter.output("issue_bus_addr"));
+    issue.drive_input("issue_arb_bus_write", issue_arbiter.output("issue_bus_write"));
+    issue.drive_input("issue_arb_bus_write_data", issue_arbiter.output("issue_bus_write_data"));
+    issue.drive_input("issue_arb_bus_write_byte_enable", issue_arbiter.output("issue_bus_write_byte_enable"));
     issue_arbiter.drive_input("issue_bus_ready", issue.output("issue_arb_bus_ready"));
     for i in 0..num_replicas {
         issue.drive_input(format!("replica{}_bus_ready", i), m.input(format!("replica{}_bus_ready", i), 1));
         m.output(format!("replica{}_bus_enable", i), issue.output(format!("replica{}_bus_enable", i)));
         m.output(format!("replica{}_bus_addr", i), issue.output(format!("replica{}_bus_addr", i)));
+        m.output(format!("replica{}_bus_write", i), issue.output(format!("replica{}_bus_write", i)));
+        m.output(format!("replica{}_bus_write_data", i), issue.output(format!("replica{}_bus_write_data", i)));
+        m.output(format!("replica{}_bus_write_byte_enable", i), issue.output(format!("replica{}_bus_write_byte_enable", i)));
     }
 
     let return_arbiter = m.instance("return_arbiter", &format!("{}ReturnArbiter", mod_name));
@@ -235,8 +270,8 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_primar
     fifo::generate(&c, format!("{}ReplicaDataFifo", mod_name), fifo_depth_bits, data_bit_width);
     for i in 0..num_replicas {
         let replica_data_fifo = m.instance(format!("replica{}_data_fifo", i), &format!("{}ReplicaDataFifo", mod_name));
-        replica_data_fifo.drive_input("write_enable", m.input("replica_bus_read_data_valid", 1));
-        replica_data_fifo.drive_input("write_data", m.input("replica_bus_read_data", data_bit_width));
+        replica_data_fifo.drive_input("write_enable", m.input(format!("replica{}_bus_read_data_valid", i), 1));
+        replica_data_fifo.drive_input("write_data", m.input(format!("replica{}_bus_read_data", i), data_bit_width));
         replica_data_fifo.drive_input("read_enable", return_arbiter.output(format!("replica{}_data_fifo_read_enable", i)));
         return_arbiter.drive_input(format!("replica{}_data_fifo_empty", i), replica_data_fifo.output("empty"));
         return_arbiter.drive_input(format!("replica{}_data_fifo_read_data", i), replica_data_fifo.output("read_data"));

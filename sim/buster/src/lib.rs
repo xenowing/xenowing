@@ -13,11 +13,14 @@ mod tests {
         m.reset();
 
         m.primary0_bus_enable = true;
+        m.primary0_bus_write = false;
         m.primary0_bus_addr = 0x0babe;
         m.replica0_bus_ready = true;
         m.replica1_bus_ready = false;
-        m.replica_bus_read_data = 0xffffffff;
-        m.replica_bus_read_data_valid = false;
+        m.replica0_bus_read_data = 0xffffffff;
+        m.replica0_bus_read_data_valid = false;
+        m.replica1_bus_read_data = 0xffffffff;
+        m.replica1_bus_read_data_valid = false;
 
         m.prop();
 
@@ -29,8 +32,8 @@ mod tests {
         m.posedge_clk();
 
         m.primary0_bus_enable = false;
-        m.replica_bus_read_data = 0xfadebabe;
-        m.replica_bus_read_data_valid = true;
+        m.replica0_bus_read_data = 0xfadebabe;
+        m.replica0_bus_read_data_valid = true;
 
         m.prop();
 
@@ -43,17 +46,49 @@ mod tests {
     }
 
     #[test]
+    fn buster1x2_single_write_replica0() {
+        let mut m = Buster1x2::new();
+
+        m.reset();
+
+        m.primary0_bus_enable = true;
+        m.primary0_bus_write = true;
+        m.primary0_bus_addr = 0x0babe;
+        m.primary0_bus_write_data = 0xdeadbeef;
+        m.primary0_bus_write_byte_enable = 0b1010;
+        m.replica0_bus_ready = true;
+        m.replica1_bus_ready = false;
+        m.replica0_bus_read_data = 0xffffffff;
+        m.replica0_bus_read_data_valid = false;
+        m.replica1_bus_read_data = 0xffffffff;
+        m.replica1_bus_read_data_valid = false;
+
+        m.prop();
+
+        assert_eq!(m.primary0_bus_ready, true);
+        assert_eq!(m.replica0_bus_enable, true);
+        assert_eq!(m.replica1_bus_enable, false);
+        assert_eq!(m.replica0_bus_addr, 0xbabe);
+        assert_eq!(m.replica0_bus_write, true);
+        assert_eq!(m.replica0_bus_write_data, 0xdeadbeef);
+        assert_eq!(m.replica0_bus_write_byte_enable, 0b1010);
+    }
+
+    #[test]
     fn buster1x2_single_read_replica1() {
         let mut m = Buster1x2::new();
 
         m.reset();
 
         m.primary0_bus_enable = true;
+        m.primary0_bus_write = false;
         m.primary0_bus_addr = 0x1babe;
         m.replica0_bus_ready = false;
         m.replica1_bus_ready = true;
-        m.replica_bus_read_data = 0xffffffff;
-        m.replica_bus_read_data_valid = false;
+        m.replica0_bus_read_data = 0xffffffff;
+        m.replica0_bus_read_data_valid = false;
+        m.replica1_bus_read_data = 0xffffffff;
+        m.replica1_bus_read_data_valid = false;
 
         m.prop();
 
@@ -65,8 +100,8 @@ mod tests {
         m.posedge_clk();
 
         m.primary0_bus_enable = false;
-        m.replica_bus_read_data = 0xfadebabe;
-        m.replica_bus_read_data_valid = true;
+        m.replica1_bus_read_data = 0xfadebabe;
+        m.replica1_bus_read_data_valid = true;
 
         m.prop();
 
@@ -76,6 +111,35 @@ mod tests {
         }
 
         assert_eq!(m.primary0_bus_read_data, 0xfadebabe);
+    }
+
+    #[test]
+    fn buster1x2_single_write_replica1() {
+        let mut m = Buster1x2::new();
+
+        m.reset();
+
+        m.primary0_bus_enable = true;
+        m.primary0_bus_write = true;
+        m.primary0_bus_addr = 0x1babe;
+        m.primary0_bus_write_data = 0xdeadbeef;
+        m.primary0_bus_write_byte_enable = 0b1010;
+        m.replica0_bus_ready = false;
+        m.replica1_bus_ready = true;
+        m.replica0_bus_read_data = 0xffffffff;
+        m.replica0_bus_read_data_valid = false;
+        m.replica1_bus_read_data = 0xffffffff;
+        m.replica1_bus_read_data_valid = false;
+
+        m.prop();
+
+        assert_eq!(m.primary0_bus_ready, true);
+        assert_eq!(m.replica0_bus_enable, false);
+        assert_eq!(m.replica1_bus_enable, true);
+        assert_eq!(m.replica1_bus_addr, 0xbabe);
+        assert_eq!(m.replica1_bus_write, true);
+        assert_eq!(m.replica1_bus_write_data, 0xdeadbeef);
+        assert_eq!(m.replica1_bus_write_byte_enable, 0b1010);
     }
 
     #[test]
@@ -104,10 +168,10 @@ mod tests {
 
 
             if let Some(addr) = replica_read_addr {
-                m.replica_bus_read_data = data[addr as usize];
-                m.replica_bus_read_data_valid = true;
+                m.replica0_bus_read_data = data[addr as usize];
+                m.replica0_bus_read_data_valid = true;
             } else {
-                m.replica_bus_read_data_valid = false;
+                m.replica0_bus_read_data_valid = false;
             }
 
             if primary_read_addr < data.len() {
@@ -161,10 +225,10 @@ mod tests {
             }
 
             if let Some(addr) = replica_read_addr {
-                m.replica_bus_read_data = data[addr as usize];
-                m.replica_bus_read_data_valid = true;
+                m.replica1_bus_read_data = data[addr as usize];
+                m.replica1_bus_read_data_valid = true;
             } else {
-                m.replica_bus_read_data_valid = false;
+                m.replica1_bus_read_data_valid = false;
             }
 
             if primary_read_addr < data.len() {
@@ -204,8 +268,8 @@ mod tests {
         m.primary1_bus_enable = false;
         m.primary1_bus_addr = 0;
         m.replica0_bus_ready = true;
-        m.replica_bus_read_data = 0xffffffff;
-        m.replica_bus_read_data_valid = false;
+        m.replica0_bus_read_data = 0xffffffff;
+        m.replica0_bus_read_data_valid = false;
 
         m.prop();
 
@@ -217,8 +281,8 @@ mod tests {
         m.posedge_clk();
 
         m.primary0_bus_enable = false;
-        m.replica_bus_read_data = 0xdeadbeef;
-        m.replica_bus_read_data_valid = true;
+        m.replica0_bus_read_data = 0xdeadbeef;
+        m.replica0_bus_read_data_valid = true;
 
         m.prop();
 
@@ -243,8 +307,8 @@ mod tests {
         m.primary1_bus_enable = true;
         m.primary1_bus_addr = 0x0beef;
         m.replica0_bus_ready = true;
-        m.replica_bus_read_data = 0xffffffff;
-        m.replica_bus_read_data_valid = false;
+        m.replica0_bus_read_data = 0xffffffff;
+        m.replica0_bus_read_data_valid = false;
 
         m.prop();
 
@@ -256,8 +320,8 @@ mod tests {
         m.posedge_clk();
 
         m.primary1_bus_enable = false;
-        m.replica_bus_read_data = 0xdeadbeef;
-        m.replica_bus_read_data_valid = true;
+        m.replica0_bus_read_data = 0xdeadbeef;
+        m.replica0_bus_read_data_valid = true;
 
         m.prop();
 
@@ -298,10 +362,10 @@ mod tests {
             assert_eq!(m.primary1_bus_read_data_valid, false);
 
             if let Some(addr) = replica_read_addr {
-                m.replica_bus_read_data = data[addr as usize];
-                m.replica_bus_read_data_valid = true;
+                m.replica0_bus_read_data = data[addr as usize];
+                m.replica0_bus_read_data_valid = true;
             } else {
-                m.replica_bus_read_data_valid = false;
+                m.replica0_bus_read_data_valid = false;
             }
 
             if primary_read_addr < data.len() {
@@ -359,10 +423,10 @@ mod tests {
             assert_eq!(m.primary0_bus_read_data_valid, false);
 
             if let Some(addr) = replica_read_addr {
-                m.replica_bus_read_data = data[addr as usize];
-                m.replica_bus_read_data_valid = true;
+                m.replica0_bus_read_data = data[addr as usize];
+                m.replica0_bus_read_data_valid = true;
             } else {
-                m.replica_bus_read_data_valid = false;
+                m.replica0_bus_read_data_valid = false;
             }
 
             if primary_read_addr < data.len() {
@@ -405,8 +469,10 @@ mod tests {
         m.primary1_bus_addr = 0;
         m.replica0_bus_ready = true;
         m.replica1_bus_ready = false;
-        m.replica_bus_read_data = 0xffffffffffffffffffffffffffffffff;
-        m.replica_bus_read_data_valid = false;
+        m.replica0_bus_read_data = 0xffffffffffffffffffffffffffffffff;
+        m.replica0_bus_read_data_valid = false;
+        m.replica1_bus_read_data = 0xffffffffffffffffffffffffffffffff;
+        m.replica1_bus_read_data_valid = false;
 
         m.prop();
 
@@ -419,8 +485,8 @@ mod tests {
         m.posedge_clk();
 
         m.primary0_bus_enable = false;
-        m.replica_bus_read_data = 0xdeadbeeffadebabeabad1deacafebabe;
-        m.replica_bus_read_data_valid = true;
+        m.replica0_bus_read_data = 0xdeadbeeffadebabeabad1deacafebabe;
+        m.replica0_bus_read_data_valid = true;
 
         m.prop();
 
@@ -446,8 +512,10 @@ mod tests {
         m.primary1_bus_addr = 0;
         m.replica0_bus_ready = false;
         m.replica1_bus_ready = true;
-        m.replica_bus_read_data = 0xffffffffffffffffffffffffffffffff;
-        m.replica_bus_read_data_valid = false;
+        m.replica0_bus_read_data = 0xffffffffffffffffffffffffffffffff;
+        m.replica0_bus_read_data_valid = false;
+        m.replica1_bus_read_data = 0xffffffffffffffffffffffffffffffff;
+        m.replica1_bus_read_data_valid = false;
 
         m.prop();
 
@@ -460,8 +528,8 @@ mod tests {
         m.posedge_clk();
 
         m.primary0_bus_enable = false;
-        m.replica_bus_read_data = 0xdeadbeeffadebabeabad1deacafebabe;
-        m.replica_bus_read_data_valid = true;
+        m.replica1_bus_read_data = 0xdeadbeeffadebabeabad1deacafebabe;
+        m.replica1_bus_read_data_valid = true;
 
         m.prop();
 
@@ -487,8 +555,10 @@ mod tests {
         m.primary1_bus_addr = 0x0beef;
         m.replica0_bus_ready = true;
         m.replica1_bus_ready = false;
-        m.replica_bus_read_data = 0xffffffffffffffffffffffffffffffff;
-        m.replica_bus_read_data_valid = false;
+        m.replica0_bus_read_data = 0xffffffffffffffffffffffffffffffff;
+        m.replica0_bus_read_data_valid = false;
+        m.replica1_bus_read_data = 0xffffffffffffffffffffffffffffffff;
+        m.replica1_bus_read_data_valid = false;
 
         m.prop();
 
@@ -501,8 +571,8 @@ mod tests {
         m.posedge_clk();
 
         m.primary1_bus_enable = false;
-        m.replica_bus_read_data = 0xdeadbeeffadebabeabad1deacafebabe;
-        m.replica_bus_read_data_valid = true;
+        m.replica0_bus_read_data = 0xdeadbeeffadebabeabad1deacafebabe;
+        m.replica0_bus_read_data_valid = true;
 
         m.prop();
 
@@ -528,8 +598,10 @@ mod tests {
         m.primary1_bus_addr = 0x1beef;
         m.replica0_bus_ready = false;
         m.replica1_bus_ready = true;
-        m.replica_bus_read_data = 0xffffffffffffffffffffffffffffffff;
-        m.replica_bus_read_data_valid = false;
+        m.replica0_bus_read_data = 0xffffffffffffffffffffffffffffffff;
+        m.replica0_bus_read_data_valid = false;
+        m.replica1_bus_read_data = 0xffffffffffffffffffffffffffffffff;
+        m.replica1_bus_read_data_valid = false;
 
         m.prop();
 
@@ -542,8 +614,8 @@ mod tests {
         m.posedge_clk();
 
         m.primary1_bus_enable = false;
-        m.replica_bus_read_data = 0xdeadbeeffadebabeabad1deacafebabe;
-        m.replica_bus_read_data_valid = true;
+        m.replica1_bus_read_data = 0xdeadbeeffadebabeabad1deacafebabe;
+        m.replica1_bus_read_data_valid = true;
 
         m.prop();
 
@@ -584,10 +656,10 @@ mod tests {
             assert_eq!(m.primary1_bus_read_data_valid, false);
 
             if let Some(addr) = replica_read_addr {
-                m.replica_bus_read_data = data[addr as usize];
-                m.replica_bus_read_data_valid = true;
+                m.replica0_bus_read_data = data[addr as usize];
+                m.replica0_bus_read_data_valid = true;
             } else {
-                m.replica_bus_read_data_valid = false;
+                m.replica0_bus_read_data_valid = false;
             }
 
             if primary_read_addr < data.len() {
@@ -645,10 +717,10 @@ mod tests {
             assert_eq!(m.primary1_bus_read_data_valid, false);
 
             if let Some(addr) = replica_read_addr {
-                m.replica_bus_read_data = data[addr as usize];
-                m.replica_bus_read_data_valid = true;
+                m.replica1_bus_read_data = data[addr as usize];
+                m.replica1_bus_read_data_valid = true;
             } else {
-                m.replica_bus_read_data_valid = false;
+                m.replica1_bus_read_data_valid = false;
             }
 
             if primary_read_addr < data.len() {
@@ -706,10 +778,10 @@ mod tests {
             assert_eq!(m.primary0_bus_read_data_valid, false);
 
             if let Some(addr) = replica_read_addr {
-                m.replica_bus_read_data = data[addr as usize];
-                m.replica_bus_read_data_valid = true;
+                m.replica0_bus_read_data = data[addr as usize];
+                m.replica0_bus_read_data_valid = true;
             } else {
-                m.replica_bus_read_data_valid = false;
+                m.replica0_bus_read_data_valid = false;
             }
 
             if primary_read_addr < data.len() {
@@ -767,10 +839,10 @@ mod tests {
             assert_eq!(m.primary0_bus_read_data_valid, false);
 
             if let Some(addr) = replica_read_addr {
-                m.replica_bus_read_data = data[addr as usize];
-                m.replica_bus_read_data_valid = true;
+                m.replica1_bus_read_data = data[addr as usize];
+                m.replica1_bus_read_data_valid = true;
             } else {
-                m.replica_bus_read_data_valid = false;
+                m.replica1_bus_read_data_valid = false;
             }
 
             if primary_read_addr < data.len() {
