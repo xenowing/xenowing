@@ -38,7 +38,7 @@ fn main() {
             marv.posedge_clk();
 
             match marv.bus_addr >> 26 {
-                0x1 => {
+                0x0 => {
                     if marv.bus_enable && marv.bus_write {
                         println!("WARNING: write to program ROM (byte addr: 0x{:08x})", marv.bus_addr << 2);
                     }
@@ -48,6 +48,19 @@ fn main() {
                         ((program_rom[byte_addr + 1] as u32) << 8) |
                         ((program_rom[byte_addr + 2] as u32) << 16) |
                         ((program_rom[byte_addr + 3] as u32) << 24);
+                }
+                0x1 => {
+                    let mem_addr = (marv.bus_addr & 0x1ffffff) as usize;
+                    marv.bus_read_data = mem[mem_addr];
+                    if marv.bus_enable && marv.bus_write {
+                        let read_data = mem[mem_addr];
+                        let mut write_data = 0;
+                        for i in 0..4 {
+                            let sel = (marv.bus_write_byte_enable & (1 << i)) != 0;
+                            write_data |= if sel { marv.bus_write_data } else { read_data } & (0xff << (8 * i));
+                        }
+                        mem[mem_addr] = write_data;
+                    }
                 }
                 0x2 => {
                     let byte_addr = marv.bus_addr << 2;
@@ -107,19 +120,6 @@ fn main() {
                         } else {
                             panic!("Attempted read unknown system reg (byte addr: 0x{:08x})", byte_addr);
                         }
-                    }
-                }
-                0x3 => {
-                    let mem_addr = (marv.bus_addr & 0x1ffffff) as usize;
-                    marv.bus_read_data = mem[mem_addr];
-                    if marv.bus_enable && marv.bus_write {
-                        let read_data = mem[mem_addr];
-                        let mut write_data = 0;
-                        for i in 0..4 {
-                            let sel = (marv.bus_write_byte_enable & (1 << i)) != 0;
-                            write_data |= if sel { marv.bus_write_data } else { read_data } & (0xff << (8 * i));
-                        }
-                        mem[mem_addr] = write_data;
                     }
                 }
                 _ => {

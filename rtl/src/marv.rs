@@ -81,7 +81,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     register_file.initial_contents(&[0u32; 32]);
 
     let pc = m.reg("pc", 32);
-    pc.default_value(0x10000000u32);
+    pc.default_value(0x00000000u32);
 
     let cycle_counter = m.reg("cycle_counter", 64);
     cycle_counter.default_value(0u64);

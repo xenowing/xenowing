@@ -4,20 +4,23 @@ void put_u64(uint64_t value)
 {
     xw_puts_nn("0x");
     char buf[] = "0000000000000000";
-    uint32_t buf_index = 15;
-    while (value)
+    for (int i = 0; i < 16; i++)
     {
-        uint32_t digit = (uint32_t)value & 0xf;
-        if (digit)
-            buf[buf_index] = digit < 10 ? '0' + digit : 'a' + (digit - 10);
-        value >>= 4;
-        buf_index--;
+        uint32_t digit = (uint32_t)(value >> i * 4) & 0xf;
+        buf[15 - i] = digit < 10 ? '0' + digit : 'a' + (digit - 10);
     }
     xw_puts_nn(buf);
 }
 
 int main()
 {
+    put_u64(0xfadebabedeadbeef);
+    xw_puts("");
+    put_u64(0x0123456789abcdef);
+    xw_puts("");
+    put_u64(0xfedcba9876543210);
+    xw_puts("");
+
     xw_puts("xw online");
 
     xw_display_init();

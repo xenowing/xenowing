@@ -6,20 +6,17 @@ Notes
 
 High-level map (note that not all addresses within the following ranges are necessarily valid; see detailed map for more info)
 
-0x10000000 - 0x10001fff: Program ROM
-0x20000000 - 0x22000007: System regs
-0x30000000 - 0x3001ffff: RAM
+0x00000000 - 0x00001fff: Program ROM
+0x01000000 - 0x02000013: System regs
+0x10000000 - 0x1001ffff: RAM
 
 Detailed mem map
 
-0x10000000 - 0x1000ffff: Program ROM
+0x00000000 - 0x0000ffff: Program ROM
 
-0x20000000 - 0x20000003: LED interface (R/W, only word 0 used). Bits 0, 1, and 2 correspond to the 3 available LED's (0 = off, 1 = on).
+0x01000000 - 0x01000003: LED interface (R/W, only word 0 used). Bits 0, 1, and 2 correspond to the 3 available LED's (0 = off, 1 = on).
 
-0x21000000 - 0x21000003: UART transmitter status (R). Bit 0 indicates ready status (1 = ready, 0 = busy).
-0x21000004 - 0x21000007: UART transmitter write (W). Bits 0-7 indicate data to be transmitted. When not busy, a write to this reg will start a new transmission immediately. If busy, the write is ignored.
+0x02000000 - 0x02000003: UART transmitter status (R). Bit 0 indicates ready status (1 = ready, 0 = busy).
+0x02000010 - 0x02000013: UART transmitter write (W). Bits 0-7 indicate data to be transmitted. When not busy, a write to this reg will start a new transmission immediately. If busy, the write is ignored.
 
-0x22000000 - 0x22000003: Display status (R). Bit 0 indicates vblank status.
-0x22000004 - 0x22000007: Framebuffer base address (W). This is a 14-bit address to a 64-bit word which contains the first four pixels of the current framebuffer. The address specified is in bytes for convenience, but bits 0-2 and bits 17-31 are all ignored.
-
-0x30000000 - 0x3001ffff: RAM
+0x10000000 - 0x1001ffff: RAM
