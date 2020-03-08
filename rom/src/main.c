@@ -14,13 +14,6 @@ void put_u64(uint64_t value)
 
 int main()
 {
-    put_u64(0xfadebabedeadbeef);
-    xw_puts("");
-    put_u64(0x0123456789abcdef);
-    xw_puts("");
-    put_u64(0xfedcba9876543210);
-    xw_puts("");
-
     xw_puts("xw online");
 
     xw_display_init();
