@@ -4,4 +4,5 @@ pub mod interconnect;
 pub mod marv;
 pub mod marv_interconnect_bridge;
 pub mod peek_buffer;
+pub mod uart;
 pub mod xenowing;
