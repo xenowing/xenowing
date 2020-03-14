@@ -1,22 +1,13 @@
 `default_nettype none
 
 module Uart(
-    input wire logic reset,
+    input wire logic reset_n,
     input wire logic clk,
 
     output wire logic tx,
     input wire logic rx,
 
-    output wire logic led);
-
-    logic reset_n;
-    SyncChain #(.DEFAULT(1'b0)) reset_sync_chain(
-        .reset_n(~reset),
-        .clk(clk),
-
-        .x(1'b1),
-
-        .x_sync(reset_n));
+    output logic has_errored);
 
     logic [7:0] write_data;
     logic write_req;
@@ -36,16 +27,7 @@ module Uart(
         .clk(clk),
 
         .value(write_data),
-        .shift_enable(ready));
-
-    logic rx_sync;
-    SyncChain #(.DEFAULT(1'b1)) rx_sync_chain(
-        .reset_n(reset_n),
-        .clk(clk),
-
-        .x(rx),
-
-        .x_sync(rx_sync));
+        .shift_enable(write_req & ready));
 
     logic [7:0] read_data;
     logic read_data_ready;
@@ -53,7 +35,7 @@ module Uart(
         .reset_n(reset_n),
         .clk(clk),
 
-        .rx(rx_sync),
+        .rx(rx),
 
         .data(read_data),
         .data_ready(read_data_ready));
@@ -66,7 +48,6 @@ module Uart(
         .value(rx_lfsr_value),
         .shift_enable(read_data_ready));
 
-    logic has_errored;
     logic has_errored_next;
 
     always_comb begin
@@ -85,8 +66,6 @@ module Uart(
             has_errored <= has_errored_next;
         end
     end
-
-    assign led = has_errored;
 
     assign write_req = ~has_errored;
 
