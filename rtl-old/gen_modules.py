@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from kaze import *
-import uart
 import display
 from sys import argv
 
@@ -9,7 +8,6 @@ if __name__ == '__main__':
     output_file_name = argv[1]
 
     modules = [
-        uart.receiver(100000000, 460800),
         display.display(),
         display.display_load_issue(),
         display.display_load_return(),

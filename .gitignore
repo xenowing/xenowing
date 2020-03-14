@@ -1,7 +1,2 @@
-obj_dir/
-trace/
 target/
 Cargo.lock
-output_files/
-__pycache__/
-rtl-old/_generated.sv

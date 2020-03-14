@@ -35,13 +35,26 @@ module uart(
         .value(write_data),
         .shift_enable(ready));
 
+    parameter RX_SYNC_STAGES = 2;
+
+    (* ASYNC_REG = "TRUE" *) logic [RX_SYNC_STAGES - 1:0] rx_sync_chain;
+
+    always_ff @(posedge clk, negedge reset_n) begin
+        if (~reset_n) begin
+            rx_sync_chain <= {RX_SYNC_STAGES{1'd1}};
+        end
+        else begin
+            rx_sync_chain <= {rx_sync_chain[RX_SYNC_STAGES - 2:0], rx};
+        end
+    end
+
     logic [7:0] read_data;
     logic read_data_ready;
-    uart_receiver(
+    UartRx uart_rx(
         .reset_n(reset_n),
         .clk(clk),
 
-        .rx(rx),
+        .rx(rx_sync_chain[RX_SYNC_STAGES - 1]),
 
         .data(read_data),
         .data_ready(read_data_ready));
@@ -68,7 +81,8 @@ module uart(
     always_ff @(posedge clk, negedge reset_n) begin
         if (~reset_n) begin
             has_errored <= 1'b0;
-        end else begin
+        end
+        else begin
             has_errored <= has_errored_next;
         end
     end

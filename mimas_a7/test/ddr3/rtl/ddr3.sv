@@ -157,7 +157,8 @@ module ddr3(
             uart_write_byte_index <= 0;
 
             led_reg <= 0;
-        end else begin
+        end
+        else begin
             case (state)
                 STATE_IDLE: begin
                     app_cmd <= CMD_WRITE;
@@ -188,7 +189,8 @@ module ddr3(
                                 uart_write_word <= write_cycles;
 
                                 state <= STATE_TRANSMIT_WRITE_CYCLES;
-                            end else begin
+                            end
+                            else begin
                                 app_en <= 1;
                                 app_wdf_wren <= 1;
 
@@ -209,7 +211,8 @@ module ddr3(
                                 uart_write_word <= write_cycles;
 
                                 state <= STATE_TRANSMIT_WRITE_CYCLES;
-                            end else begin
+                            end
+                            else begin
                                 app_en <= 1;
                                 app_wdf_wren <= 1;
 
@@ -226,7 +229,8 @@ module ddr3(
                         if (uart_write_byte_index != 3'h7) begin
                             uart_write_word <= {8'h0, uart_write_word[63:8]};
                             uart_write_byte_index <= uart_write_byte_index + 3'h1;
-                        end else begin
+                        end
+                        else begin
                             app_cmd <= CMD_READ;
                             app_en <= 1;
 
@@ -245,7 +249,8 @@ module ddr3(
                             app_en <= 0;
 
                             state <= STATE_READ_WAIT;
-                        end else begin
+                        end
+                        else begin
                             word_counter <= word_counter + 32'h1;
                         end
                     end
@@ -262,7 +267,8 @@ module ddr3(
                             uart_write_byte_index <= 0;
 
                             state <= STATE_TRANSMIT_READ_CYCLES;
-                        end else begin
+                        end
+                        else begin
                             state <= STATE_ERROR;
                         end
                     end
@@ -275,7 +281,8 @@ module ddr3(
                         if (uart_write_byte_index != 3'h7) begin
                             uart_write_word <= {8'h0, uart_write_word[63:8]};
                             uart_write_byte_index <= uart_write_byte_index + 3'h1;
-                        end else begin
+                        end
+                        else begin
                             uart_write_req <= 0;
 
                             state <= STATE_PARK;
@@ -307,16 +314,19 @@ module ddr3(
             read_check_done <= 0;
             read_check_valid <= 0;
             read_check_word_counter <= 0;
-        end else begin
+        end
+        else begin
             if (~read_check_done & app_rd_data_valid) begin
                 if (app_rd_data == DATA_BASE + {96'h0, read_check_word_counter}) begin
                     if (read_check_word_counter == NUM_WORDS - 1) begin
                         read_check_done <= 1;
                         read_check_valid <= 1;
-                    end else begin
+                    end
+                    else begin
                         read_check_word_counter <= read_check_word_counter + 32'h1;
                     end
-                end else begin
+                end
+                else begin
                     read_check_done <= 1;
                     read_check_valid <= 0;
                 end

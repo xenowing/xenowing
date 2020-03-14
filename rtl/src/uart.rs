@@ -12,11 +12,12 @@ pub fn generate_rx<'a>(c: &'a Context<'a>, clock_freq: u32, baud_rate: u32) -> &
     let clocks_per_tick = clock_freq / tick_rate;
     let tick_counter = m.reg("tick_counter", 32);
     tick_counter.default_value(0u32);
-    let tick = tick_counter.value.eq(m.lit(clocks_per_tick, 32));
+    let tick = tick_counter.value.eq(m.lit(clocks_per_tick - 1, 32));
     tick_counter.drive_next(tick.mux(m.lit(0u32, 32), tick_counter.value + m.lit(1u32, 32)));
 
     let wait_counter_bit_width = 2;
     let wait_counter = m.reg("wait_counter", wait_counter_bit_width);
+    m.output("wait_counter", wait_counter.value);
     let next_wait_counter = wait_counter.value;
 
     let data = m.reg("data", 8);
@@ -26,8 +27,9 @@ pub fn generate_rx<'a>(c: &'a Context<'a>, clock_freq: u32, baud_rate: u32) -> &
     let next_data_ready = m.low();
 
     let bit_counter = m.reg("bit_counter", 3);
+    m.output("bit_counter", bit_counter.value);
     bit_counter.default_value(0u32);
-        let next_bit_counter = bit_counter.value;
+    let next_bit_counter = bit_counter.value;
 
     let state_bit_width = 2;
     let state_idle = 0u32;
@@ -35,6 +37,7 @@ pub fn generate_rx<'a>(c: &'a Context<'a>, clock_freq: u32, baud_rate: u32) -> &
     let state_input_bit = 2u32;
     let state_stop_bit_wait = 3u32;
     let state = m.reg("state", state_bit_width);
+    m.output("state", state.value);
     state.default_value(state_idle);
     let next_state = state.value;
     let (next_wait_counter, next_data, next_data_ready, next_bit_counter, next_state) = if_(tick, {
@@ -50,19 +53,23 @@ pub fn generate_rx<'a>(c: &'a Context<'a>, clock_freq: u32, baud_rate: u32) -> &
                 (next_wait_counter, next_data, next_data_ready, next_bit_counter, next_state)
             })
         }).else_if(state.value.eq(m.lit(state_start_bit_wait, state_bit_width)), {
-            if_(rx, {
-                // Input is probably spurious; go back to idle state
-                let next_state = m.lit(state_idle, state_bit_width);
-
-                (next_wait_counter, next_data, next_data_ready, next_bit_counter, next_state)
-            }).else_if(wait_counter.value.eq(m.lit(1u32, wait_counter_bit_width)), {
+            let (next_wait_counter, next_state) = if_(wait_counter.value.eq(m.lit(1u32, wait_counter_bit_width)), {
                 let next_wait_counter = m.lit(0u32, wait_counter_bit_width);
                 let next_state = m.lit(state_input_bit, state_bit_width);
 
-                (next_wait_counter, next_data, next_data_ready, next_bit_counter, next_state)
+                (next_wait_counter, next_state)
             }).else_({
-                (next_wait_counter, next_data, next_data_ready, next_bit_counter, next_state)
-            })
+                (next_wait_counter, next_state)
+            });
+
+            let next_state = if_(rx, {
+                // Input is probably spurious; go back to idle state
+                m.lit(state_idle, state_bit_width)
+            }).else_({
+                next_state
+            });
+
+            (next_wait_counter, next_data, next_data_ready, next_bit_counter, next_state)
         }).else_if(state.value.eq(m.lit(state_input_bit, state_bit_width)), {
             let (next_data, next_data_ready, next_bit_counter, next_state) = if_(wait_counter.value.eq(m.lit(3u32, wait_counter_bit_width)), {
                 let next_data = rx.concat(data.value.bits(7, 1));
