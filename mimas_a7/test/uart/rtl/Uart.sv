@@ -10,15 +10,15 @@ module Uart(
     output logic has_errored);
 
     logic [7:0] write_data;
-    logic write_req;
-    logic ready;
-    uart_transmitter uart_transmitter0(
+    logic write_enable;
+    logic write_ready;
+    UartTx uart_tx(
         .reset_n(reset_n),
         .clk(clk),
 
-        .write_data(write_data),
-        .write_req(write_req),
-        .ready(ready),
+        .data(write_data),
+        .enable(write_enable),
+        .ready(write_ready),
 
         .tx(tx));
 
@@ -27,7 +27,7 @@ module Uart(
         .clk(clk),
 
         .value(write_data),
-        .shift_enable(write_req & ready));
+        .shift_enable(write_enable & write_ready));
 
     logic [7:0] read_data;
     logic read_data_ready;
@@ -67,6 +67,6 @@ module Uart(
         end
     end
 
-    assign write_req = ~has_errored;
+    assign write_enable = ~has_errored;
 
 endmodule

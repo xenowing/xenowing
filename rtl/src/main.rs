@@ -10,6 +10,7 @@ fn main() -> Result<()> {
 
     system_verilog::generate(lfsr::generate(&c), stdout())?;
     system_verilog::generate(uart::generate_rx(&c, 100000000, 460800), stdout())?;
+    system_verilog::generate(uart::generate_tx(&c, 100000000, 460800), stdout())?;
 
     Ok(())
 }
