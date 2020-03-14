@@ -28,7 +28,7 @@ module uart(
 
         .tx(tx));
 
-    lfsr tx_lfsr(
+    Lfsr tx_lfsr(
         .reset_n(reset_n),
         .clk(clk),
 
@@ -60,7 +60,7 @@ module uart(
         .data_ready(read_data_ready));
 
     logic [7:0] rx_lfsr_value;
-    lfsr rx_lfsr(
+    Lfsr rx_lfsr(
         .reset_n(reset_n),
         .clk(clk),
 
