@@ -1,6 +1,8 @@
 use crate::marv;
 use crate::marv_interconnect_bridge;
 use crate::interconnect;
+use crate::uart;
+use crate::uart_interface;
 
 use kaze::*;
 
@@ -34,15 +36,6 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     marv_interconnect_bridge.drive_input("interconnect_bus_read_data", interconnect.output("marv_bus_read_data"));
     marv_interconnect_bridge.drive_input("interconnect_bus_read_data_valid", interconnect.output("marv_bus_read_data_valid"));
 
-    m.output("ddr3_interface_bus_enable", interconnect.output("ddr3_interface_bus_enable"));
-    m.output("ddr3_interface_bus_addr", interconnect.output("ddr3_interface_bus_addr"));
-    m.output("ddr3_interface_bus_write", interconnect.output("ddr3_interface_bus_write"));
-    m.output("ddr3_interface_bus_write_data", interconnect.output("ddr3_interface_bus_write_data"));
-    m.output("ddr3_interface_bus_write_byte_enable", interconnect.output("ddr3_interface_bus_write_byte_enable"));
-    interconnect.drive_input("ddr3_interface_bus_ready", m.input("ddr3_interface_bus_ready", 1));
-    interconnect.drive_input("ddr3_interface_bus_read_data", m.input("ddr3_interface_bus_read_data", 128));
-    interconnect.drive_input("ddr3_interface_bus_read_data_valid", m.input("ddr3_interface_bus_read_data_valid", 1));
-
     m.output("bios_rom_bus_enable", interconnect.output("bios_rom_bus_enable"));
     m.output("bios_rom_bus_addr", interconnect.output("bios_rom_bus_addr"));
     m.output("bios_rom_bus_write", interconnect.output("bios_rom_bus_write"));
@@ -61,14 +54,35 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     interconnect.drive_input("led_interface_bus_read_data", m.input("led_interface_bus_read_data", 128));
     interconnect.drive_input("led_interface_bus_read_data_valid", m.input("led_interface_bus_read_data_valid", 1));
 
-    m.output("uart_interface_bus_enable", interconnect.output("uart_interface_bus_enable"));
-    m.output("uart_interface_bus_addr", interconnect.output("uart_interface_bus_addr"));
-    m.output("uart_interface_bus_write", interconnect.output("uart_interface_bus_write"));
-    m.output("uart_interface_bus_write_data", interconnect.output("uart_interface_bus_write_data"));
-    m.output("uart_interface_bus_write_byte_enable", interconnect.output("uart_interface_bus_write_byte_enable"));
-    interconnect.drive_input("uart_interface_bus_ready", m.input("uart_interface_bus_ready", 1));
-    interconnect.drive_input("uart_interface_bus_read_data", m.input("uart_interface_bus_read_data", 128));
-    interconnect.drive_input("uart_interface_bus_read_data_valid", m.input("uart_interface_bus_read_data_valid", 1));
+    uart::generate_tx(c, 100000000, 460800);
+    let uart_tx = m.instance("uart_tx", "UartTx");
+
+    m.output("tx", uart_tx.output("tx"));
+
+    uart_interface::generate(c);
+    let uart_interface = m.instance("uart_interface", "UartInterface");
+
+    uart_interface.drive_input("bus_enable", interconnect.output("uart_interface_bus_enable"));
+    uart_interface.drive_input("bus_addr", interconnect.output("uart_interface_bus_addr"));
+    uart_interface.drive_input("bus_write", interconnect.output("uart_interface_bus_write"));
+    uart_interface.drive_input("bus_write_data", interconnect.output("uart_interface_bus_write_data"));
+    uart_interface.drive_input("bus_write_byte_enable", interconnect.output("uart_interface_bus_write_byte_enable"));
+    interconnect.drive_input("uart_interface_bus_ready", uart_interface.output("bus_ready"));
+    interconnect.drive_input("uart_interface_bus_read_data", uart_interface.output("bus_read_data"));
+    interconnect.drive_input("uart_interface_bus_read_data_valid", uart_interface.output("bus_read_data_valid"));
+
+    uart_interface.drive_input("tx_ready", uart_tx.output("ready"));
+    uart_tx.drive_input("data", uart_interface.output("tx_data"));
+    uart_tx.drive_input("enable", uart_interface.output("tx_enable"));
+
+    m.output("ddr3_interface_bus_enable", interconnect.output("ddr3_interface_bus_enable"));
+    m.output("ddr3_interface_bus_addr", interconnect.output("ddr3_interface_bus_addr"));
+    m.output("ddr3_interface_bus_write", interconnect.output("ddr3_interface_bus_write"));
+    m.output("ddr3_interface_bus_write_data", interconnect.output("ddr3_interface_bus_write_data"));
+    m.output("ddr3_interface_bus_write_byte_enable", interconnect.output("ddr3_interface_bus_write_byte_enable"));
+    interconnect.drive_input("ddr3_interface_bus_ready", m.input("ddr3_interface_bus_ready", 1));
+    interconnect.drive_input("ddr3_interface_bus_read_data", m.input("ddr3_interface_bus_read_data", 128));
+    interconnect.drive_input("ddr3_interface_bus_read_data_valid", m.input("ddr3_interface_bus_read_data_valid", 1));
 
     m
 }

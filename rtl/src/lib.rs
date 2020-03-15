@@ -1,9 +1,11 @@
 pub mod buster;
 pub mod fifo;
+mod helpers;
 pub mod interconnect;
 pub mod lfsr;
 pub mod marv;
 pub mod marv_interconnect_bridge;
 pub mod peek_buffer;
 pub mod uart;
+pub mod uart_interface;
 pub mod xenowing;

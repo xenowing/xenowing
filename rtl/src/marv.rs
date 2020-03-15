@@ -1,3 +1,5 @@
+use crate::helpers::*;
+
 use kaze::*;
 
 struct Instruction<'a> {
@@ -451,12 +453,6 @@ fn generate_execute<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("rd_value_write_data", rd_value_write_data);
 
     m
-}
-
-fn reg_next<'a, S: Into<String>>(name: S, next: &'a Signal<'a>, m: &'a Module<'a>) -> &'a Signal<'a> {
-    let reg = m.reg(name, next.bit_width());
-    reg.drive_next(next);
-    reg.value
 }
 
 fn generate_mem<'a>(c: &'a Context<'a>) -> &Module<'a> {

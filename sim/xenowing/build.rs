@@ -13,5 +13,48 @@ fn main() -> Result<()> {
 
     let c = Context::new();
 
-    sim::generate(xenowing::generate(&c), file)
+    sim::generate(generate_top(&c), file)
+}
+
+fn generate_top<'a>(c: &'a Context<'a>) -> &Module<'a> {
+    let m = c.module("Top");
+
+    xenowing::generate(&c);
+    let xenowing = m.instance("xenowing", "Xenowing");
+
+    m.output("bios_rom_bus_enable", xenowing.output("bios_rom_bus_enable"));
+    m.output("bios_rom_bus_addr", xenowing.output("bios_rom_bus_addr"));
+    m.output("bios_rom_bus_write", xenowing.output("bios_rom_bus_write"));
+    m.output("bios_rom_bus_write_data", xenowing.output("bios_rom_bus_write_data"));
+    m.output("bios_rom_bus_write_byte_enable", xenowing.output("bios_rom_bus_write_byte_enable"));
+    xenowing.drive_input("bios_rom_bus_ready", m.input("bios_rom_bus_ready", 1));
+    xenowing.drive_input("bios_rom_bus_read_data", m.input("bios_rom_bus_read_data", 128));
+    xenowing.drive_input("bios_rom_bus_read_data_valid", m.input("bios_rom_bus_read_data_valid", 1));
+
+    m.output("led_interface_bus_enable", xenowing.output("led_interface_bus_enable"));
+    m.output("led_interface_bus_addr", xenowing.output("led_interface_bus_addr"));
+    m.output("led_interface_bus_write", xenowing.output("led_interface_bus_write"));
+    m.output("led_interface_bus_write_data", xenowing.output("led_interface_bus_write_data"));
+    m.output("led_interface_bus_write_byte_enable", xenowing.output("led_interface_bus_write_byte_enable"));
+    xenowing.drive_input("led_interface_bus_ready", m.input("led_interface_bus_ready", 1));
+    xenowing.drive_input("led_interface_bus_read_data", m.input("led_interface_bus_read_data", 128));
+    xenowing.drive_input("led_interface_bus_read_data_valid", m.input("led_interface_bus_read_data_valid", 1));
+
+    uart::generate_rx(c, 100000000, 460800);
+    let uart_rx = m.instance("uart_rx", "UartRx");
+
+    uart_rx.drive_input("rx", xenowing.output("tx"));
+    m.output("uart_data", uart_rx.output("data"));
+    m.output("uart_data_valid", uart_rx.output("data_ready"));
+
+    m.output("ddr3_interface_bus_enable", xenowing.output("ddr3_interface_bus_enable"));
+    m.output("ddr3_interface_bus_addr", xenowing.output("ddr3_interface_bus_addr"));
+    m.output("ddr3_interface_bus_write", xenowing.output("ddr3_interface_bus_write"));
+    m.output("ddr3_interface_bus_write_data", xenowing.output("ddr3_interface_bus_write_data"));
+    m.output("ddr3_interface_bus_write_byte_enable", xenowing.output("ddr3_interface_bus_write_byte_enable"));
+    xenowing.drive_input("ddr3_interface_bus_ready", m.input("ddr3_interface_bus_ready", 1));
+    xenowing.drive_input("ddr3_interface_bus_read_data", m.input("ddr3_interface_bus_read_data", 128));
+    xenowing.drive_input("ddr3_interface_bus_read_data_valid", m.input("ddr3_interface_bus_read_data_valid", 1));
+
+    m
 }
