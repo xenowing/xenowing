@@ -90,8 +90,8 @@ fn main() {
                 }
             }
             top.ddr3_interface_bus_read_data_valid = top.ddr3_interface_bus_enable && !top.ddr3_interface_bus_write;
-
-            top.prop();
         }
+
+        top.prop();
     }
 }
