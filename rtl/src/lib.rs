@@ -2,6 +2,7 @@ pub mod buster;
 pub mod fifo;
 mod helpers;
 pub mod interconnect;
+pub mod led_interface;
 pub mod lfsr;
 pub mod marv;
 pub mod marv_interconnect_bridge;

@@ -31,14 +31,7 @@ fn generate_top<'a>(c: &'a Context<'a>) -> &Module<'a> {
     xenowing.drive_input("bios_rom_bus_read_data", m.input("bios_rom_bus_read_data", 128));
     xenowing.drive_input("bios_rom_bus_read_data_valid", m.input("bios_rom_bus_read_data_valid", 1));
 
-    m.output("led_interface_bus_enable", xenowing.output("led_interface_bus_enable"));
-    m.output("led_interface_bus_addr", xenowing.output("led_interface_bus_addr"));
-    m.output("led_interface_bus_write", xenowing.output("led_interface_bus_write"));
-    m.output("led_interface_bus_write_data", xenowing.output("led_interface_bus_write_data"));
-    m.output("led_interface_bus_write_byte_enable", xenowing.output("led_interface_bus_write_byte_enable"));
-    xenowing.drive_input("led_interface_bus_ready", m.input("led_interface_bus_ready", 1));
-    xenowing.drive_input("led_interface_bus_read_data", m.input("led_interface_bus_read_data", 128));
-    xenowing.drive_input("led_interface_bus_read_data_valid", m.input("led_interface_bus_read_data_valid", 1));
+    m.output("leds", xenowing.output("leds"));
 
     uart::generate_rx(c, 100000000, 460800);
     let uart_rx = m.instance("uart_rx", "UartRx");

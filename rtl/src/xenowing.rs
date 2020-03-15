@@ -1,6 +1,7 @@
+use crate::interconnect;
+use crate::led_interface;
 use crate::marv;
 use crate::marv_interconnect_bridge;
-use crate::interconnect;
 use crate::uart;
 use crate::uart_interface;
 
@@ -45,14 +46,19 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     interconnect.drive_input("bios_rom_bus_read_data", m.input("bios_rom_bus_read_data", 128));
     interconnect.drive_input("bios_rom_bus_read_data_valid", m.input("bios_rom_bus_read_data_valid", 1));
 
-    m.output("led_interface_bus_enable", interconnect.output("led_interface_bus_enable"));
-    m.output("led_interface_bus_addr", interconnect.output("led_interface_bus_addr"));
-    m.output("led_interface_bus_write", interconnect.output("led_interface_bus_write"));
-    m.output("led_interface_bus_write_data", interconnect.output("led_interface_bus_write_data"));
-    m.output("led_interface_bus_write_byte_enable", interconnect.output("led_interface_bus_write_byte_enable"));
-    interconnect.drive_input("led_interface_bus_ready", m.input("led_interface_bus_ready", 1));
-    interconnect.drive_input("led_interface_bus_read_data", m.input("led_interface_bus_read_data", 128));
-    interconnect.drive_input("led_interface_bus_read_data_valid", m.input("led_interface_bus_read_data_valid", 1));
+    led_interface::generate(c);
+    let led_interface = m.instance("led_interface", "LedInterface");
+
+    led_interface.drive_input("bus_enable", interconnect.output("led_interface_bus_enable"));
+    led_interface.drive_input("bus_addr", interconnect.output("led_interface_bus_addr"));
+    led_interface.drive_input("bus_write", interconnect.output("led_interface_bus_write"));
+    led_interface.drive_input("bus_write_data", interconnect.output("led_interface_bus_write_data"));
+    led_interface.drive_input("bus_write_byte_enable", interconnect.output("led_interface_bus_write_byte_enable"));
+    interconnect.drive_input("led_interface_bus_ready", led_interface.output("bus_ready"));
+    interconnect.drive_input("led_interface_bus_read_data", led_interface.output("bus_read_data"));
+    interconnect.drive_input("led_interface_bus_read_data_valid", led_interface.output("bus_read_data_valid"));
+
+    m.output("leds", led_interface.output("leds"));
 
     uart::generate_tx(c, 100000000, 460800);
     let uart_tx = m.instance("uart_tx", "UartTx");

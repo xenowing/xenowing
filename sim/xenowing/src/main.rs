@@ -30,7 +30,6 @@ fn main() {
             top.reset();
 
             top.bios_rom_bus_ready = true;
-            top.led_interface_bus_ready = true;
             top.ddr3_interface_bus_ready = true;
         } else {
             top.posedge_clk();
@@ -48,28 +47,10 @@ fn main() {
             }
             top.bios_rom_bus_read_data_valid = top.bios_rom_bus_enable && !top.bios_rom_bus_write;
 
-            if top.led_interface_bus_enable {
-                // TODO: Masking? It might help not to actually in order to catch errors
-                let byte_addr = top.led_interface_bus_addr << 4;
-                if top.led_interface_bus_write {
-                    match byte_addr {
-                        0x00000000 => {
-                            let new_leds = top.led_interface_bus_write_data;
-                            if new_leds != leds {
-                                println!("LEDs updated: 0b{:03b} -> 0b{:03b}", leds, new_leds);
-                                leds = new_leds;
-                            }
-                        }
-                        _ => panic!("Attempted write to LED interface (byte addr: 0x{:08x})", byte_addr)
-                    };
-                    //println!("*** LED interface write: byte addr: 0x{:08x} <- 0x{:032x} / 0b{:016b}", byte_addr, top.led_interface_bus_write_data, top.led_interface_bus_write_byte_enable);
-                } else {
-                    top.led_interface_bus_read_data = match byte_addr {
-                        0x00000000 => leds,
-                        _ => panic!("Attempted read from LED interface (byte addr: 0x{:08x})", byte_addr)
-                    };
-                    //println!("*** LED interface read: byte addr: 0x{:08x} -> 0x{:032x}", byte_addr, top.led_interface_bus_read_data);
-                }
+            let new_leds = top.leds;
+            if new_leds != leds {
+                println!("LEDs updated: 0b{:03b} -> 0b{:03b}", leds, new_leds);
+                leds = new_leds;
             }
 
             if top.uart_data_valid {
