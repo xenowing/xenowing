@@ -4,6 +4,8 @@
 #define XW_UART_TX_STATUS ((volatile uint8_t *)0x02000000)
 #define XW_UART_TX_WRITE ((volatile uint8_t *)0x02000010)
 
+#define XW_UART_COMMAND_PUTC 0x00
+
 void xw_uart_write(uint8_t byte)
 {
     while (!(*XW_UART_TX_STATUS & 1))
@@ -14,6 +16,7 @@ void xw_uart_write(uint8_t byte)
 
 void xw_putc(const char c)
 {
+    xw_uart_write(XW_UART_COMMAND_PUTC);
     xw_uart_write((uint8_t)c);
 }
 

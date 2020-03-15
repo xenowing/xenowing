@@ -21,6 +21,12 @@ fn main() {
 
     let mut leds = 0b000;
 
+    enum UartCommand {
+        Putc,
+    }
+    let mut uart_command = None;
+    const XW_UART_COMMAND_PUTC: u8 = 0x00;
+
     let mut ddr3_mem = vec![0; 0x20000];
 
     let mut top = Top::new();
@@ -54,7 +60,17 @@ fn main() {
             }
 
             if top.uart_data_valid {
-                print!("{}", top.uart_data as u8 as char);
+                let data = top.uart_data as u8;
+                if let Some(ref command) = uart_command {
+                    match command {
+                        UartCommand::Putc => print!("{}", data as char),
+                    }
+                } else {
+                    uart_command = Some(match data {
+                        XW_UART_COMMAND_PUTC => UartCommand::Putc,
+                        _ => panic!("Invalid UART command received: 0x{:02x}", data)
+                    });
+                }
             }
 
             if top.ddr3_interface_bus_enable {
