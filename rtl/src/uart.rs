@@ -21,9 +21,9 @@ pub fn generate_rx<'a>(c: &'a Context<'a>, clock_freq: u32, baud_rate: u32) -> &
 
     let data = m.reg("data", 8);
     let next_data = data.value;
-    let data_ready = m.reg("data_ready", 1);
-    data_ready.default_value(false);
-    let next_data_ready = m.low();
+    let data_valid = m.reg("data_valid", 1);
+    data_valid.default_value(false);
+    let next_data_valid = m.low();
 
     let bit_counter = m.reg("bit_counter", 3);
     bit_counter.default_value(0u32);
@@ -37,17 +37,17 @@ pub fn generate_rx<'a>(c: &'a Context<'a>, clock_freq: u32, baud_rate: u32) -> &
     let state = m.reg("state", state_bit_width);
     state.default_value(state_idle);
     let next_state = state.value;
-    let (next_wait_counter, next_data, next_data_ready, next_bit_counter, next_state) = if_(tick, {
+    let (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state) = if_(tick, {
         let next_wait_counter = wait_counter.value + m.lit(1u32, wait_counter_bit_width);
 
-        let (next_wait_counter, next_data, next_data_ready, next_bit_counter, next_state) = if_(state.value.eq(m.lit(state_idle, state_bit_width)), {
+        let (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state) = if_(state.value.eq(m.lit(state_idle, state_bit_width)), {
             if_(!rx, {
                 let next_wait_counter = m.lit(0u32, wait_counter_bit_width);
                 let next_state = m.lit(state_start_bit_wait, state_bit_width);
 
-                (next_wait_counter, next_data, next_data_ready, next_bit_counter, next_state)
+                (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state)
             }).else_({
-                (next_wait_counter, next_data, next_data_ready, next_bit_counter, next_state)
+                (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state)
             })
         }).else_if(state.value.eq(m.lit(state_start_bit_wait, state_bit_width)), {
             let (next_wait_counter, next_state) = if_(wait_counter.value.eq(m.lit(1u32, wait_counter_bit_width)), {
@@ -66,25 +66,25 @@ pub fn generate_rx<'a>(c: &'a Context<'a>, clock_freq: u32, baud_rate: u32) -> &
                 next_state
             });
 
-            (next_wait_counter, next_data, next_data_ready, next_bit_counter, next_state)
+            (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state)
         }).else_if(state.value.eq(m.lit(state_input_bit, state_bit_width)), {
-            let (next_data, next_data_ready, next_bit_counter, next_state) = if_(wait_counter.value.eq(m.lit(3u32, wait_counter_bit_width)), {
+            let (next_data, next_data_valid, next_bit_counter, next_state) = if_(wait_counter.value.eq(m.lit(3u32, wait_counter_bit_width)), {
                 let next_data = rx.concat(data.value.bits(7, 1));
                 let next_bit_counter = bit_counter.value + m.lit(1u32, 3);
 
                 if_(bit_counter.value.eq(m.lit(7u32, 3)), {
-                    let next_data_ready = m.high();
+                    let next_data_valid = m.high();
                     let next_state = m.lit(state_stop_bit_wait, state_bit_width);
 
-                    (next_data, next_data_ready, next_bit_counter, next_state)
+                    (next_data, next_data_valid, next_bit_counter, next_state)
                 }).else_({
-                    (next_data, next_data_ready, next_bit_counter, next_state)
+                    (next_data, next_data_valid, next_bit_counter, next_state)
                 })
             }).else_({
-                (next_data, next_data_ready, next_bit_counter, next_state)
+                (next_data, next_data_valid, next_bit_counter, next_state)
             });
 
-            (next_wait_counter, next_data, next_data_ready, next_bit_counter, next_state)
+            (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state)
         }).else_({
             let next_state = if_(wait_counter.value.eq(m.lit(3u32, wait_counter_bit_width)), {
                 m.lit(state_idle, state_bit_width)
@@ -92,20 +92,20 @@ pub fn generate_rx<'a>(c: &'a Context<'a>, clock_freq: u32, baud_rate: u32) -> &
                 next_state
             });
 
-            (next_wait_counter, next_data, next_data_ready, next_bit_counter, next_state)
+            (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state)
         });
 
-        (next_wait_counter, next_data, next_data_ready, next_bit_counter, next_state)
+        (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state)
     }).else_({
-        (next_wait_counter, next_data, next_data_ready, next_bit_counter, next_state)
+        (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state)
     });
 
     wait_counter.drive_next(next_wait_counter);
 
     data.drive_next(next_data);
     m.output("data", data.value);
-    data_ready.drive_next(next_data_ready);
-    m.output("data_ready", data_ready.value);
+    data_valid.drive_next(next_data_valid);
+    m.output("data_valid", data_valid.value);
 
     bit_counter.drive_next(next_bit_counter);
 

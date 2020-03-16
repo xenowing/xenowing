@@ -12,11 +12,38 @@ void put_u64(uint64_t value)
     xw_puts_nn(buf);
 }
 
+static uint8_t file_buf[256];
+
 int main()
 {
     xw_puts("xw online");
 
     xw_display_init();
+
+    xw_puts("attempting host file read");
+
+    // TODO: Proper command + filename
+    xw_uart_write(0x01);
+    uint32_t len = 0;
+    len |= ((uint32_t)xw_uart_read() << 0);
+    len |= ((uint32_t)xw_uart_read() << 8);
+    len |= ((uint32_t)xw_uart_read() << 16);
+    len |= ((uint32_t)xw_uart_read() << 24);
+    xw_puts_nn("  file size: ");
+    put_u64(len);
+    xw_puts("");
+
+    for (uint32_t i = 0; i < len; i++)
+        file_buf[i] = xw_uart_read();
+
+    xw_puts("file read successful");
+
+    xw_puts("catting file");
+
+    for (uint32_t i = 0; i < len; i++)
+        xw_putc(file_buf[i]);
+
+    xw_puts("did it yo");
 
     xw_puts("get ready for some 0xfadebabe");
     const uint32_t phase_bits = 8;

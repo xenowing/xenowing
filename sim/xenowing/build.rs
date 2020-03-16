@@ -33,12 +33,16 @@ fn generate_top<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     m.output("leds", xenowing.output("leds"));
 
-    uart::generate_rx(c, 100000000, 460800);
     let uart_rx = m.instance("uart_rx", "UartRx");
-
     uart_rx.drive_input("rx", xenowing.output("tx"));
-    m.output("uart_data", uart_rx.output("data"));
-    m.output("uart_data_valid", uart_rx.output("data_ready"));
+    m.output("uart_tx_data", uart_rx.output("data"));
+    m.output("uart_tx_data_valid", uart_rx.output("data_valid"));
+
+    let uart_tx = m.instance("uart_tx", "UartTx");
+    xenowing.drive_input("rx", uart_tx.output("tx"));
+    m.output("uart_rx_ready", uart_tx.output("ready"));
+    uart_tx.drive_input("data", m.input("uart_rx_data", 8));
+    uart_tx.drive_input("enable", m.input("uart_rx_enable", 1));
 
     m.output("ddr3_interface_bus_enable", xenowing.output("ddr3_interface_bus_enable"));
     m.output("ddr3_interface_bus_addr", xenowing.output("ddr3_interface_bus_addr"));
