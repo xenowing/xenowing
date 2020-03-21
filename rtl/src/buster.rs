@@ -254,8 +254,8 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, num_primar
         replica_fifo.drive_input("write_enable", issue.output("replica_fifo_write_enable"));
         replica_fifo.drive_input("write_data", issue.output("replica_fifo_write_data"));
 
-        peek_buffer::generate(&c, format!("ReplicaBuffer{}", mod_name), replica_select_bit_width);
-        let replica_buffer = m.instance("replica_buffer", &format!("ReplicaBuffer{}", mod_name));
+        peek_buffer::generate(&c, format!("{}ReplicaBuffer", mod_name), replica_select_bit_width);
+        let replica_buffer = m.instance("replica_buffer", &format!("{}ReplicaBuffer", mod_name));
         replica_buffer.drive_input("ingress_data", replica_fifo.output("read_data"));
         replica_fifo.drive_input("read_enable", replica_buffer.output("ingress_read_enable"));
         let replica_fifo_read_data_valid = m.reg("replica_fifo_read_data_valid", 1);

@@ -19,17 +19,8 @@ fn main() -> Result<()> {
 fn generate_top<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let m = c.module("Top");
 
-    xenowing::generate(&c);
+    xenowing::generate(c);
     let xenowing = m.instance("xenowing", "Xenowing");
-
-    m.output("bios_rom_bus_enable", xenowing.output("bios_rom_bus_enable"));
-    m.output("bios_rom_bus_addr", xenowing.output("bios_rom_bus_addr"));
-    m.output("bios_rom_bus_write", xenowing.output("bios_rom_bus_write"));
-    m.output("bios_rom_bus_write_data", xenowing.output("bios_rom_bus_write_data"));
-    m.output("bios_rom_bus_write_byte_enable", xenowing.output("bios_rom_bus_write_byte_enable"));
-    xenowing.drive_input("bios_rom_bus_ready", m.input("bios_rom_bus_ready", 1));
-    xenowing.drive_input("bios_rom_bus_read_data", m.input("bios_rom_bus_read_data", 128));
-    xenowing.drive_input("bios_rom_bus_read_data_valid", m.input("bios_rom_bus_read_data_valid", 1));
 
     m.output("leds", xenowing.output("leds"));
 

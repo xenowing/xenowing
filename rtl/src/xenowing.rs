@@ -1,3 +1,4 @@
+use crate::helpers::*;
 use crate::interconnect;
 use crate::led_interface;
 use crate::marv;
@@ -37,14 +38,38 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     marv_interconnect_bridge.drive_input("interconnect_bus_read_data", interconnect.output("marv_bus_read_data"));
     marv_interconnect_bridge.drive_input("interconnect_bus_read_data_valid", interconnect.output("marv_bus_read_data_valid"));
 
-    m.output("bios_rom_bus_enable", interconnect.output("bios_rom_bus_enable"));
-    m.output("bios_rom_bus_addr", interconnect.output("bios_rom_bus_addr"));
-    m.output("bios_rom_bus_write", interconnect.output("bios_rom_bus_write"));
-    m.output("bios_rom_bus_write_data", interconnect.output("bios_rom_bus_write_data"));
-    m.output("bios_rom_bus_write_byte_enable", interconnect.output("bios_rom_bus_write_byte_enable"));
-    interconnect.drive_input("bios_rom_bus_ready", m.input("bios_rom_bus_ready", 1));
-    interconnect.drive_input("bios_rom_bus_read_data", m.input("bios_rom_bus_read_data", 128));
-    interconnect.drive_input("bios_rom_bus_read_data_valid", m.input("bios_rom_bus_read_data_valid", 1));
+    const BIOS_ROM_BITS: u32 = 12;
+    const BIOS_ROM_SIZE: u32 = 1 << BIOS_ROM_BITS;
+    let bios_rom_contents_bytes = {
+        let mut ret = include_bytes!("../../rom/rom.bin").iter().cloned().collect::<Vec<u8>>();
+        if ret.len() as u32 > BIOS_ROM_SIZE {
+            panic!("BIOS ROM cannot be larger than {} bytes", BIOS_ROM_SIZE);
+        }
+        // Zero-pad ROM to fill whole size
+        while (ret.len() as u32) < BIOS_ROM_SIZE {
+            ret.push(0);
+        }
+        ret
+    };
+    let bios_rom_contents = {
+        let mut ret = Vec::new();
+        for i in 0..BIOS_ROM_SIZE / 16 {
+            let mut value = 0;
+            for j in 0..16 {
+                value |= (bios_rom_contents_bytes[(i * 16 + j) as usize] as u128) << (j * 8);
+            }
+            ret.push(value);
+        }
+        ret
+    };
+
+    let bios_rom = m.mem("bios_rom", BIOS_ROM_BITS - 4, 128);
+    bios_rom.initial_contents(&bios_rom_contents);
+    interconnect.drive_input("bios_rom_bus_ready", m.high());
+    interconnect.drive_input("bios_rom_bus_read_data", bios_rom.read_port(interconnect.output("bios_rom_bus_addr").bits(BIOS_ROM_BITS - 5, 0), m.high()));
+    let bios_rom_bus_enable = interconnect.output("bios_rom_bus_enable");
+    let bios_rom_bus_write = interconnect.output("bios_rom_bus_write");
+    interconnect.drive_input("bios_rom_bus_read_data_valid", reg_next("bios_rom_bus_read_data_valid", bios_rom_bus_enable & !bios_rom_bus_write, m));
 
     led_interface::generate(c);
     let led_interface = m.instance("led_interface", "LedInterface");

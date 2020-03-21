@@ -133,7 +133,7 @@ fn reload_file<P: AsRef<Path>>(rom_file_path: P, port: &mut SerialPort) -> Resul
         return Err(Error::Other(format!("ROM file size ({} bytes) is not divisible by 4", input_len)));
     }
 
-    if input_len >= 0x2000 {
+    if input_len >= 0x1000 {
         return Err(Error::Other(format!("ROM file size ({} bytes) is too large", input_len)));
     }
 

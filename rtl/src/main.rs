@@ -1,5 +1,15 @@
+mod buster;
+mod fifo;
+mod helpers;
+mod interconnect;
+mod led_interface;
+mod marv;
+mod marv_interconnect_bridge;
 mod mimas_a7;
+mod peek_buffer;
 mod uart;
+mod uart_interface;
+mod xenowing;
 
 use kaze::*;
 
