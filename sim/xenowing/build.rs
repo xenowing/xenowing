@@ -35,14 +35,14 @@ fn generate_top<'a>(c: &'a Context<'a>) -> &Module<'a> {
     uart_tx.drive_input("data", m.input("uart_rx_data", 8));
     uart_tx.drive_input("enable", m.input("uart_rx_enable", 1));
 
-    m.output("ddr3_interface_bus_enable", xenowing.output("ddr3_interface_bus_enable"));
+    /*m.output("ddr3_interface_bus_enable", xenowing.output("ddr3_interface_bus_enable"));
     m.output("ddr3_interface_bus_addr", xenowing.output("ddr3_interface_bus_addr"));
     m.output("ddr3_interface_bus_write", xenowing.output("ddr3_interface_bus_write"));
     m.output("ddr3_interface_bus_write_data", xenowing.output("ddr3_interface_bus_write_data"));
     m.output("ddr3_interface_bus_write_byte_enable", xenowing.output("ddr3_interface_bus_write_byte_enable"));
     xenowing.drive_input("ddr3_interface_bus_ready", m.input("ddr3_interface_bus_ready", 1));
     xenowing.drive_input("ddr3_interface_bus_read_data", m.input("ddr3_interface_bus_read_data", 128));
-    xenowing.drive_input("ddr3_interface_bus_read_data_valid", m.input("ddr3_interface_bus_read_data_valid", 1));
+    xenowing.drive_input("ddr3_interface_bus_read_data_valid", m.input("ddr3_interface_bus_read_data_valid", 1));*/
 
     m
 }

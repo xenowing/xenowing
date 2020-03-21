@@ -19,8 +19,6 @@ fn main() {
     let thread = thread::spawn(move|| {
         let mut leds = 0b000;
 
-        let mut ddr3_mem = vec![0; 0x20000];
-
         let mut is_sending_byte = false;
 
         let mut top = Top::new();
@@ -28,8 +26,6 @@ fn main() {
         for i in 0..100000000 {
             if i == 0 {
                 top.reset();
-
-                top.ddr3_interface_bus_ready = true;
             } else {
                 top.posedge_clk();
 
@@ -55,24 +51,6 @@ fn main() {
                         top.uart_rx_data = value as u32;
                     }
                 }
-
-                if top.ddr3_interface_bus_enable {
-                    let byte_addr = (top.ddr3_interface_bus_addr << 4) & 0x1ffff;
-                    top.ddr3_interface_bus_read_data = (0..16).fold(0, |acc, x| {
-                        acc | ((ddr3_mem[(byte_addr + x) as usize] as u128) << (x * 8))
-                    });
-                    if top.ddr3_interface_bus_write {
-                        //println!("*** DDR3 mem write: byte addr: 0x{:08x} <- 0x{:032x} / 0b{:016b}", byte_addr, top.ddr3_interface_bus_write_data, top.ddr3_interface_bus_write_byte_enable);
-                        for i in 0..16 {
-                            if ((top.ddr3_interface_bus_write_byte_enable >> i) & 1) != 0 {
-                                ddr3_mem[(byte_addr + i) as usize] = (top.ddr3_interface_bus_write_data >> (i * 8)) as _;
-                            }
-                        }
-                    } else {
-                        //println!("*** DDR3 mem read: byte addr: 0x{:08x} -> 0x{:032x}", byte_addr, top.ddr3_interface_bus_read_data);
-                    }
-                }
-                top.ddr3_interface_bus_read_data_valid = top.ddr3_interface_bus_enable && !top.ddr3_interface_bus_write;
             }
 
             top.prop();
