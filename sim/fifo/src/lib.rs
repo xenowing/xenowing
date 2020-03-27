@@ -129,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    fn write_through_when_empty() {
+    fn no_write_through_when_empty() {
         let mut m = Fifo::new();
 
         m.reset();
@@ -142,7 +142,7 @@ mod tests {
 
         m.prop();
 
-        assert_eq!(m.empty, false);
+        assert_eq!(m.empty, true);
 
         m.read_enable = true;
 
@@ -153,7 +153,7 @@ mod tests {
 
         m.prop();
 
-        assert_eq!(m.empty, true);
-        assert_eq!(m.read_data, 0xdeadbeef);
+        assert_eq!(m.empty, false);
+        assert_eq!(m.read_data, 0);
     }
 }
