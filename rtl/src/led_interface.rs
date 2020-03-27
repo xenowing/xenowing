@@ -15,7 +15,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let _bus_write_byte_enable = m.input("bus_write_byte_enable", 16);
     m.output("bus_ready", m.high());
     m.output("bus_read_data", m.lit(0u32, 125).concat(leds.value));
-    m.output("bus_read_data_valid", reg_next("bus_read_data_valid", bus_enable & !bus_write, m));
+    m.output("bus_read_data_valid", reg_next_with_default("bus_read_data_valid", bus_enable & !bus_write, false, m));
 
     leds.drive_next(if_(bus_enable & bus_write, {
         bus_write_data.bits(2, 0)

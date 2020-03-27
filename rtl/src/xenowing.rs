@@ -70,7 +70,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     interconnect.drive_input("bios_rom_bus_read_data", bios_rom.read_port(interconnect.output("bios_rom_bus_addr").bits(BIOS_ROM_BITS - 5, 0), m.high()));
     let bios_rom_bus_enable = interconnect.output("bios_rom_bus_enable");
     let bios_rom_bus_write = interconnect.output("bios_rom_bus_write");
-    interconnect.drive_input("bios_rom_bus_read_data_valid", reg_next("bios_rom_bus_read_data_valid", bios_rom_bus_enable & !bios_rom_bus_write, m));
+    interconnect.drive_input("bios_rom_bus_read_data_valid", reg_next_with_default("bios_rom_bus_read_data_valid", bios_rom_bus_enable & !bios_rom_bus_write, false, m));
 
     led_interface::generate(c);
     let led_interface = m.instance("led_interface", "LedInterface");
@@ -137,7 +137,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
         }
     }
     interconnect.drive_input("ddr3_interface_bus_read_data", read_word.unwrap());
-    interconnect.drive_input("ddr3_interface_bus_read_data_valid", reg_next("ddr3_interface_bus_read_data_valid", ddr3_interface_bus_enable & !ddr3_interface_bus_write, m));
+    interconnect.drive_input("ddr3_interface_bus_read_data_valid", reg_next_with_default("ddr3_interface_bus_read_data_valid", ddr3_interface_bus_enable & !ddr3_interface_bus_write, false, m));
 
     /*m.output("ddr3_interface_bus_enable", interconnect.output("ddr3_interface_bus_enable"));
     m.output("ddr3_interface_bus_addr", interconnect.output("ddr3_interface_bus_addr"));

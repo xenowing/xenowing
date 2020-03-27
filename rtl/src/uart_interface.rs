@@ -32,7 +32,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     }).else_({
         m.lit(0u32, 120).concat(rx_fifo.output("read_data"))
     }));
-    m.output("bus_read_data_valid", reg_next("bus_read_data_valid", bus_enable & !bus_write, m));
+    m.output("bus_read_data_valid", reg_next_with_default("bus_read_data_valid", bus_enable & !bus_write, false, m));
 
     m.output("tx_data", bus_write_data.bits(7, 0));
     m.output("tx_enable", bus_enable & bus_write);

@@ -460,7 +460,7 @@ fn generate_mem<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let enable = m.input("enable", 1);
 
-    let bus_enable = reg_next("bus_enable", m.input("bus_enable_in", 1), m);
+    let bus_enable = reg_next_with_default("bus_enable", m.input("bus_enable_in", 1), false, m);
     m.output("bus_enable_out", enable & bus_enable);
     m.output("bus_addr_out", reg_next("bus_addr", m.input("bus_addr_in", 32), m));
     m.output("bus_write_data_out", reg_next("bus_write_data", m.input("bus_write_data_in", 32), m));
