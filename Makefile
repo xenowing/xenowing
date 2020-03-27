@@ -17,7 +17,7 @@ rtl:
 rtl-clean:
 	cd $(RTL_DIR) && cargo clean
 
-GENERATED_RTL_NAME=_generated.sv
+GENERATED_RTL_NAME=_generated.v
 GENERATED_RTL=$(RTL_DIR)/$(GENERATED_RTL_NAME)
 
 .PHONY: generated-rtl

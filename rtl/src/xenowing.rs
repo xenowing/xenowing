@@ -27,8 +27,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     marv.drive_input("bus_read_data_valid", marv_interconnect_bridge.output("marv_bus_read_data_valid"));
 
     interconnect::generate(c);
-    // "interconnect" is a SystemVerilog keyword
-    let interconnect = m.instance("interconnect0", "Interconnect");
+    let interconnect = m.instance("interconnect", "Interconnect");
 
     interconnect.drive_input("marv_bus_enable", marv_interconnect_bridge.output("interconnect_bus_enable"));
     interconnect.drive_input("marv_bus_addr", marv_interconnect_bridge.output("interconnect_bus_addr"));
