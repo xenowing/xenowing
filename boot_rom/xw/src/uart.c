@@ -1,7 +1,7 @@
 #include <xw/bool.h>
 #include <xw/uart.h>
 
-#define XW_UART_BASE (0x02000000)
+#define XW_UART_BASE (0x03000000)
 
 #define XW_UART_TX_STATUS ((volatile uint8_t *)(XW_UART_BASE + 0x00000000))
 #define XW_UART_TX_WRITE ((volatile uint8_t *)(XW_UART_BASE + 0x00000010))

@@ -4,7 +4,12 @@ version = "0.1.0"
 authors = ["ferris <yupferris@gmail.com>"]
 edition = "2018"
 
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+kaze = "0.1"
+rtl = { path = "../../rtl" }
+
 [dependencies]
-notify = "4.0.12"
 serialport = "3.3.0"
 termcolor = "1"

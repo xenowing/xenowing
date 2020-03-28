@@ -1,0 +1,3 @@
+*.o
+boot_rom.elf
+boot_rom.bin

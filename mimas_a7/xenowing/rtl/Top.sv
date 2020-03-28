@@ -7,7 +7,7 @@ module Top(
     output wire logic tx,
     input wire logic rx,
 
-    output wire logic [2:0] leds);
+    output wire logic [7:0] leds);
 
     logic reset_n;
     SyncChain #(.DEFAULT(1'b0)) reset_sync_chain(

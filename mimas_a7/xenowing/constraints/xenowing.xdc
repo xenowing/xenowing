@@ -45,3 +45,38 @@ create_clock -name leds2_dummy_clk -period 10
 set_output_delay -clock leds2_dummy_clk -min 0 [get_ports { leds[2] }]
 set_output_delay -clock leds2_dummy_clk -max 1 [get_ports { leds[2] }]
 set_false_path -from [all_registers] -to [get_ports { leds[2] }]
+
+set_property -dict { PACKAGE_PIN "L15" IOSTANDARD LVCMOS33 SLEW FAST } [get_ports { leds[3] }];
+# Dummy clock/delays to suppress timing warnings for async signal
+create_clock -name leds2_dummy_clk -period 10
+set_output_delay -clock leds2_dummy_clk -min 0 [get_ports { leds[3] }]
+set_output_delay -clock leds2_dummy_clk -max 1 [get_ports { leds[3] }]
+set_false_path -from [all_registers] -to [get_ports { leds[3] }]
+
+set_property -dict { PACKAGE_PIN "L16" IOSTANDARD LVCMOS33 SLEW FAST } [get_ports { leds[4] }];
+# Dummy clock/delays to suppress timing warnings for async signal
+create_clock -name leds2_dummy_clk -period 10
+set_output_delay -clock leds2_dummy_clk -min 0 [get_ports { leds[4] }]
+set_output_delay -clock leds2_dummy_clk -max 1 [get_ports { leds[4] }]
+set_false_path -from [all_registers] -to [get_ports { leds[4] }]
+
+set_property -dict { PACKAGE_PIN "K16" IOSTANDARD LVCMOS33 SLEW FAST } [get_ports { leds[5] }];
+# Dummy clock/delays to suppress timing warnings for async signal
+create_clock -name leds2_dummy_clk -period 10
+set_output_delay -clock leds2_dummy_clk -min 0 [get_ports { leds[5] }]
+set_output_delay -clock leds2_dummy_clk -max 1 [get_ports { leds[5] }]
+set_false_path -from [all_registers] -to [get_ports { leds[5] }]
+
+set_property -dict { PACKAGE_PIN "M15" IOSTANDARD LVCMOS33 SLEW FAST } [get_ports { leds[6] }];
+# Dummy clock/delays to suppress timing warnings for async signal
+create_clock -name leds2_dummy_clk -period 10
+set_output_delay -clock leds2_dummy_clk -min 0 [get_ports { leds[6] }]
+set_output_delay -clock leds2_dummy_clk -max 1 [get_ports { leds[6] }]
+set_false_path -from [all_registers] -to [get_ports { leds[6] }]
+
+set_property -dict { PACKAGE_PIN "M16" IOSTANDARD LVCMOS33 SLEW FAST } [get_ports { leds[7] }];
+# Dummy clock/delays to suppress timing warnings for async signal
+create_clock -name leds2_dummy_clk -period 10
+set_output_delay -clock leds2_dummy_clk -min 0 [get_ports { leds[7] }]
+set_output_delay -clock leds2_dummy_clk -max 1 [get_ports { leds[7] }]
+set_false_path -from [all_registers] -to [get_ports { leds[7] }]

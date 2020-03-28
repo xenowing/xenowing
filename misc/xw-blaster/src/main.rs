@@ -1,41 +1,38 @@
-use notify::{self, DebouncedEvent, RecommendedWatcher, RecursiveMode, Watcher};
+mod modules {
+    include!(concat!(env!("OUT_DIR"), "/modules.rs"));
+}
+
+use modules::*;
 
 use serialport::prelude::*;
 
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 use std::env;
-use std::io::{self, Read, Write};
-use std::fs::File;
-use std::path::Path;
-use std::sync::mpsc::{self, channel};
+use std::fs;
+use std::io::{self, Write};
+use std::str;
+use std::sync::mpsc::{self, channel, Receiver, Sender};
 use std::thread;
-use std::time::Duration;
 
 #[derive(Debug)]
 enum Error {
-    Notify(notify::Error),
-    SerialPort(serialport::Error),
     Io(io::Error),
-    Recv(mpsc::RecvError),
     Other(String),
-}
-
-impl From<notify::Error> for Error {
-    fn from(error: notify::Error) -> Error {
-        Error::Notify(error)
-    }
-}
-
-impl From<serialport::Error> for Error {
-    fn from(error: serialport::Error) -> Error {
-        Error::SerialPort(error)
-    }
+    Recv(mpsc::RecvError),
+    Send(mpsc::SendError<u8>),
+    SerialPort(serialport::Error),
 }
 
 impl From<io::Error> for Error {
     fn from(error: io::Error) -> Error {
         Error::Io(error)
+    }
+}
+
+impl From<String> for Error {
+    fn from(error: String) -> Error {
+        Error::Other(error)
     }
 }
 
@@ -45,106 +42,196 @@ impl From<mpsc::RecvError> for Error {
     }
 }
 
-fn main() -> Result<(), Error> {
-    let rom_file_path_arg = env::args().skip(1).nth(0).ok_or(Error::Other("ROM file path not specified".into()))?;
-    let rom_file_path = Path::new(&rom_file_path_arg);
+impl From<mpsc::SendError<u8>> for Error {
+    fn from(error: mpsc::SendError<u8>) -> Error {
+        Error::Send(error)
+    }
+}
 
-    let port_name = "COM4";
-    let baud_rate: u32 = 115200;
+impl From<serialport::Error> for Error {
+    fn from(error: serialport::Error) -> Error {
+        Error::SerialPort(error)
+    }
+}
 
-    let mut settings: SerialPortSettings = Default::default();
-    settings.baud_rate = baud_rate.into();
+trait Device {
+    fn read_byte(&mut self) -> Result<u8, Error>;
+    fn write_byte(&mut self, value: u8) -> Result<(), Error>;
+}
 
-    let mut port = serialport::open_with_settings(port_name, &settings)?;
-    port.write_data_terminal_ready(true)?;
+struct SimDevice {
+    host_command_rx: Receiver<u8>,
+    host_response_tx: Sender<u8>,
+}
 
-    let mut receive_port = port.try_clone()?;
-    thread::spawn(move || {
-        let mut read_buf = vec![0; 1000];
+impl SimDevice {
+    fn new() -> SimDevice {
+        let (host_command_tx, host_command_rx) = channel();
+        let (host_response_tx, host_response_rx) = channel();
 
+        // TODO: This is leaky, but I guess it doesn't matter :)
+        thread::spawn(move|| {
+            let mut leds = 0b000;
+
+            let mut is_sending_byte = false;
+
+            let mut top = Top::new();
+
+            let mut is_first_cycle = true;
+            loop {
+                if is_first_cycle {
+                    top.reset();
+
+                    is_first_cycle = false;
+                } else {
+                    top.posedge_clk();
+
+                    let new_leds = top.leds;
+                    if new_leds != leds {
+                        println!("LEDs updated: 0b{:08b} -> 0b{:08b}", leds, new_leds);
+                        leds = new_leds;
+                    }
+
+                    if top.uart_tx_data_valid {
+                        host_command_tx.send(top.uart_tx_data as _).unwrap();
+                    }
+
+                    // TODO: This isn't necessarily the best way to use this interface, but it should work :)
+                    if is_sending_byte && top.uart_rx_ready {
+                        is_sending_byte = false;
+                        top.uart_rx_enable = false;
+                    }
+                    if !is_sending_byte {
+                        if let Ok(value) = host_response_rx.try_recv() {
+                            is_sending_byte = true;
+                            top.uart_rx_enable = true;
+                            top.uart_rx_data = value as u32;
+                        }
+                    }
+                }
+
+                top.prop();
+            }
+        });
+
+        SimDevice {
+            host_command_rx,
+            host_response_tx,
+        }
+    }
+}
+
+impl Device for SimDevice {
+    fn read_byte(&mut self) -> Result<u8, Error> {
+        Ok(self.host_command_rx.recv()?)
+    }
+
+    fn write_byte(&mut self, value: u8) -> Result<(), Error> {
+        self.host_response_tx.send(value)?;
+
+        Ok(())
+    }
+}
+
+struct SerialDevice {
+    port: Box<dyn SerialPort>,
+}
+
+impl SerialDevice {
+    fn new(port_name: String) -> Result<SerialDevice, Error> {
+        let baud_rate: u32 = 460800;
+
+        let mut settings: SerialPortSettings = Default::default();
+        settings.baud_rate = baud_rate.into();
+
+        let port = serialport::open_with_settings(&port_name, &settings)?;
+        let actual_baud_rate = port.baud_rate()?;
+        if actual_baud_rate != baud_rate {
+            return Err(format!("Unable to achieve specified baud rate: got {}, expected {}", actual_baud_rate, baud_rate).into());
+        }
+
+        Ok(SerialDevice {
+            port,
+        })
+    }
+}
+
+impl Device for SerialDevice {
+    fn read_byte(&mut self) -> Result<u8, Error> {
+        let mut buf = [0];
         loop {
-            match receive_port.read(read_buf.as_mut_slice()) {
+            match self.port.read(&mut buf) {
                 Ok(t) => {
-                    print!("{}", String::from_utf8_lossy(&read_buf[..t]));
+                    if t > 0 {
+                        return Ok(buf[0]);
+                    }
                 }
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                Err(e) => panic!("{}", e)
+                Err(e) => {
+                    return Err(e.into());
+                }
             }
         }
-    });
+    }
 
-    let (tx, rx) = channel();
+    fn write_byte(&mut self, value: u8) -> Result<(), Error> {
+        self.port.write_all(&[value])?;
 
-    let mut watcher: RecommendedWatcher = Watcher::new(tx, Duration::from_secs(1))?;
-    watcher.watch(rom_file_path, RecursiveMode::NonRecursive)?;
+        Ok(())
+    }
+}
+
+fn main() -> Result<(), Error> {
+    let mut device: Box<dyn Device> = if let Some(port_name) = env::args().nth(1) {
+        println!("Creating serial device on port {}", port_name);
+        Box::new(SerialDevice::new(port_name)?)
+    } else {
+        println!("Creating sim device");
+        Box::new(SimDevice::new())
+    };
+    println!();
 
     println!("XENOWING BLASTER ENGAGED");
     println!("ALL SYSTEMS ARE GO");
     println!();
 
     loop {
-        match rx.recv() {
-            Ok(event) => {
-                if match event {
-                    DebouncedEvent::Create(_) => true,
-                    DebouncedEvent::NoticeWrite(_) => true,
-                    DebouncedEvent::Write(_) => true,
-                    _ => false
-                } {
-                    let mut stdout = StandardStream::stdout(ColorChoice::Always);
-                    stdout.set_color(ColorSpec::new().set_fg(Some(Color::White)).set_intense(true))?;
+        match device.read_byte()? {
+            0x00 => {
+                // XW_UART_COMMAND_PUTC
+                print!("{}", device.read_byte()? as char);
+            }
+            0x01 => {
+                let mut stdout = StandardStream::stdout(ColorChoice::Always);
+                stdout.set_color(ColorSpec::new().set_fg(Some(Color::White)).set_intense(true))?;
 
-                    writeln!(&mut stdout, "")?;
-                    writeln!(&mut stdout, "ROM file changed, attempting reload")?;
-
-                    if let Err(e) = reload_file(rom_file_path, port.as_mut()) {
-                        stdout.set_color(ColorSpec::new().set_fg(Some(Color::Red)).set_intense(true))?;
-                        writeln!(&mut stdout, "Error reloading ROM file: {:?}", e)?;
-                    } else {
-                        stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green)).set_intense(true))?;
-                        writeln!(&mut stdout, "ROM reload successful!")?;
+                // File read test
+                let mut filename = Vec::new();
+                loop {
+                    let c = device.read_byte()?;
+                    if c == 0 {
+                        break;
                     }
 
-                    writeln!(&mut stdout, "")?;
-
-                    stdout.reset()?;
+                    filename.push(c);
                 }
+                let filename = str::from_utf8(&filename).unwrap();
+                writeln!(&mut stdout, "file requested: {}", filename)?;
+                let file = fs::read(filename)?;
+                let len = file.len();
+                device.write_byte((len >> 0) as _)?;
+                device.write_byte((len >> 8) as _)?;
+                device.write_byte((len >> 16) as _)?;
+                device.write_byte((len >> 24) as _)?;
+                for byte in file {
+                    device.write_byte(byte)?;
+                }
+
+                stdout.reset()?;
             }
-            Err(e) => Err(e)?
+            command_byte => {
+                return Err(format!("Invalid UART command byte received: 0x{:02x}", command_byte).into());
+            }
         }
     }
-}
-
-fn reload_file<P: AsRef<Path>>(rom_file_path: P, port: &mut SerialPort) -> Result<(), Error> {
-    let input = {
-        let mut input = Vec::new();
-        File::open(rom_file_path)?.read_to_end(&mut input)?;
-        input
-    };
-    let input_len = input.len();
-
-    println!("ROM file size: 0x{:08x} bytes", input_len);
-
-    if input.is_empty() {
-        return Err(Error::Other("ROM file is empty".into()));
-    }
-
-    if (input_len % 4) != 0 {
-        return Err(Error::Other(format!("ROM file size ({} bytes) is not divisible by 4", input_len)));
-    }
-
-    if input_len >= 0x1000 {
-        return Err(Error::Other(format!("ROM file size ({} bytes) is too large", input_len)));
-    }
-
-    let input_len_bytes = [
-        input_len as u8,
-        (input_len >> 8) as u8,
-        (input_len >> 16) as u8,
-        (input_len >> 24) as u8,
-    ];
-    port.write_all(&input_len_bytes)?;
-    port.write_all(&input)?;
-
-    Ok(())
 }

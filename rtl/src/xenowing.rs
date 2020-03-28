@@ -38,38 +38,64 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     marv_interconnect_bridge.drive_input("interconnect_bus_read_data", interconnect.output("marv_bus_read_data"));
     marv_interconnect_bridge.drive_input("interconnect_bus_read_data_valid", interconnect.output("marv_bus_read_data_valid"));
 
-    const BIOS_ROM_BITS: u32 = 12;
-    const BIOS_ROM_SIZE: u32 = 1 << BIOS_ROM_BITS;
-    let bios_rom_contents_bytes = {
-        let mut ret = include_bytes!("../../rom/rom.bin").iter().cloned().collect::<Vec<u8>>();
-        if ret.len() as u32 > BIOS_ROM_SIZE {
-            panic!("BIOS ROM cannot be larger than {} bytes", BIOS_ROM_SIZE);
+    const BOOT_ROM_BITS: u32 = 12;
+    const BOOT_ROM_SIZE: u32 = 1 << BOOT_ROM_BITS;
+    let boot_rom_contents_bytes = {
+        let mut ret = include_bytes!("../../boot_rom/boot_rom.bin").iter().cloned().collect::<Vec<u8>>();
+        if ret.len() as u32 > BOOT_ROM_SIZE {
+            panic!("BIOS ROM cannot be larger than {} bytes", BOOT_ROM_SIZE);
         }
         // Zero-pad ROM to fill whole size
-        while (ret.len() as u32) < BIOS_ROM_SIZE {
+        while (ret.len() as u32) < BOOT_ROM_SIZE {
             ret.push(0);
         }
         ret
     };
-    let bios_rom_contents = {
+    let boot_rom_contents = {
         let mut ret = Vec::new();
-        for i in 0..BIOS_ROM_SIZE / 16 {
+        for i in 0..BOOT_ROM_SIZE / 16 {
             let mut value = 0;
             for j in 0..16 {
-                value |= (bios_rom_contents_bytes[(i * 16 + j) as usize] as u128) << (j * 8);
+                value |= (boot_rom_contents_bytes[(i * 16 + j) as usize] as u128) << (j * 8);
             }
             ret.push(value);
         }
         ret
     };
 
-    let bios_rom = m.mem("bios_rom", BIOS_ROM_BITS - 4, 128);
-    bios_rom.initial_contents(&bios_rom_contents);
-    interconnect.drive_input("bios_rom_bus_ready", m.high());
-    interconnect.drive_input("bios_rom_bus_read_data", bios_rom.read_port(interconnect.output("bios_rom_bus_addr").bits(BIOS_ROM_BITS - 5, 0), m.high()));
-    let bios_rom_bus_enable = interconnect.output("bios_rom_bus_enable");
-    let bios_rom_bus_write = interconnect.output("bios_rom_bus_write");
-    interconnect.drive_input("bios_rom_bus_read_data_valid", reg_next_with_default("bios_rom_bus_read_data_valid", bios_rom_bus_enable & !bios_rom_bus_write, false, m));
+    let boot_rom = m.mem("boot_rom", BOOT_ROM_BITS - 4, 128);
+    boot_rom.initial_contents(&boot_rom_contents);
+    interconnect.drive_input("boot_rom_bus_ready", m.high());
+    interconnect.drive_input("boot_rom_bus_read_data", boot_rom.read_port(interconnect.output("boot_rom_bus_addr").bits(BOOT_ROM_BITS - 5, 0), m.high()));
+    let boot_rom_bus_enable = interconnect.output("boot_rom_bus_enable");
+    let boot_rom_bus_write = interconnect.output("boot_rom_bus_write");
+    interconnect.drive_input("boot_rom_bus_read_data_valid", reg_next_with_default("boot_rom_bus_read_data_valid", boot_rom_bus_enable & !boot_rom_bus_write, false, m));
+
+    let program_ram_addr_bit_width = 13;
+    let program_ram_bus_enable = interconnect.output("program_ram_bus_enable");
+    let program_ram_bus_write = interconnect.output("program_ram_bus_write");
+    let program_ram_bus_addr = interconnect.output("program_ram_bus_addr").bits(program_ram_addr_bit_width - 1, 0);
+    let program_ram_bus_write_data = interconnect.output("program_ram_bus_write_data");
+    let program_ram_bus_write_byte_enable = interconnect.output("program_ram_bus_write_byte_enable");
+    interconnect.drive_input("program_ram_bus_ready", m.high());
+    let mut read_word = None;
+    for byte_index in 0..16 {
+        let mem = m.mem(format!("program_ram_mem_byte_{}", byte_index), program_ram_addr_bit_width, 8);
+        let byte_write_data = program_ram_bus_write_data.bits((byte_index * 8) + 7, byte_index * 8);
+        let byte_write_enable = program_ram_bus_enable & program_ram_bus_write & program_ram_bus_write_byte_enable.bit(byte_index);
+        mem.write_port(program_ram_bus_addr, byte_write_data, byte_write_enable);
+        let read_byte = mem.read_port(program_ram_bus_addr, m.high());
+        match read_word {
+            Some(word) => {
+                read_word = Some(read_byte.concat(word));
+            }
+            _ => {
+                read_word = Some(read_byte);
+            }
+        }
+    }
+    interconnect.drive_input("program_ram_bus_read_data", read_word.unwrap());
+    interconnect.drive_input("program_ram_bus_read_data_valid", reg_next_with_default("program_ram_bus_read_data_valid", program_ram_bus_enable & !program_ram_bus_write, false, m));
 
     led_interface::generate(c);
     let led_interface = m.instance("led_interface", "LedInterface");

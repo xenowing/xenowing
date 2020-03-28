@@ -6,17 +6,20 @@ Notes
 
 High-level map (note that not all addresses within the following ranges are necessarily valid; see detailed map for more info)
 
-0x00000000 - 0x00000fff: Program ROM
-0x01000000 - 0x02000013: System regs
+0x00000000 - 0x00000fff: Boot ROM
+0x01000000 - 0x01003fff: Program RAM
+0x02000000 - 0x03000013: System regs
 0x10000000 - 0x1001ffff: RAM
 
 Detailed mem map
 
-0x00000000 - 0x00000fff: Program ROM
+0x00000000 - 0x00000fff: Boot ROM
 
-0x01000000 - 0x01000003: LED interface (R/W, only word 0 used). Bits 0, 1, and 2 correspond to the 3 available LED's (0 = off, 1 = on).
+0x01000000 - 0x01000fff: Program RAM
 
-0x02000000 - 0x02000003: UART transmitter status (R). Bit 0 indicates ready status (1 = ready, 0 = busy).
-0x02000010 - 0x02000013: UART transmitter write (W). Bits 0-7 indicate data to be transmitted. When not busy, a write to this reg will start a new transmission immediately. If busy, the write is ignored.
+0x02000000 - 0x02000003: LED interface (R/W, only word 0 used). Bits 0-7 correspond to the 8 available LED's (0 = off, 1 = on).
+
+0x03000000 - 0x03000003: UART transmitter status (R). Bit 0 indicates ready status (1 = ready, 0 = busy).
+0x03000010 - 0x03000013: UART transmitter write (W). Bits 0-7 indicate data to be transmitted. When not busy, a write to this reg will start a new transmission immediately. If busy, the write is ignored.
 
 0x10000000 - 0x1001ffff: RAM
