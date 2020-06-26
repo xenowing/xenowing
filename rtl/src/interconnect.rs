@@ -17,7 +17,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("marv_bus_read_data", cpu.output("primary0_bus_read_data"));
     m.output("marv_bus_read_data_valid", cpu.output("primary0_bus_read_data_valid"));
 
-    buster::generate(c, "Sys", 1, 4, 24, 4, 128, 5);
+    buster::generate(c, "Sys", 1, 6, 24, 4, 128, 5);
     let sys = m.instance("sys", "Sys");
 
     sys.drive_input("primary0_bus_enable", cpu.output("replica0_bus_enable"));
@@ -64,6 +64,24 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     sys.drive_input("replica3_bus_ready", m.input("uart_interface_bus_ready", 1));
     sys.drive_input("replica3_bus_read_data", m.input("uart_interface_bus_read_data", 128));
     sys.drive_input("replica3_bus_read_data_valid", m.input("uart_interface_bus_read_data_valid", 1));
+
+    m.output("color_thrust_reg_bus_enable", sys.output("replica4_bus_enable"));
+    m.output("color_thrust_reg_bus_addr", sys.output("replica4_bus_addr"));
+    m.output("color_thrust_reg_bus_write", sys.output("replica4_bus_write"));
+    m.output("color_thrust_reg_bus_write_data", sys.output("replica4_bus_write_data"));
+    m.output("color_thrust_reg_bus_write_byte_enable", sys.output("replica4_bus_write_byte_enable"));
+    sys.drive_input("replica4_bus_ready", m.input("color_thrust_reg_bus_ready", 1));
+    sys.drive_input("replica4_bus_read_data", m.input("color_thrust_reg_bus_read_data", 128));
+    sys.drive_input("replica4_bus_read_data_valid", m.input("color_thrust_reg_bus_read_data_valid", 1));
+
+    m.output("color_thrust_color_buffer_bus_enable", sys.output("replica5_bus_enable"));
+    m.output("color_thrust_color_buffer_bus_addr", sys.output("replica5_bus_addr"));
+    m.output("color_thrust_color_buffer_bus_write", sys.output("replica5_bus_write"));
+    m.output("color_thrust_color_buffer_bus_write_data", sys.output("replica5_bus_write_data"));
+    m.output("color_thrust_color_buffer_bus_write_byte_enable", sys.output("replica5_bus_write_byte_enable"));
+    sys.drive_input("replica5_bus_ready", m.input("color_thrust_color_buffer_bus_ready", 1));
+    sys.drive_input("replica5_bus_read_data", m.input("color_thrust_color_buffer_bus_read_data", 128));
+    sys.drive_input("replica5_bus_read_data_valid", m.input("color_thrust_color_buffer_bus_read_data_valid", 1));
 
     m.output("ddr3_interface_bus_enable", cpu.output("replica1_bus_enable"));
     m.output("ddr3_interface_bus_addr", cpu.output("replica1_bus_addr"));

@@ -11,5 +11,8 @@ kaze = "0.1"
 rtl = { path = "../../rtl" }
 
 [dependencies]
+minifb = "0.16"
+rand = "0.7"
+rtl = { path = "../../rtl" }
 serialport = "3.3.0"
 termcolor = "1"

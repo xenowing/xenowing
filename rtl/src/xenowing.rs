@@ -1,3 +1,4 @@
+use crate::color_thrust;
 use crate::helpers::*;
 use crate::interconnect;
 use crate::led_interface;
@@ -137,6 +138,27 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     uart_interface.drive_input("rx_data", uart_rx.output("data"));
     uart_interface.drive_input("rx_data_valid", uart_rx.output("data_valid"));
+
+    color_thrust::generate(c);
+    let color_thrust = m.instance("color_thrust", "ColorThrust");
+
+    color_thrust.drive_input("reg_bus_enable", interconnect.output("color_thrust_reg_bus_enable"));
+    color_thrust.drive_input("reg_bus_addr", interconnect.output("color_thrust_reg_bus_addr").bits(4, 0));
+    color_thrust.drive_input("reg_bus_write", interconnect.output("color_thrust_reg_bus_write"));
+    color_thrust.drive_input("reg_bus_write_data", interconnect.output("color_thrust_reg_bus_write_data").bits(31, 0));
+    //color_thrust.drive_input("reg_bus_write_byte_enable", interconnect.output("color_thrust_reg_bus_write_byte_enable"));
+    interconnect.drive_input("color_thrust_reg_bus_ready", color_thrust.output("reg_bus_ready"));
+    interconnect.drive_input("color_thrust_reg_bus_read_data", m.lit(0u32, 96).concat(color_thrust.output("reg_bus_read_data")));
+    interconnect.drive_input("color_thrust_reg_bus_read_data_valid", color_thrust.output("reg_bus_read_data_valid"));
+
+    color_thrust.drive_input("color_buffer_bus_enable", interconnect.output("color_thrust_color_buffer_bus_enable"));
+    color_thrust.drive_input("color_buffer_bus_addr", interconnect.output("color_thrust_color_buffer_bus_addr").bits(7, 0));
+    color_thrust.drive_input("color_buffer_bus_write", interconnect.output("color_thrust_color_buffer_bus_write"));
+    color_thrust.drive_input("color_buffer_bus_write_data", interconnect.output("color_thrust_color_buffer_bus_write_data").bits(31, 0));
+    //color_thrust.drive_input("color_buffer_bus_write_byte_enable", interconnect.output("color_thrust_color_buffer_bus_write_byte_enable"));
+    interconnect.drive_input("color_thrust_color_buffer_bus_ready", color_thrust.output("color_buffer_bus_ready"));
+    interconnect.drive_input("color_thrust_color_buffer_bus_read_data", m.lit(0u32, 96).concat(color_thrust.output("color_buffer_bus_read_data")));
+    interconnect.drive_input("color_thrust_color_buffer_bus_read_data_valid", color_thrust.output("color_buffer_bus_read_data_valid"));
 
     let ddr3_interface_addr_bit_width = 13;
     let ddr3_interface_bus_enable = interconnect.output("ddr3_interface_bus_enable");

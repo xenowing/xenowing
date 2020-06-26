@@ -1,4 +1,5 @@
 mod buster;
+mod color_thrust;
 mod fifo;
 mod helpers;
 mod interconnect;

@@ -1,4 +1,5 @@
 pub mod buster;
+pub mod color_thrust;
 pub mod fifo;
 mod helpers;
 pub mod interconnect;
