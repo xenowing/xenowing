@@ -98,7 +98,7 @@ dependencies = [
 
 [[package]]
 name = "kaze"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "typed-arena 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -469,7 +469,7 @@ dependencies = [
 name = "rtl"
 version = "0.1.0"
 dependencies = [
- "kaze 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "kaze 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -729,7 +729,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "xw-blaster"
 version = "0.1.0"
 dependencies = [
- "kaze 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "kaze 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "minifb 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "rtl 0.1.0",
@@ -752,7 +752,7 @@ dependencies = [
 "checksum downcast-rs 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "52ba6eb47c2131e784a38b726eb54c1e1484904f013e576a25354d0124161af6"
 "checksum fuchsia-cprng 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a06f77d526c1a601b7c4cdd98f54b5eaabffc14d5f2f0296febdc7f357c6d3ba"
 "checksum getrandom 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)" = "7abc8dd8451921606d809ba32e95b6111925cd2906060d2dcc29c070220503eb"
-"checksum kaze 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)" = "27a5ad4bf2bbd302a6ae36334060e6198b88b7f29cffd4e635317e4deb32d647"
+"checksum kaze 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)" = "131a0a06957354688172669be28ee4f89a1c8cc2b928ce454313406391747cd9"
 "checksum lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 "checksum libc 0.2.71 (registry+https://github.com/rust-lang/crates.io-index)" = "9457b06509d27052635f90d6466700c65095fdf75409b3fbdd903e988b886f49"
 "checksum libloading 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "2cadb8e769f070c45df05c78c7520eb4cd17061d4ab262e43cfc68b4d00ac71c"

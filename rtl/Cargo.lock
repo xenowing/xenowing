@@ -2,7 +2,7 @@
 # It is not intended for manual editing.
 [[package]]
 name = "kaze"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "typed-arena 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -12,7 +12,7 @@ dependencies = [
 name = "rtl"
 version = "0.1.0"
 dependencies = [
- "kaze 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "kaze 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -21,5 +21,5 @@ version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [metadata]
-"checksum kaze 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)" = "27a5ad4bf2bbd302a6ae36334060e6198b88b7f29cffd4e635317e4deb32d647"
+"checksum kaze 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)" = "131a0a06957354688172669be28ee4f89a1c8cc2b928ce454313406391747cd9"
 "checksum typed-arena 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "0685c84d5d54d1c26f7d3eb96cd41550adb97baed141a761cf335d3d33bcd0ae"
