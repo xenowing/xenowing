@@ -255,20 +255,16 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     //  Returned from issue in previous stage
     let prev_color = m.input("color_buffer_read_port_value", 32);
 
-    let color = if_(edge_test, {
-        // Blending test :)
-        let r = ((m.low().concat(r) + m.low().concat(prev_color.bits(23, 16))) >> m.lit(1u32, 1)).bits(7, 0);
-        let g = ((m.low().concat(g) + m.low().concat(prev_color.bits(15, 8))) >> m.lit(1u32, 1)).bits(7, 0);
-        let b = ((m.low().concat(b) + m.low().concat(prev_color.bits(7, 0))) >> m.lit(1u32, 1)).bits(7, 0);
-        let a = ((m.low().concat(a) + m.low().concat(prev_color.bits(31, 24))) >> m.lit(1u32, 1)).bits(7, 0);
-        a.concat(r).concat(g).concat(b)
-    }).else_({
-        prev_color
-    });
+    // Blending test :)
+    let r = (m.low().concat(r) + m.low().concat(prev_color.bits(23, 16))).bits(8, 1);
+    let g = (m.low().concat(g) + m.low().concat(prev_color.bits(15, 8))).bits(8, 1);
+    let b = (m.low().concat(b) + m.low().concat(prev_color.bits(7, 0))).bits(8, 1);
+    let a = (m.low().concat(a) + m.low().concat(prev_color.bits(31, 24))).bits(8, 1);
+    let color = a.concat(r).concat(g).concat(b);
 
     m.output("color_buffer_write_port_addr", tile_addr);
     m.output("color_buffer_write_port_value", color);
-    m.output("color_buffer_write_port_enable", valid);
+    m.output("color_buffer_write_port_enable", valid & edge_test);
 
     active.drive_next(if_(start, {
         m.high()
