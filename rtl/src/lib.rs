@@ -1,3 +1,4 @@
+pub mod approx_reciprocal;
 pub mod buster;
 pub mod color_thrust;
 pub mod fifo;

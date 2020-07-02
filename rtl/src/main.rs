@@ -1,3 +1,4 @@
+mod approx_reciprocal;
 mod buster;
 mod color_thrust;
 mod fifo;

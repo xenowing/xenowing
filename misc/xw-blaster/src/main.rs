@@ -10,6 +10,7 @@ use modules::*;
 use vec2::*;
 use vec4::*;
 
+use image::GenericImageView;
 use minifb::{Scale, ScaleMode, Window, WindowOptions};
 use rtl::color_thrust::*;
 use serialport::prelude::*;
@@ -22,14 +23,15 @@ use std::str;
 use std::sync::mpsc::{self, channel, Receiver, Sender};
 use std::thread;
 
-const WIDTH: usize = 16 * 2;//320;
-const HEIGHT: usize = 16 * 2;//240;
+const WIDTH: usize = 16 * 8;//320;
+const HEIGHT: usize = 16 * 8;//240;
 const PIXELS: usize = WIDTH * HEIGHT;
 
 #[derive(Clone, Copy)]
 struct Vertex {
     position: Vec2,
     color: Vec4,
+    tex_coord: Vec2,
 }
 
 #[derive(Debug)]
@@ -227,13 +229,15 @@ fn main() -> Result<(), Error> {
     };
     println!();
 
-    let mut back_buffer = vec![0; PIXELS];
+    let mut back_buffer = vec![0xffff00ff; PIXELS];
 
     let mut window = Window::new("trim", WIDTH, HEIGHT, WindowOptions {
         scale: Scale::X4,
         scale_mode: ScaleMode::AspectRatioStretch,
         ..WindowOptions::default()
     }).unwrap();
+
+    let tex = image::open("tex.png").unwrap();
 
     println!("XENOWING BLASTER ENGAGED");
     println!("ALL SYSTEMS ARE GO");
@@ -289,21 +293,53 @@ fn main() -> Result<(), Error> {
                     write_word(0x04000000 + addr * 16, data, device)
                 }
 
+                // Upload texture
+                writeln!(&mut stdout, "  write tex mem")?;
+                for y in 0..16 {
+                    for x in 0..16 {
+                        let texel = tex.get_pixel(x, y);
+                        let r = texel[0];
+                        let g = texel[1];
+                        let b = texel[2];
+                        let a = texel[3];
+                        let addr = 0x06000000 + (y * 16 + x) * 16;
+                        write_word(addr, ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | ((b as u32) << 0), &mut *device)?;
+                    }
+                }
+
                 for i in 0..1/*5*/ {
                     writeln!(&mut stdout, "  triangle {}", i)?;
 
                     let mut verts = [
+                        /*Vertex {
+                            position: Vec2::new(-1.0, -1.0),//Vec2::new(rand::random::<f32>() * 2.0 - 1.0, rand::random::<f32>() * 2.0 - 1.0),
+                            color: Vec4::new(1.0, 0.0, 0.0, 1.0) * 255.0,//Vec4::new(rand::random(), rand::random(), rand::random(), rand::random()) * 255.0,
+                            tex_coord: Vec2::zero(),
+                        },
+                        Vertex {
+                            position: Vec2::new( 1.0, -1.0),//Vec2::new(rand::random::<f32>() * 2.0 - 1.0, rand::random::<f32>() * 2.0 - 1.0),
+                            color: Vec4::new(0.0, 0.0, 1.0, 1.0) * 255.0,//Vec4::new(rand::random(), rand::random(), rand::random(), rand::random()) * 255.0,
+                            tex_coord: Vec2::new(1.0, 0.0),
+                        },
+                        Vertex {
+                            position: Vec2::new(1.0, 1.0),//Vec2::new(rand::random::<f32>() * 2.0 - 1.0, rand::random::<f32>() * 2.0 - 1.0),
+                            color: Vec4::new(0.0, 1.0, 0.0, 1.0) * 255.0,//Vec4::new(rand::random(), rand::random(), rand::random(), rand::random()) * 255.0,
+                            tex_coord: Vec2::new(1.0, 1.0),
+                        },*/
                         Vertex {
                             position: Vec2::new(rand::random::<f32>() * 2.0 - 1.0, rand::random::<f32>() * 2.0 - 1.0),
                             color: Vec4::new(rand::random(), rand::random(), rand::random(), rand::random()) * 255.0,
+                            tex_coord: Vec2::zero(),
                         },
                         Vertex {
                             position: Vec2::new(rand::random::<f32>() * 2.0 - 1.0, rand::random::<f32>() * 2.0 - 1.0),
                             color: Vec4::new(rand::random(), rand::random(), rand::random(), rand::random()) * 255.0,
+                            tex_coord: Vec2::new(1.0, 0.0),
                         },
                         Vertex {
                             position: Vec2::new(rand::random::<f32>() * 2.0 - 1.0, rand::random::<f32>() * 2.0 - 1.0),
                             color: Vec4::new(rand::random(), rand::random(), rand::random(), rand::random()) * 255.0,
+                            tex_coord: Vec2::new(1.0, 1.0),
                         },
                     ];
 
@@ -340,6 +376,12 @@ fn main() -> Result<(), Error> {
                         window_verts[0] = window_verts[1];
                         window_verts[1] = temp;
                         scaled_area = -scaled_area;
+                    }
+
+                    let texture_dims = Vec2::splat(16.0); // TODO: Proper value and default if no texture is enabled
+                    let st_bias = -0.5; // Offset to sample texel centers
+                    for i in 0..verts.len() {
+                        verts[i].tex_coord = (verts[i].tex_coord * texture_dims + st_bias) / 1.0;//verts[i].position.w(); // TODO: Proper w!!!!!!!
                     }
 
                     let mut bb_min = Vec2::new(window_verts[0].x(), window_verts[0].y());
@@ -420,6 +462,21 @@ fn main() -> Result<(), Error> {
                     write_reg(REG_B_DY_ADDR, to_fixed(b_dy, color_fract_bits) as _, &mut *device)?;
                     write_reg(REG_A_DY_ADDR, to_fixed(a_dy, color_fract_bits) as _, &mut *device)?;
 
+                    // TODO!
+                    let w_inverse_dx = 0.0;//1.0 / verts[0].position.w() * w0_dx + 1.0 / verts[1].position.w() * w1_dx + 1.0 / verts[2].position.w() * w2_dx;
+                    let w_inverse_dy = 0.0;//1.0 / verts[0].position.w() * w0_dy + 1.0 / verts[1].position.w() * w1_dy + 1.0 / verts[2].position.w() * w2_dy;
+                    write_reg(REG_W_INVERSE_DX_ADDR, to_fixed(w_inverse_dx, W_INVERSE_FRACT_BITS) as _, &mut *device)?;
+                    write_reg(REG_W_INVERSE_DY_ADDR, to_fixed(w_inverse_dy, W_INVERSE_FRACT_BITS) as _, &mut *device)?;
+
+                    let s_dx = verts[0].tex_coord.x() * w0_dx + verts[1].tex_coord.x() * w1_dx + verts[2].tex_coord.x() * w2_dx;
+                    let t_dx = verts[0].tex_coord.y() * w0_dx + verts[1].tex_coord.y() * w1_dx + verts[2].tex_coord.y() * w2_dx;
+                    let s_dy = verts[0].tex_coord.x() * w0_dy + verts[1].tex_coord.x() * w1_dy + verts[2].tex_coord.x() * w2_dy;
+                    let t_dy = verts[0].tex_coord.y() * w0_dy + verts[1].tex_coord.y() * w1_dy + verts[2].tex_coord.y() * w2_dy;
+                    write_reg(REG_S_DX_ADDR, to_fixed(s_dx, ST_FRACT_BITS) as _, &mut *device)?;
+                    write_reg(REG_T_DX_ADDR, to_fixed(t_dx, ST_FRACT_BITS) as _, &mut *device)?;
+                    write_reg(REG_S_DY_ADDR, to_fixed(s_dy, ST_FRACT_BITS) as _, &mut *device)?;
+                    write_reg(REG_T_DY_ADDR, to_fixed(t_dy, ST_FRACT_BITS) as _, &mut *device)?;
+
                     for tile_index_y in 0..HEIGHT / (TILE_DIM as usize) {
                         let tile_min_y = (tile_index_y * (TILE_DIM as usize)) as i32;
                         let tile_max_y = tile_min_y + (TILE_DIM as usize) as i32 - 1;
@@ -468,6 +525,15 @@ fn main() -> Result<(), Error> {
                             write_reg(REG_G_MIN_ADDR, to_fixed(g_min, color_fract_bits) as _, &mut *device)?;
                             write_reg(REG_B_MIN_ADDR, to_fixed(b_min, color_fract_bits) as _, &mut *device)?;
                             write_reg(REG_A_MIN_ADDR, to_fixed(a_min, color_fract_bits) as _, &mut *device)?;
+
+                            // TODO!
+                            let w_inverse_min = 1.0 / 1.0;//1.0 / verts[0].position.w() * w0_min + 1.0 / verts[1].position.w() * w1_min + 1.0 / verts[2].position.w() * w2_min;
+                            write_reg(REG_W_INVERSE_MIN_ADDR, to_fixed(w_inverse_min, W_INVERSE_FRACT_BITS) as _, &mut *device)?;
+
+                            let s_min = verts[0].tex_coord.x() * w0_min + verts[1].tex_coord.x() * w1_min + verts[2].tex_coord.x() * w2_min;
+                            let t_min = verts[0].tex_coord.y() * w0_min + verts[1].tex_coord.y() * w1_min + verts[2].tex_coord.y() * w2_min;
+                            write_reg(REG_S_MIN_ADDR, to_fixed(s_min, ST_FRACT_BITS) as _, &mut *device)?;
+                            write_reg(REG_T_MIN_ADDR, to_fixed(t_min, ST_FRACT_BITS) as _, &mut *device)?;
 
                             // Rasterize
                             writeln!(&mut stdout, "    rasterize")?;

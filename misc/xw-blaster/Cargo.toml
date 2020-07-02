@@ -11,6 +11,7 @@ kaze = "0.1"
 rtl = { path = "../../rtl" }
 
 [dependencies]
+image = "0.23"
 minifb = "0.16"
 rand = "0.7"
 rtl = { path = "../../rtl" }
