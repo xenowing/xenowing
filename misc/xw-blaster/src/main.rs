@@ -297,7 +297,7 @@ fn main() -> Result<(), Error> {
                 writeln!(&mut stdout, "  write tex mem")?;
                 for y in 0..16 {
                     for x in 0..16 {
-                        let texel = tex.get_pixel(x, y);
+                        let texel = tex.get_pixel(x, 15 - y);
                         let r = texel[0];
                         let g = texel[1];
                         let b = texel[2];
