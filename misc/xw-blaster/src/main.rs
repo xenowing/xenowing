@@ -379,7 +379,7 @@ fn main() -> Result<(), Error> {
                     }
 
                     let texture_dims = Vec2::splat(16.0); // TODO: Proper value and default if no texture is enabled
-                    let st_bias = -0.5; // Offset to sample texel centers
+                    let st_bias = 0.0;//-0.5; // Offset to sample texel centers // TODO: This depends on filtering chosen; 0 for nearest, -0.5 for bilinear
                     for i in 0..verts.len() {
                         verts[i].tex_coord = (verts[i].tex_coord * texture_dims + st_bias) / 1.0;//verts[i].position.w(); // TODO: Proper w!!!!!!!
                     }
