@@ -49,13 +49,18 @@ generated-rtl-old-clean:
 	$(RM) $(RM_FLAGS) $(RTL_OLD_PYCACHE)
 
 SIM_DIR=sim
+APPROX_RECIPROCAL_DIR=$(SIM_DIR)/approx-reciprocal
 BUSTER_DIR=$(SIM_DIR)/buster
 FIFO_DIR=$(SIM_DIR)/fifo
 MARV_DIR=$(SIM_DIR)/marv
 PEEK_BUFFER_DIR=$(SIM_DIR)/peek-buffer
 
 .PHONY: sim
-sim: buster fifo marv peek-buffer
+sim: approx-reciprocal buster fifo marv peek-buffer
+
+.PHONY: approx-reciprocal
+approx-reciprocal:
+	cd $(APPROX_RECIPROCAL_DIR) && cargo build --release
 
 .PHONY: buster
 buster:
@@ -74,7 +79,15 @@ peek-buffer:
 	cd $(PEEK_BUFFER_DIR) && cargo build --release
 
 .PHONY: sim-clean
-sim-clean: fifo-clean marv-clean peek-buffer-clean
+sim-clean: approx-reciprocal-clean buster-clean fifo-clean marv-clean peek-buffer-clean
+
+.PHONY: approx-reciprocal-clean
+approx-reciprocal-clean:
+	cd $(APPROX_RECIPROCAL_DIR) && cargo clean
+
+.PHONY: buster-clean
+buster-clean:
+	cd $(BUSTER_DIR) && cargo clean
 
 .PHONY: fifo-clean
 fifo-clean:
@@ -91,7 +104,11 @@ peek-buffer-clean:
 TEST_DIR=test
 
 .PHONY: test
-test: buster-test compliance-test fifo-test peek-buffer-test rtl-test
+test: approx-reciprocal-test buster-test compliance-test fifo-test peek-buffer-test rtl-test
+
+.PHONY: approx-reciprocal-test
+approx-reciprocal-test: approx-reciprocal
+	cd $(APPROX_RECIPROCAL_DIR) && cargo test --release
 
 .PHONY: buster-test
 buster-test: buster
