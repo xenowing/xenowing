@@ -29,6 +29,7 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, fract_bits
         q = (q * e).bits(63, 32);
         e = (e * e).bits(63, 32);
 
+        // Buffer/pipeline regs to meet timing
         e = reg_next(format!("refinement_stage_buffer_{}_e", stage), e, m);
         q = reg_next(format!("refinement_stage_buffer_{}_q", stage), q, m);
 
