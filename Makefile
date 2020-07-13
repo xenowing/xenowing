@@ -2,10 +2,10 @@ RM=rm
 RM_FLAGS=-rf
 
 .PHONY: all
-all: generated-rtl generated-rtl-old rtl sim
+all: generated-rtl rtl sim
 
 .PHONY: clean
-clean: generated-rtl-clean generated-rtl-old-clean rtl-clean sim-clean test-clean
+clean: generated-rtl-clean rtl-clean sim-clean test-clean
 
 RTL_DIR=rtl
 
@@ -29,24 +29,6 @@ $(GENERATED_RTL): rtl
 .PHONY: generated-rtl-clean
 generated-rtl-clean:
 	$(RM) $(RM_FLAGS) $(GENERATED_RTL)
-
-RTL_OLD_DIR=rtl-old
-GENERATED_RTL_OLD=$(RTL_OLD_DIR)/_generated.sv
-GENERATED_RTL_OLD_SRC=$(RTL_OLD_DIR)/gen_modules.py $(RTL_OLD_DIR)/display.py
-GENERATED_RTL_OLD_GENERATOR=$(RTL_OLD_DIR)/gen_modules.py
-KAZE_OLD=$(RTL_OLD_DIR)/kaze.py
-RTL_OLD_PYCACHE=$(RTL_OLD_DIR)/__pycache__
-
-.PHONY: generated-rtl-old
-generated-rtl-old: $(GENERATED_RTL_OLD)
-
-$(GENERATED_RTL_OLD): $(GENERATED_RTL_OLD_SRC) $(KAZE_OLD)
-	$(GENERATED_RTL_OLD_GENERATOR) $(GENERATED_RTL_OLD)
-
-.PHONY: generated-rtl-old-clean
-generated-rtl-old-clean:
-	$(RM) $(RM_FLAGS) $(GENERATED_RTL_OLD)
-	$(RM) $(RM_FLAGS) $(RTL_OLD_PYCACHE)
 
 SIM_DIR=sim
 APPROX_RECIPROCAL_DIR=$(SIM_DIR)/approx-reciprocal
