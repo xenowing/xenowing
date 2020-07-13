@@ -67,7 +67,7 @@ int main()
             case 0x02:
                 {
                     // write tile
-                    uint32_t addr = 0x05000000; // TODO: Proper constant
+                    uint32_t *addr = (uint32_t *)0x05000000; // TODO: Proper constant
                     for (int i = 0; i < 256; i++) // TODO: Proper constant
                     {
                         uint32_t pixel = 0;
@@ -76,8 +76,7 @@ int main()
                         pixel |= ((uint32_t)xw_uart_read() << 16);
                         pixel |= ((uint32_t)xw_uart_read() << 24);
 
-                        *(uint32_t *)addr = pixel;
-                        addr += 16;
+                        *addr++ = pixel;
                     }
                 }
                 break;
@@ -85,11 +84,10 @@ int main()
             case 0x03:
                 {
                     // read tile
-                    uint32_t addr = 0x05000000; // TODO: Proper constant
+                    uint32_t *addr = (uint32_t *)0x05000000; // TODO: Proper constant
                     for (int i = 0; i < 256; i++) // TODO: Proper constant
                     {
-                        uint32_t pixel = *(uint32_t *)addr;
-                        addr += 16;
+                        uint32_t pixel = *addr++;
 
                         xw_uart_write((pixel >> 0) & 0xff);
                         xw_uart_write((pixel >> 8) & 0xff);

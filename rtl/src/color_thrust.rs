@@ -1,5 +1,6 @@
 use crate::approx_reciprocal;
 use crate::helpers::*;
+use crate::word_mem::*;
 
 use kaze::*;
 
@@ -7,6 +8,7 @@ pub const TILE_DIM_BITS: u32 = 4;
 pub const TILE_DIM: u32 = 1 << TILE_DIM_BITS;
 pub const TILE_PIXELS_BITS: u32 = TILE_DIM_BITS * 2;
 pub const TILE_PIXELS: u32 = 1 << TILE_PIXELS_BITS;
+pub const TILE_PIXELS_WORDS_BITS: u32 = TILE_PIXELS_BITS - 2;
 
 pub const TEX_DIM_BITS: u32 = 4;
 pub const TEX_DIM: u32 = 1 << TEX_DIM_BITS;
@@ -194,11 +196,20 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     m.output("color_buffer_bus_ready", m.high());
     let color_buffer_bus_enable = m.input("color_buffer_bus_enable", 1);
-    let color_buffer_bus_addr = m.input("color_buffer_bus_addr", TILE_PIXELS_BITS);
+    let color_buffer_bus_addr = m.input("color_buffer_bus_addr", TILE_PIXELS_WORDS_BITS);
     let color_buffer_bus_write = m.input("color_buffer_bus_write", 1);
-    let color_buffer_bus_write_data = m.input("color_buffer_bus_write_data", 32);
+    let color_buffer_bus_write_data = m.input("color_buffer_bus_write_data", 128);
+    let color_buffer_bus_write_byte_enable = m.input("color_buffer_bus_write_byte_enable", 16);
+    let color_buffer_bus_write_word_enable = (0..4).fold(None, |acc, x| {
+        let word_enable_bit = color_buffer_bus_write_byte_enable.bit(x * 4);
+        Some(if let Some(acc) = acc {
+            word_enable_bit.concat(acc)
+        } else {
+            word_enable_bit
+        })
+    }).unwrap();
 
-    let color_buffer = m.mem("color_buffer", TILE_PIXELS_BITS, 32);
+    let color_buffer = WordMem::new(m, "color_buffer", TILE_PIXELS_WORDS_BITS, 32, 4);
     let color_buffer_bus_write_enable = color_buffer_bus_enable & color_buffer_bus_write;
     color_buffer.write_port(
         if_(color_buffer_bus_write_enable, {
@@ -211,7 +222,12 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
         }).else_({
             pixel_pipe.output("color_buffer_write_port_value")
         }),
-        color_buffer_bus_write_enable | pixel_pipe.output("color_buffer_write_port_enable"));
+        color_buffer_bus_write_enable | pixel_pipe.output("color_buffer_write_port_enable"),
+        if_(color_buffer_bus_write_enable, {
+            color_buffer_bus_write_word_enable
+        }).else_({
+            pixel_pipe.output("color_buffer_write_port_word_enable")
+        }));
 
     let color_buffer_bus_read_enable = color_buffer_bus_enable & !color_buffer_bus_write;
     let color_buffer_read_port_value = color_buffer.read_port(
@@ -351,7 +367,7 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let one_minus_t_fract = m.high().concat(m.lit(0u32, ST_FILTER_BITS)) - m.low().concat(t_fract);
 
     //  Issue color buffer read for prev_color
-    m.output("color_buffer_read_port_addr", tile_addr);
+    m.output("color_buffer_read_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
     m.output("color_buffer_read_port_enable", valid);
 
     //  Issue tex buffer read for unfiltered texel
@@ -378,7 +394,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let one_minus_t_fract = reg_next("stage_12_one_minus_t_fract", one_minus_t_fract, m);
 
     //  Returned from issue in previous stage
-    let prev_color = m.input("color_buffer_read_port_value", 32);
+    //   TODO: Select specific pixel with low bits of tile_addr
+    let prev_color = m.input("color_buffer_read_port_value", 128);
 
     //  Returned from issue in previous stage
     let texel = m.input("tex_buffer_read_port_value", 32);
@@ -404,9 +421,17 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let color = reg_next("stage_13_color", color, m);
 
-    m.output("color_buffer_write_port_addr", tile_addr);
-    m.output("color_buffer_write_port_value", color);
+    m.output("color_buffer_write_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
+    m.output("color_buffer_write_port_value", color.repeat(4));
     m.output("color_buffer_write_port_enable", valid & edge_test);
+    m.output("color_buffer_write_port_word_enable", (0u32..4).fold(None, |acc, x| {
+        let word_enable_bit = tile_addr.bits(1, 0).eq(m.lit(x, 2));
+        Some(if let Some(acc) = acc {
+            word_enable_bit.concat(acc)
+        } else {
+            word_enable_bit
+        })
+    }).unwrap());
 
     active.drive_next(if_(start, {
         m.high()
