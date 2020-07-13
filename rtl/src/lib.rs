@@ -11,4 +11,5 @@ pub mod mimas_a7;
 pub mod peek_buffer;
 pub mod uart;
 pub mod uart_interface;
+pub mod word_mem;
 pub mod xenowing;

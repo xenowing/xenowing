@@ -11,6 +11,7 @@ mod mimas_a7;
 mod peek_buffer;
 mod uart;
 mod uart_interface;
+mod word_mem;
 mod xenowing;
 
 use kaze::*;

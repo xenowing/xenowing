@@ -6,6 +6,7 @@ use crate::marv;
 use crate::marv_interconnect_bridge;
 use crate::uart;
 use crate::uart_interface;
+use crate::word_mem::*;
 
 use kaze::*;
 
@@ -79,23 +80,9 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let program_ram_bus_write_data = interconnect.output("program_ram_bus_write_data");
     let program_ram_bus_write_byte_enable = interconnect.output("program_ram_bus_write_byte_enable");
     interconnect.drive_input("program_ram_bus_ready", m.high());
-    let mut read_word = None;
-    for byte_index in 0..16 {
-        let mem = m.mem(format!("program_ram_mem_byte_{}", byte_index), program_ram_addr_bit_width, 8);
-        let byte_write_data = program_ram_bus_write_data.bits((byte_index * 8) + 7, byte_index * 8);
-        let byte_write_enable = program_ram_bus_enable & program_ram_bus_write & program_ram_bus_write_byte_enable.bit(byte_index);
-        mem.write_port(program_ram_bus_addr, byte_write_data, byte_write_enable);
-        let read_byte = mem.read_port(program_ram_bus_addr, m.high());
-        match read_word {
-            Some(word) => {
-                read_word = Some(read_byte.concat(word));
-            }
-            _ => {
-                read_word = Some(read_byte);
-            }
-        }
-    }
-    interconnect.drive_input("program_ram_bus_read_data", read_word.unwrap());
+    let program_ram_mem = WordMem::new(m, "program_ram_mem", program_ram_addr_bit_width, 8, 16);
+    program_ram_mem.write_port(program_ram_bus_addr, program_ram_bus_write_data, program_ram_bus_enable & program_ram_bus_write, program_ram_bus_write_byte_enable);
+    interconnect.drive_input("program_ram_bus_read_data", program_ram_mem.read_port(program_ram_bus_addr, program_ram_bus_enable & !program_ram_bus_write));
     interconnect.drive_input("program_ram_bus_read_data_valid", reg_next_with_default("program_ram_bus_read_data_valid", program_ram_bus_enable & !program_ram_bus_write, false, m));
 
     led_interface::generate(c);
@@ -176,23 +163,9 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let ddr3_interface_bus_write_data = interconnect.output("ddr3_interface_bus_write_data");
     let ddr3_interface_bus_write_byte_enable = interconnect.output("ddr3_interface_bus_write_byte_enable");
     interconnect.drive_input("ddr3_interface_bus_ready", m.high());
-    let mut read_word = None;
-    for byte_index in 0..16 {
-        let mem = m.mem(format!("ddr3_mem_byte_{}", byte_index), ddr3_interface_addr_bit_width, 8);
-        let byte_write_data = ddr3_interface_bus_write_data.bits((byte_index * 8) + 7, byte_index * 8);
-        let byte_write_enable = ddr3_interface_bus_enable & ddr3_interface_bus_write & ddr3_interface_bus_write_byte_enable.bit(byte_index);
-        mem.write_port(ddr3_interface_bus_addr, byte_write_data, byte_write_enable);
-        let read_byte = mem.read_port(ddr3_interface_bus_addr, m.high());
-        match read_word {
-            Some(word) => {
-                read_word = Some(read_byte.concat(word));
-            }
-            _ => {
-                read_word = Some(read_byte);
-            }
-        }
-    }
-    interconnect.drive_input("ddr3_interface_bus_read_data", read_word.unwrap());
+    let ddr3_mem = WordMem::new(m, "ddr3_mem", ddr3_interface_addr_bit_width, 8, 16);
+    ddr3_mem.write_port(ddr3_interface_bus_addr, ddr3_interface_bus_write_data, ddr3_interface_bus_enable & ddr3_interface_bus_write, ddr3_interface_bus_write_byte_enable);
+    interconnect.drive_input("ddr3_interface_bus_read_data", ddr3_mem.read_port(ddr3_interface_bus_addr, ddr3_interface_bus_enable & !ddr3_interface_bus_write));
     interconnect.drive_input("ddr3_interface_bus_read_data_valid", reg_next_with_default("ddr3_interface_bus_read_data_valid", ddr3_interface_bus_enable & !ddr3_interface_bus_write, false, m));
 
     /*m.output("ddr3_interface_bus_enable", interconnect.output("ddr3_interface_bus_enable"));
