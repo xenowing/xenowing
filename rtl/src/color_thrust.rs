@@ -14,10 +14,15 @@ pub const TEX_DIM_BITS: u32 = 4;
 pub const TEX_DIM: u32 = 1 << TEX_DIM_BITS;
 pub const TEX_PIXELS_BITS: u32 = TEX_DIM_BITS * 2;
 pub const TEX_PIXELS: u32 = 1 << TEX_PIXELS_BITS;
+pub const TEX_PIXELS_WORDS_BITS: u32 = TEX_PIXELS_BITS - 2;
+pub const TEX_BUFFER_DIM_BITS: u32 = TEX_DIM_BITS - 1;
+pub const TEX_BUFFER_DIM: u32 = 1 << TEX_BUFFER_DIM_BITS;
+pub const TEX_BUFFER_PIXELS_BITS: u32 = TEX_BUFFER_DIM_BITS * 2;
+pub const TEX_BUFFER_PIXELS: u32 = 1 << TEX_BUFFER_PIXELS_BITS;
 
 pub const W_INVERSE_FRACT_BITS: u32 = 30;
 pub const ST_FRACT_BITS: u32 = 24;
-pub const ST_FILTER_BITS: u32 = 4; // Must be less than ST_FRACT_BITS
+pub const ST_FILTER_FRACT_BITS: u32 = 4; // Must be less than ST_FRACT_BITS
 pub const RESTORED_W_FRACT_BITS: u32 = 8; // Must be less than W_INVERSE_FRACT_BITS and ST_FRACT_BITS
 
 pub const REG_BUS_ADDR_BIT_WIDTH: u32 = 6;
@@ -245,26 +250,42 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     m.output("tex_buffer_bus_ready", m.high());
     let tex_buffer_bus_enable = m.input("tex_buffer_bus_enable", 1);
-    let tex_buffer_bus_addr = m.input("tex_buffer_bus_addr", TILE_PIXELS_BITS);
+    let tex_buffer_bus_addr = m.input("tex_buffer_bus_addr", TEX_PIXELS_WORDS_BITS);
     let tex_buffer_bus_write = m.input("tex_buffer_bus_write", 1);
-    let tex_buffer_bus_write_data = m.input("tex_buffer_bus_write_data", 32);
+    let tex_buffer_bus_write_data = m.input("tex_buffer_bus_write_data", 128);
+    let tex_buffer_bus_write_byte_enable = m.input("tex_buffer_bus_write_byte_enable", 16);
 
-    let tex_buffer = m.mem("tex_buffer", TILE_PIXELS_BITS, 32);
     let tex_buffer_bus_write_enable = tex_buffer_bus_enable & tex_buffer_bus_write;
-    tex_buffer.write_port(tex_buffer_bus_addr, tex_buffer_bus_write_data, tex_buffer_bus_write_enable);
-
     let tex_buffer_bus_read_enable = tex_buffer_bus_enable & !tex_buffer_bus_write;
-    let tex_buffer_read_port_value = tex_buffer.read_port(
-        if_(tex_buffer_bus_read_enable, {
-            tex_buffer_bus_addr
-        }).else_({
-            pixel_pipe.output("tex_buffer_read_port_addr")
-        }),
-        tex_buffer_bus_read_enable | pixel_pipe.output("tex_buffer_read_port_enable"));
 
-    pixel_pipe.drive_input("tex_buffer_read_port_value", tex_buffer_read_port_value);
+    let mut tex_buffer_read_port_value = None;
 
-    m.output("tex_buffer_bus_read_data", tex_buffer_read_port_value);
+    for i in 0..4 {
+        let tex_buffer = m.mem(format!("tex_buffer{}", i), TEX_BUFFER_PIXELS_BITS, 32);
+        let tex_buffer_bus_write_data_offset = i * 32;
+        tex_buffer.write_port(
+            tex_buffer_bus_addr,
+            tex_buffer_bus_write_data.bits(tex_buffer_bus_write_data_offset + 31, tex_buffer_bus_write_data_offset),
+            tex_buffer_bus_write_enable & tex_buffer_bus_write_byte_enable.bit(i * 4));
+
+        let read_port_value = tex_buffer.read_port(
+            if_(tex_buffer_bus_read_enable, {
+                tex_buffer_bus_addr
+            }).else_({
+                pixel_pipe.output(format!("tex_buffer{}_read_port_addr", i))
+            }),
+            tex_buffer_bus_read_enable | pixel_pipe.output(format!("tex_buffer{}_read_port_enable", i)));
+
+        pixel_pipe.drive_input(format!("tex_buffer{}_read_port_value", i), read_port_value);
+
+        tex_buffer_read_port_value = Some(if let Some(tex_buffer_read_port_value) = tex_buffer_read_port_value {
+            read_port_value.concat(tex_buffer_read_port_value)
+        } else {
+            read_port_value
+        });
+    }
+
+    m.output("tex_buffer_bus_read_data", tex_buffer_read_port_value.unwrap());
     m.output("tex_buffer_bus_read_data_valid", reg_next_with_default("tex_buffer_bus_read_data_valid", tex_buffer_bus_read_enable, false, m));
 
     m
@@ -361,18 +382,43 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let s_floor = s.bits(31, ST_FRACT_BITS);
     let t_floor = t.bits(31, ST_FRACT_BITS);
-    let s_fract = s.bits(ST_FRACT_BITS - 1, ST_FRACT_BITS - ST_FILTER_BITS);
-    let t_fract = t.bits(ST_FRACT_BITS - 1, ST_FRACT_BITS - ST_FILTER_BITS);
-    let one_minus_s_fract = m.high().concat(m.lit(0u32, ST_FILTER_BITS)) - m.low().concat(s_fract);
-    let one_minus_t_fract = m.high().concat(m.lit(0u32, ST_FILTER_BITS)) - m.low().concat(t_fract);
+    let s_fract = m.low().concat(s.bits(ST_FRACT_BITS - 1, ST_FRACT_BITS - ST_FILTER_FRACT_BITS));
+    let t_fract = m.low().concat(t.bits(ST_FRACT_BITS - 1, ST_FRACT_BITS - ST_FILTER_FRACT_BITS));
+    let one_minus_s_fract = m.high().concat(m.lit(0u32, ST_FILTER_FRACT_BITS)) - s_fract;
+    let one_minus_t_fract = m.high().concat(m.lit(0u32, ST_FILTER_FRACT_BITS)) - t_fract;
+
+    //  Swap weights depending on pixel offsets
+    let (s_fract, one_minus_s_fract) = if_(!s_floor.bit(0), {
+        (s_fract, one_minus_s_fract)
+    }).else_({
+        (one_minus_s_fract, s_fract)
+    });
+    let (t_fract, one_minus_t_fract) = if_(!t_floor.bit(0), {
+        (t_fract, one_minus_t_fract)
+    }).else_({
+        (one_minus_t_fract, t_fract)
+    });
 
     //  Issue color buffer read for prev_color
     m.output("color_buffer_read_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
     m.output("color_buffer_read_port_enable", valid);
 
-    //  Issue tex buffer read for unfiltered texel
-    m.output("tex_buffer_read_port_addr", t_floor.bits(3, 0).concat(s_floor.bits(3, 0)));
-    m.output("tex_buffer_read_port_enable", valid);
+    //  Issue tex buffer reads for filtered texel
+    let buffer0_s = (s_floor.bits(3, 0) + m.lit(1u32, 4)).bits(3, 1);
+    let buffer0_t = (t_floor.bits(3, 0) + m.lit(1u32, 4)).bits(3, 1);
+    let buffer1_s = s_floor.bits(3, 1);
+    let buffer1_t = (t_floor.bits(3, 0) + m.lit(1u32, 4)).bits(3, 1);
+    let buffer2_s = (s_floor.bits(3, 0) + m.lit(1u32, 4)).bits(3, 1);
+    let buffer2_t = t_floor.bits(3, 1);
+    let buffer3_s = s_floor.bits(3, 1);
+    let buffer3_t = t_floor.bits(3, 1);
+    m.output("tex_buffer0_read_port_addr", buffer0_t.concat(buffer0_s));
+    m.output("tex_buffer1_read_port_addr", buffer1_t.concat(buffer1_s));
+    m.output("tex_buffer2_read_port_addr", buffer2_t.concat(buffer2_s));
+    m.output("tex_buffer3_read_port_addr", buffer3_t.concat(buffer3_s));
+    for i in 0..4 {
+        m.output(format!("tex_buffer{}_read_port_enable", i), valid);
+    }
 
     // Stage 12
     let valid = reg_next_with_default("stage_12_valid", valid, false, m);
@@ -386,8 +432,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let b = reg_next("stage_12_b", b, m);
     let a = reg_next("stage_12_a", a, m);
 
-    let s_floor = reg_next("stage_12_s_floor", s_floor, m);
-    let t_floor = reg_next("stage_12_t_floor", t_floor, m);
     let s_fract = reg_next("stage_12_s_fract", s_fract, m);
     let t_fract = reg_next("stage_12_t_fract", t_fract, m);
     let one_minus_s_fract = reg_next("stage_12_one_minus_s_fract", one_minus_s_fract, m);
@@ -397,8 +441,97 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     //   TODO: Select specific pixel with low bits of tile_addr
     let prev_color = m.input("color_buffer_read_port_value", 128);
 
-    //  Returned from issue in previous stage
-    let texel = m.input("tex_buffer_read_port_value", 32);
+    struct Texel<'a> {
+        r: &'a Signal<'a>,
+        g: &'a Signal<'a>,
+        b: &'a Signal<'a>,
+        a: &'a Signal<'a>,
+    }
+
+    impl<'a> Texel<'a> {
+        fn new(texel: &'a Signal<'a>) -> Texel<'a> {
+            Texel {
+                r: texel.bits(23, 16),
+                g: texel.bits(15, 8),
+                b: texel.bits(7, 0),
+                a: texel.bits(31, 24),
+            }
+        }
+
+        fn argb(&self) -> &'a Signal<'a> {
+            self.a.concat(self.r).concat(self.g).concat(self.b)
+        }
+    }
+
+    fn blend_component<'a>(a: &'a Signal<'a>, b: &'a Signal<'a>, a_fract: &'a Signal<'a>, b_fract: &'a Signal<'a>) -> &'a Signal<'a> {
+        (a * a_fract + b * b_fract).bits(8 + ST_FILTER_FRACT_BITS - 1, ST_FILTER_FRACT_BITS)
+    }
+
+    fn blend_texels<'a>(a: &Texel<'a>, b: &Texel<'a>, a_fract: &'a Signal<'a>, b_fract: &'a Signal<'a>) -> Texel<'a> {
+        Texel {
+            r: blend_component(a.r, b.r, a_fract, b_fract),
+            g: blend_component(a.g, b.g, a_fract, b_fract),
+            b: blend_component(a.b, b.b, a_fract, b_fract),
+            a: blend_component(a.a, b.a, a_fract, b_fract),
+        }
+    }
+
+    //  Returned from issues in previous stage
+    let texel0 = Texel::new(m.input("tex_buffer0_read_port_value", 32));
+    let texel1 = Texel::new(m.input("tex_buffer1_read_port_value", 32));
+    let texel2 = Texel::new(m.input("tex_buffer2_read_port_value", 32));
+    let texel3 = Texel::new(m.input("tex_buffer3_read_port_value", 32));
+    //  Unfiltered texel
+    /*let texel = if_(!t_floor.bit(0), {
+        if_(!s_floor.bit(0), {
+            texel0
+        }).else_({
+            texel1
+        })
+    }).else_({
+        if_(!s_floor.bit(0), {
+            texel2
+        }).else_({
+            texel3
+        })
+    });*/
+
+    let lower = blend_texels(&texel0, &texel1, one_minus_s_fract, s_fract).argb();
+    let upper = blend_texels(&texel2, &texel3, one_minus_s_fract, s_fract).argb();
+
+    // Stage 13
+    let valid = reg_next_with_default("stage_13_valid", valid, false, m);
+    let last = reg_next_with_default("stage_13_last", last, false, m);
+    let tile_addr = reg_next("stage_13_tile_addr", tile_addr, m);
+
+    let edge_test = reg_next("stage_13_edge_test", edge_test, m);
+
+    let r = reg_next("stage_13_r", r, m);
+    let g = reg_next("stage_13_g", g, m);
+    let b = reg_next("stage_13_b", b, m);
+    let a = reg_next("stage_13_a", a, m);
+
+    let t_fract = reg_next("stage_13_t_fract", t_fract, m);
+    let one_minus_t_fract = reg_next("stage_13_one_minus_t_fract", one_minus_t_fract, m);
+
+    let lower = Texel::new(reg_next("stage_13_lower", lower, m));
+    let upper = Texel::new(reg_next("stage_13_upper", upper, m));
+
+    let texel = blend_texels(&lower, &upper, one_minus_t_fract, t_fract).argb();
+
+    // Stage 14
+    let valid = reg_next_with_default("stage_14_valid", valid, false, m);
+    let last = reg_next_with_default("stage_14_last", last, false, m);
+    let tile_addr = reg_next("stage_14_tile_addr", tile_addr, m);
+
+    let edge_test = reg_next("stage_14_edge_test", edge_test, m);
+
+    let r = reg_next("stage_14_r", r, m);
+    let g = reg_next("stage_14_g", g, m);
+    let b = reg_next("stage_14_b", b, m);
+    let a = reg_next("stage_14_a", a, m);
+
+    let texel = reg_next("stage_14_texel", texel, m);
 
     let texel_r = texel.bits(23, 16);
     let texel_g = texel.bits(15, 8);
@@ -412,14 +545,14 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let g = t_floor;*/
     let color = a.concat(r).concat(g).concat(b);
 
-    // Stage 13
-    let valid = reg_next_with_default("stage_13_valid", valid, false, m);
-    let last = reg_next_with_default("stage_13_last", last, false, m);
-    let tile_addr = reg_next("stage_13_tile_addr", tile_addr, m);
+    // Stage 15
+    let valid = reg_next_with_default("stage_15_valid", valid, false, m);
+    let last = reg_next_with_default("stage_15_last", last, false, m);
+    let tile_addr = reg_next("stage_15_tile_addr", tile_addr, m);
 
-    let edge_test = reg_next("stage_13_edge_test", edge_test, m);
+    let edge_test = reg_next("stage_15_edge_test", edge_test, m);
 
-    let color = reg_next("stage_13_color", color, m);
+    let color = reg_next("stage_15_color", color, m);
 
     m.output("color_buffer_write_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
     m.output("color_buffer_write_port_value", color.repeat(4));
