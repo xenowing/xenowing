@@ -362,8 +362,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let w = reg_next("stage_14_w", w, m);
 
-    let s = s * w;
-    let t = t * w;
+    let s = s.mul_signed(w);
+    let t = t.mul_signed(w);
 
     // Stage 15
     let valid = reg_next_with_default("stage_15_valid", valid, false, m);

@@ -141,11 +141,11 @@ impl ModelDevice {
 
                     let w = w_approx;
 
-                    let s = (s >> RESTORED_W_FRACT_BITS) * w;
-                    let t = (t >> RESTORED_W_FRACT_BITS) * w;
                     // Signed multiplies here fixes seam issue!!!!
-                    //let s = (((s as i32) >> RESTORED_W_FRACT_BITS) * (w as i32)) as u32;
-                    //let t = (((t as i32) >> RESTORED_W_FRACT_BITS) * (w as i32)) as u32;
+                    //let s = (s >> RESTORED_W_FRACT_BITS) * w;
+                    //let t = (t >> RESTORED_W_FRACT_BITS) * w;
+                    let s = (((s as i32) >> RESTORED_W_FRACT_BITS) * (w as i32)) as u32;
+                    let t = (((t as i32) >> RESTORED_W_FRACT_BITS) * (w as i32)) as u32;
                     let s_floor = s >> ST_FRACT_BITS;
                     let t_floor = t >> ST_FRACT_BITS;
                     let s_fract = (s >> (ST_FRACT_BITS - ST_FILTER_FRACT_BITS)) & ((1 << ST_FILTER_FRACT_BITS) - 1);
