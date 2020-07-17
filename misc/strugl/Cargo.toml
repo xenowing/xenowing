@@ -1,0 +1,17 @@
+[package]
+name = "strugl"
+version = "0.1.0"
+authors = ["ferris <yupferris@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+kaze = "0.1"
+rtl = { path = "../../rtl" }
+
+[dependencies]
+image = "0.23"
+minifb = "0.16"
+rand = "0.7"
+rtl = { path = "../../rtl" }
