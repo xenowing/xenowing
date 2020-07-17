@@ -40,6 +40,9 @@ struct Context<'a> {
     back_buffer: Vec<u32>,
     depth_buffer: Vec<u16>,
 
+    depth_test_enable: bool,
+    depth_write_mask_enable: bool,
+
     model_view: Matrix,
     projection: Matrix,
 
@@ -53,6 +56,9 @@ impl<'a> Context<'a> {
 
             back_buffer: vec![0; PIXELS],
             depth_buffer: vec![0xffff; PIXELS],
+
+            depth_test_enable: false,
+            depth_write_mask_enable: false,
 
             model_view: Matrix::identity(),
             projection: Matrix::identity(),
@@ -124,6 +130,11 @@ impl<'a> Context<'a> {
             window_verts[1] = temp;
             scaled_area = -scaled_area;*/
         }
+
+        self.device.write_reg(
+            REG_DEPTH_SETTINGS_ADDR,
+            (if self.depth_test_enable { 1 } else { 0 } << REG_DEPTH_TEST_ENABLE_BIT) |
+            (if self.depth_write_mask_enable { 1 } else { 0 } << REG_DEPTH_WRITE_MASK_ENABLE_BIT));
 
         let texture_dims = Vec2::splat(16.0); // TODO: Proper value and default if no texture is enabled
         let st_bias = -0.5; // Offset to sample texel centers // TODO: This depends on filtering chosen; 0 for nearest, -0.5 for bilinear
@@ -546,6 +557,10 @@ fn main() {
         }
 
         let mut c = Context::new(&mut *device);
+
+        c.depth_test_enable = true;
+        c.depth_write_mask_enable = true;
+
         c.projection = Matrix::perspective(90.0, WIDTH as f32 / HEIGHT as f32, 1.0, 1000.0);
 
         let view = Matrix::translation(0.0, 0.0, -3.0);

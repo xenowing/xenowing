@@ -12,6 +12,9 @@ pub struct ModelDevice {
     tex_buffer2: [u32; TEX_BUFFER_PIXELS as usize],
     tex_buffer3: [u32; TEX_BUFFER_PIXELS as usize],
 
+    depth_test_enable: bool,
+    depth_write_mask_enable: bool,
+
     w0_min: u32,
     w0_dx: u32,
     w0_dy: u32,
@@ -57,6 +60,9 @@ impl ModelDevice {
             tex_buffer1: [0; TEX_BUFFER_PIXELS as usize],
             tex_buffer2: [0; TEX_BUFFER_PIXELS as usize],
             tex_buffer3: [0; TEX_BUFFER_PIXELS as usize],
+
+            depth_test_enable: false,
+            depth_write_mask_enable: false,
 
             w0_min: 0,
             w0_dx: 0,
@@ -190,11 +196,13 @@ impl ModelDevice {
                     let color_alpha = color.w().floor() as u32;
 
                     let z = (z >> (Z_FRACT_BITS - 16)) as u16;
-                    let depth_test_result = z < self.depth_buffer[buffer_index];
+                    let depth_test_result = z < self.depth_buffer[buffer_index] || !self.depth_test_enable;
 
                     if depth_test_result {
                         self.color_buffer[buffer_index] = (color_alpha << 24) | (color_red << 16) | (color_green << 8) | (color_blue << 0);
-                        self.depth_buffer[buffer_index] = z;
+                        if self.depth_write_mask_enable {
+                            self.depth_buffer[buffer_index] = z;
+                        }
                     }
                 }
 
@@ -244,6 +252,10 @@ impl Device for ModelDevice {
     fn write_reg(&mut self, addr: u32, data: u32) {
         match addr {
             REG_START_ADDR => self.rasterize_primitive(),
+            REG_DEPTH_SETTINGS_ADDR => {
+                self.depth_test_enable = (data & (1 << REG_DEPTH_TEST_ENABLE_BIT)) != 0;
+                self.depth_write_mask_enable = (data & (1 << REG_DEPTH_WRITE_MASK_ENABLE_BIT)) != 0;
+            }
             REG_W0_MIN_ADDR => { self.w0_min = data; }
             REG_W0_DX_ADDR => { self.w0_dx = data; }
             REG_W0_DY_ADDR => { self.w0_dy = data; }
@@ -284,6 +296,10 @@ impl Device for ModelDevice {
     fn read_reg(&mut self, addr: u32) -> u32 {
         match addr {
             REG_STATUS_ADDR => 0,
+            REG_DEPTH_SETTINGS_ADDR => {
+                (if self.depth_test_enable { 1 } else { 0 } << REG_DEPTH_TEST_ENABLE_BIT) |
+                (if self.depth_write_mask_enable { 1 } else { 0 } << REG_DEPTH_WRITE_MASK_ENABLE_BIT)
+            }
             REG_W0_MIN_ADDR => self.w0_min,
             REG_W0_DX_ADDR => self.w0_dx,
             REG_W0_DY_ADDR => self.w0_dy,

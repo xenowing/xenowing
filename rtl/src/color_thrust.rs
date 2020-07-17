@@ -31,39 +31,44 @@ pub const REG_BUS_ADDR_BIT_WIDTH: u32 = 6;
 pub const REG_STATUS_ADDR: u32 = 0;
 pub const REG_START_ADDR: u32 = 0;
 
-pub const REG_W0_MIN_ADDR: u32 = 1;
-pub const REG_W0_DX_ADDR: u32 = 2;
-pub const REG_W0_DY_ADDR: u32 = 3;
-pub const REG_W1_MIN_ADDR: u32 = 4;
-pub const REG_W1_DX_ADDR: u32 = 5;
-pub const REG_W1_DY_ADDR: u32 = 6;
-pub const REG_W2_MIN_ADDR: u32 = 7;
-pub const REG_W2_DX_ADDR: u32 = 8;
-pub const REG_W2_DY_ADDR: u32 = 9;
-pub const REG_R_MIN_ADDR: u32 = 10;
-pub const REG_R_DX_ADDR: u32 = 11;
-pub const REG_R_DY_ADDR: u32 = 12;
-pub const REG_G_MIN_ADDR: u32 = 13;
-pub const REG_G_DX_ADDR: u32 = 14;
-pub const REG_G_DY_ADDR: u32 = 15;
-pub const REG_B_MIN_ADDR: u32 = 16;
-pub const REG_B_DX_ADDR: u32 = 17;
-pub const REG_B_DY_ADDR: u32 = 18;
-pub const REG_A_MIN_ADDR: u32 = 19;
-pub const REG_A_DX_ADDR: u32 = 20;
-pub const REG_A_DY_ADDR: u32 = 21;
-pub const REG_W_INVERSE_MIN_ADDR: u32 = 22;
-pub const REG_W_INVERSE_DX_ADDR: u32 = 23;
-pub const REG_W_INVERSE_DY_ADDR: u32 = 24;
-pub const REG_Z_MIN_ADDR: u32 = 25;
-pub const REG_Z_DX_ADDR: u32 = 26;
-pub const REG_Z_DY_ADDR: u32 = 27;
-pub const REG_S_MIN_ADDR: u32 = 28;
-pub const REG_S_DX_ADDR: u32 = 29;
-pub const REG_S_DY_ADDR: u32 = 30;
-pub const REG_T_MIN_ADDR: u32 = 31;
-pub const REG_T_DX_ADDR: u32 = 32;
-pub const REG_T_DY_ADDR: u32 = 33;
+pub const REG_DEPTH_SETTINGS_ADDR: u32 = 1;
+pub const REG_DEPTH_SETTINGS_BITS: u32 = 2;
+pub const REG_DEPTH_TEST_ENABLE_BIT: u32 = 0;
+pub const REG_DEPTH_WRITE_MASK_ENABLE_BIT: u32 = 1;
+
+pub const REG_W0_MIN_ADDR: u32 = 2;
+pub const REG_W0_DX_ADDR: u32 = 3;
+pub const REG_W0_DY_ADDR: u32 = 4;
+pub const REG_W1_MIN_ADDR: u32 = 5;
+pub const REG_W1_DX_ADDR: u32 = 6;
+pub const REG_W1_DY_ADDR: u32 = 7;
+pub const REG_W2_MIN_ADDR: u32 = 8;
+pub const REG_W2_DX_ADDR: u32 = 9;
+pub const REG_W2_DY_ADDR: u32 = 10;
+pub const REG_R_MIN_ADDR: u32 = 11;
+pub const REG_R_DX_ADDR: u32 = 12;
+pub const REG_R_DY_ADDR: u32 = 13;
+pub const REG_G_MIN_ADDR: u32 = 14;
+pub const REG_G_DX_ADDR: u32 = 15;
+pub const REG_G_DY_ADDR: u32 = 16;
+pub const REG_B_MIN_ADDR: u32 = 17;
+pub const REG_B_DX_ADDR: u32 = 18;
+pub const REG_B_DY_ADDR: u32 = 19;
+pub const REG_A_MIN_ADDR: u32 = 20;
+pub const REG_A_DX_ADDR: u32 = 21;
+pub const REG_A_DY_ADDR: u32 = 22;
+pub const REG_W_INVERSE_MIN_ADDR: u32 = 23;
+pub const REG_W_INVERSE_DX_ADDR: u32 = 24;
+pub const REG_W_INVERSE_DY_ADDR: u32 = 25;
+pub const REG_Z_MIN_ADDR: u32 = 26;
+pub const REG_Z_DX_ADDR: u32 = 27;
+pub const REG_Z_DY_ADDR: u32 = 28;
+pub const REG_S_MIN_ADDR: u32 = 29;
+pub const REG_S_DX_ADDR: u32 = 30;
+pub const REG_S_DY_ADDR: u32 = 31;
+pub const REG_T_MIN_ADDR: u32 = 32;
+pub const REG_T_DX_ADDR: u32 = 33;
+pub const REG_T_DY_ADDR: u32 = 34;
 
 pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let m = c.module("ColorThrust");
@@ -75,6 +80,15 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let reg_bus_write_data = m.input("reg_bus_write_data", 32);
 
     let reg_bus_write_enable = reg_bus_enable & reg_bus_write;
+
+    let reg_depth_settings = m.reg("depth_settings", REG_DEPTH_SETTINGS_BITS);
+    reg_depth_settings.drive_next(if_(reg_bus_write_enable & reg_bus_addr.eq(m.lit(REG_DEPTH_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
+        reg_bus_write_data.bits(REG_DEPTH_SETTINGS_BITS - 1, 0)
+    }).else_({
+        reg_depth_settings.value
+    }));
+    let depth_test_enable = reg_depth_settings.value.bit(REG_DEPTH_TEST_ENABLE_BIT);
+    let depth_write_mask_enable = reg_depth_settings.value.bit(REG_DEPTH_WRITE_MASK_ENABLE_BIT);
 
     let input_generator_active = m.reg("input_generator_active", 1);
     input_generator_active.default_value(false);
@@ -183,6 +197,9 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let pixel_pipe = m.instance("pixel_pipe", "PixelPipe");
 
     pixel_pipe.drive_input("start", start);
+
+    pixel_pipe.drive_input("depth_test_enable", depth_test_enable);
+    pixel_pipe.drive_input("depth_write_mask_enable", depth_write_mask_enable);
 
     pixel_pipe.drive_input("in_valid", input_generator_active.value);
     pixel_pipe.drive_input("in_last", tile_x_last & tile_y_last);
@@ -353,6 +370,9 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     // Control
     let start = m.input("start", 1);
+
+    let depth_test_enable = m.input("depth_test_enable", 1);
+    let depth_write_mask_enable = m.input("depth_write_mask_enable", 1);
 
     let active = m.reg("active", 1);
     active.default_value(false);
@@ -637,7 +657,7 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let prev_depth = reg_next("stage_19_prev_depth", prev_depth, m);
 
-    let depth_test_result = z.lt(prev_depth);
+    let depth_test_result = z.lt(prev_depth) | !depth_test_enable;
 
     m.output("color_buffer_write_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
     m.output("color_buffer_write_port_value", color.repeat(4));
@@ -653,7 +673,7 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     m.output("depth_buffer_write_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 3));
     m.output("depth_buffer_write_port_value", z.repeat(8));
-    m.output("depth_buffer_write_port_enable", valid & edge_test & depth_test_result);
+    m.output("depth_buffer_write_port_enable", valid & edge_test & depth_test_result & depth_write_mask_enable);
     m.output("depth_buffer_write_port_word_enable", (0u32..8).fold(None, |acc, x| {
         let word_enable_bit = tile_addr.bits(2, 0).eq(m.lit(x, 3));
         Some(if let Some(acc) = acc {
