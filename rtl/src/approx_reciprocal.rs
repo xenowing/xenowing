@@ -2,7 +2,7 @@ use crate::helpers::*;
 
 use kaze::*;
 
-// 32 bit internal resolution, 32 - `fract_bits` integral bits, `fract_bits` fractional bits, 1 + 2 * `refinement_stages` cycles latency
+// 32 bit internal resolution, 32 - `fract_bits` integral bits, `fract_bits` fractional bits, 1 + 3 * `refinement_stages` cycles latency
 pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, fract_bits: u32, refinement_stages: u32) -> &'a Module<'a> {
     let m = c.module(mod_name);
 
@@ -24,14 +24,20 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, fract_bits
         e = reg_next(format!("refinement_stage_{}_e", stage), e, m);
         q = reg_next(format!("refinement_stage_{}_q", stage), q, m);
 
-        let prev_q = q;
+        let mut prev_q = q;
 
         q = (q * e).bits(63, 32);
         e = (e * e).bits(63, 32);
 
-        // Buffer/pipeline regs to meet timing
-        e = reg_next(format!("refinement_stage_buffer_{}_e", stage), e, m);
-        q = reg_next(format!("refinement_stage_buffer_{}_q", stage), q, m);
+        // Buffer/pipeline regs to meet timing for multiplies
+        for i in 0..2 {
+            shr = reg_next(format!("refinement_stage_{}_buffer_{}_shr", stage, i), shr, m);
+
+            e = reg_next(format!("refinement_stage_{}_buffer_{}_e", stage, i), e, m);
+            q = reg_next(format!("refinement_stage_{}_buffer_{}_q", stage, i), q, m);
+
+            prev_q = reg_next(format!("refinement_stage_{}_buffer_{}_prev_q", stage, i), prev_q, m);
+        }
 
         q = q + prev_q;
     }

@@ -325,8 +325,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let w_approx_reciprocal = m.instance("w_approx_reciprocal", "WInverseReciprocal");
     w_approx_reciprocal.drive_input("x", w_inverse);
 
-    // Stages 1-9 (mostly just delay for w to arrive)
-    for stage in 1..=9 {
+    // Stages 1-13 (mostly just delay for w to arrive)
+    for stage in 1..=13 {
         valid = reg_next_with_default(format!("stage_{}_valid", stage), valid, false, m);
         last = reg_next_with_default(format!("stage_{}_last", stage), last, false, m);
         tile_addr = reg_next(format!("stage_{}_tile_addr", stage), tile_addr, m);
@@ -345,40 +345,40 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     //  Returned from issue before stage 1
     let w = w_approx_reciprocal.output("quotient");
 
-    // Stage 10
-    let valid = reg_next_with_default("stage_10_valid", valid, false, m);
-    let last = reg_next_with_default("stage_10_last", last, false, m);
-    let tile_addr = reg_next("stage_10_tile_addr", tile_addr, m);
+    // Stage 14
+    let valid = reg_next_with_default("stage_14_valid", valid, false, m);
+    let last = reg_next_with_default("stage_14_last", last, false, m);
+    let tile_addr = reg_next("stage_14_tile_addr", tile_addr, m);
 
-    let edge_test = reg_next("stage_10_edge_test", edge_test, m);
+    let edge_test = reg_next("stage_14_edge_test", edge_test, m);
 
-    let r = reg_next("stage_10_r", r, m);
-    let g = reg_next("stage_10_g", g, m);
-    let b = reg_next("stage_10_b", b, m);
-    let a = reg_next("stage_10_a", a, m);
+    let r = reg_next("stage_14_r", r, m);
+    let g = reg_next("stage_14_g", g, m);
+    let b = reg_next("stage_14_b", b, m);
+    let a = reg_next("stage_14_a", a, m);
 
-    let s = reg_next("stage_10_s", s, m);
-    let t = reg_next("stage_10_t", t, m);
+    let s = reg_next("stage_14_s", s, m);
+    let t = reg_next("stage_14_t", t, m);
 
-    let w = reg_next("stage_10_w", w, m);
+    let w = reg_next("stage_14_w", w, m);
 
     let s = s * w;
     let t = t * w;
 
-    // Stage 11
-    let valid = reg_next_with_default("stage_11_valid", valid, false, m);
-    let last = reg_next_with_default("stage_11_last", last, false, m);
-    let tile_addr = reg_next("stage_11_tile_addr", tile_addr, m);
+    // Stage 15
+    let valid = reg_next_with_default("stage_15_valid", valid, false, m);
+    let last = reg_next_with_default("stage_15_last", last, false, m);
+    let tile_addr = reg_next("stage_15_tile_addr", tile_addr, m);
 
-    let edge_test = reg_next("stage_11_edge_test", edge_test, m);
+    let edge_test = reg_next("stage_15_edge_test", edge_test, m);
 
-    let r = reg_next("stage_11_r", r, m);
-    let g = reg_next("stage_11_g", g, m);
-    let b = reg_next("stage_11_b", b, m);
-    let a = reg_next("stage_11_a", a, m);
+    let r = reg_next("stage_15_r", r, m);
+    let g = reg_next("stage_15_g", g, m);
+    let b = reg_next("stage_15_b", b, m);
+    let a = reg_next("stage_15_a", a, m);
 
-    let s = reg_next("stage_11_s", s, m);
-    let t = reg_next("stage_11_t", t, m);
+    let s = reg_next("stage_15_s", s, m);
+    let t = reg_next("stage_15_t", t, m);
 
     let s_floor = s.bits(31, ST_FRACT_BITS);
     let t_floor = t.bits(31, ST_FRACT_BITS);
@@ -420,22 +420,22 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
         m.output(format!("tex_buffer{}_read_port_enable", i), valid);
     }
 
-    // Stage 12
-    let valid = reg_next_with_default("stage_12_valid", valid, false, m);
-    let last = reg_next_with_default("stage_12_last", last, false, m);
-    let tile_addr = reg_next("stage_12_tile_addr", tile_addr, m);
+    // Stage 16
+    let valid = reg_next_with_default("stage_16_valid", valid, false, m);
+    let last = reg_next_with_default("stage_16_last", last, false, m);
+    let tile_addr = reg_next("stage_16_tile_addr", tile_addr, m);
 
-    let edge_test = reg_next("stage_12_edge_test", edge_test, m);
+    let edge_test = reg_next("stage_16_edge_test", edge_test, m);
 
-    let r = reg_next("stage_12_r", r, m);
-    let g = reg_next("stage_12_g", g, m);
-    let b = reg_next("stage_12_b", b, m);
-    let a = reg_next("stage_12_a", a, m);
+    let r = reg_next("stage_16_r", r, m);
+    let g = reg_next("stage_16_g", g, m);
+    let b = reg_next("stage_16_b", b, m);
+    let a = reg_next("stage_16_a", a, m);
 
-    let s_fract = reg_next("stage_12_s_fract", s_fract, m);
-    let t_fract = reg_next("stage_12_t_fract", t_fract, m);
-    let one_minus_s_fract = reg_next("stage_12_one_minus_s_fract", one_minus_s_fract, m);
-    let one_minus_t_fract = reg_next("stage_12_one_minus_t_fract", one_minus_t_fract, m);
+    let s_fract = reg_next("stage_16_s_fract", s_fract, m);
+    let t_fract = reg_next("stage_16_t_fract", t_fract, m);
+    let one_minus_s_fract = reg_next("stage_16_one_minus_s_fract", one_minus_s_fract, m);
+    let one_minus_t_fract = reg_next("stage_16_one_minus_t_fract", one_minus_t_fract, m);
 
     //  Returned from issue in previous stage
     //   TODO: Select specific pixel with low bits of tile_addr
@@ -485,39 +485,39 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let lower = blend_texels(&texel0, &texel1, one_minus_s_fract, s_fract).argb();
     let upper = blend_texels(&texel2, &texel3, one_minus_s_fract, s_fract).argb();
 
-    // Stage 13
-    let valid = reg_next_with_default("stage_13_valid", valid, false, m);
-    let last = reg_next_with_default("stage_13_last", last, false, m);
-    let tile_addr = reg_next("stage_13_tile_addr", tile_addr, m);
+    // Stage 17
+    let valid = reg_next_with_default("stage_17_valid", valid, false, m);
+    let last = reg_next_with_default("stage_17_last", last, false, m);
+    let tile_addr = reg_next("stage_17_tile_addr", tile_addr, m);
 
-    let edge_test = reg_next("stage_13_edge_test", edge_test, m);
+    let edge_test = reg_next("stage_17_edge_test", edge_test, m);
 
-    let r = reg_next("stage_13_r", r, m);
-    let g = reg_next("stage_13_g", g, m);
-    let b = reg_next("stage_13_b", b, m);
-    let a = reg_next("stage_13_a", a, m);
+    let r = reg_next("stage_17_r", r, m);
+    let g = reg_next("stage_17_g", g, m);
+    let b = reg_next("stage_17_b", b, m);
+    let a = reg_next("stage_17_a", a, m);
 
-    let t_fract = reg_next("stage_13_t_fract", t_fract, m);
-    let one_minus_t_fract = reg_next("stage_13_one_minus_t_fract", one_minus_t_fract, m);
+    let t_fract = reg_next("stage_17_t_fract", t_fract, m);
+    let one_minus_t_fract = reg_next("stage_17_one_minus_t_fract", one_minus_t_fract, m);
 
-    let lower = Texel::new(reg_next("stage_13_lower", lower, m));
-    let upper = Texel::new(reg_next("stage_13_upper", upper, m));
+    let lower = Texel::new(reg_next("stage_17_lower", lower, m));
+    let upper = Texel::new(reg_next("stage_17_upper", upper, m));
 
     let texel = blend_texels(&lower, &upper, one_minus_t_fract, t_fract).argb();
 
-    // Stage 14
-    let valid = reg_next_with_default("stage_14_valid", valid, false, m);
-    let last = reg_next_with_default("stage_14_last", last, false, m);
-    let tile_addr = reg_next("stage_14_tile_addr", tile_addr, m);
+    // Stage 18
+    let valid = reg_next_with_default("stage_18_valid", valid, false, m);
+    let last = reg_next_with_default("stage_18_last", last, false, m);
+    let tile_addr = reg_next("stage_18_tile_addr", tile_addr, m);
 
-    let edge_test = reg_next("stage_14_edge_test", edge_test, m);
+    let edge_test = reg_next("stage_18_edge_test", edge_test, m);
 
-    let r = reg_next("stage_14_r", r, m);
-    let g = reg_next("stage_14_g", g, m);
-    let b = reg_next("stage_14_b", b, m);
-    let a = reg_next("stage_14_a", a, m);
+    let r = reg_next("stage_18_r", r, m);
+    let g = reg_next("stage_18_g", g, m);
+    let b = reg_next("stage_18_b", b, m);
+    let a = reg_next("stage_18_a", a, m);
 
-    let texel = reg_next("stage_14_texel", texel, m);
+    let texel = reg_next("stage_18_texel", texel, m);
 
     let texel_r = texel.bits(23, 16);
     let texel_g = texel.bits(15, 8);
@@ -529,14 +529,14 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let a = (a * texel_a).bits(15, 8);
     let color = a.concat(r).concat(g).concat(b);
 
-    // Stage 15
-    let valid = reg_next_with_default("stage_15_valid", valid, false, m);
-    let last = reg_next_with_default("stage_15_last", last, false, m);
-    let tile_addr = reg_next("stage_15_tile_addr", tile_addr, m);
+    // Stage 19
+    let valid = reg_next_with_default("stage_19_valid", valid, false, m);
+    let last = reg_next_with_default("stage_19_last", last, false, m);
+    let tile_addr = reg_next("stage_19_tile_addr", tile_addr, m);
 
-    let edge_test = reg_next("stage_15_edge_test", edge_test, m);
+    let edge_test = reg_next("stage_19_edge_test", edge_test, m);
 
-    let color = reg_next("stage_15_color", color, m);
+    let color = reg_next("stage_19_color", color, m);
 
     m.output("color_buffer_write_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
     m.output("color_buffer_write_port_value", color.repeat(4));
