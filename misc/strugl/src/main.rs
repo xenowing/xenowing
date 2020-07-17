@@ -285,7 +285,6 @@ fn main() {
 
                     // Rasterize
                     device.write_reg(REG_START_ADDR, 1);
-                    let mut elapsed_cycles = 0;
                     while device.read_reg(REG_STATUS_ADDR) != 0 {
                         // Do nothing
                     }
