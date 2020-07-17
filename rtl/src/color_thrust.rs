@@ -170,8 +170,8 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let w_inverse = interpolant("w_inverse", 32, REG_W_INVERSE_MIN_ADDR, REG_W_INVERSE_DX_ADDR, REG_W_INVERSE_DY_ADDR);
 
-    let s = interpolant("s", 32, REG_S_MIN_ADDR, REG_S_DX_ADDR, REG_S_DY_ADDR).bits(31, 8);
-    let t = interpolant("t", 32, REG_T_MIN_ADDR, REG_T_DX_ADDR, REG_T_DY_ADDR).bits(31, 8);
+    let s = interpolant("s", 32, REG_S_MIN_ADDR, REG_S_DX_ADDR, REG_S_DY_ADDR).bits(31, RESTORED_W_FRACT_BITS);
+    let t = interpolant("t", 32, REG_T_MIN_ADDR, REG_T_DX_ADDR, REG_T_DY_ADDR).bits(31, RESTORED_W_FRACT_BITS);
 
     generate_pixel_pipe(c);
     let pixel_pipe = m.instance("pixel_pipe", "PixelPipe");
@@ -318,8 +318,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let w_inverse = m.input("in_w_inverse", 32);
 
-    let mut s = m.input("in_s", 24);
-    let mut t = m.input("in_t", 24);
+    let mut s = m.input("in_s", 32 - RESTORED_W_FRACT_BITS);
+    let mut t = m.input("in_t", 32 - RESTORED_W_FRACT_BITS);
 
     approx_reciprocal::generate(c, "WInverseReciprocal", W_INVERSE_FRACT_BITS - RESTORED_W_FRACT_BITS - 3, 4);
     let w_approx_reciprocal = m.instance("w_approx_reciprocal", "WInverseReciprocal");
@@ -481,20 +481,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let texel1 = Texel::new(m.input("tex_buffer1_read_port_value", 32));
     let texel2 = Texel::new(m.input("tex_buffer2_read_port_value", 32));
     let texel3 = Texel::new(m.input("tex_buffer3_read_port_value", 32));
-    //  Unfiltered texel
-    /*let texel = if_(!t_floor.bit(0), {
-        if_(!s_floor.bit(0), {
-            texel0
-        }).else_({
-            texel1
-        })
-    }).else_({
-        if_(!s_floor.bit(0), {
-            texel2
-        }).else_({
-            texel3
-        })
-    });*/
 
     let lower = blend_texels(&texel0, &texel1, one_minus_s_fract, s_fract).argb();
     let upper = blend_texels(&texel2, &texel3, one_minus_s_fract, s_fract).argb();
@@ -541,8 +527,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let g = (g * texel_g).bits(15, 8);
     let b = (b * texel_b).bits(15, 8);
     let a = (a * texel_a).bits(15, 8);
-    /*let r = s_floor;
-    let g = t_floor;*/
     let color = a.concat(r).concat(g).concat(b);
 
     // Stage 15
