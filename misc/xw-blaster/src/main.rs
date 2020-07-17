@@ -304,7 +304,7 @@ fn main() -> Result<(), Error> {
                                 let texel_y = block_y * 2 + y;
                                 let block_offset = block_y * (16 / 2) + block_x;
                                 let block_index = y * 2 + x;
-                                let addr = 0x06000000 + (block_offset * 4 + block_index) * 4;
+                                let addr = 0x07000000 + (block_offset * 4 + block_index) * 4;
                                 let texel = tex.get_pixel(texel_x, 15 - texel_y);
                                 let r = texel[0];
                                 let g = texel[1];

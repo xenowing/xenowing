@@ -147,6 +147,15 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     interconnect.drive_input("color_thrust_color_buffer_bus_read_data", color_thrust.output("color_buffer_bus_read_data"));
     interconnect.drive_input("color_thrust_color_buffer_bus_read_data_valid", color_thrust.output("color_buffer_bus_read_data_valid"));
 
+    color_thrust.drive_input("depth_buffer_bus_enable", interconnect.output("color_thrust_depth_buffer_bus_enable"));
+    color_thrust.drive_input("depth_buffer_bus_addr", interconnect.output("color_thrust_depth_buffer_bus_addr").bits(color_thrust::TILE_PIXELS_WORDS_BITS - 2, 0));
+    color_thrust.drive_input("depth_buffer_bus_write", interconnect.output("color_thrust_depth_buffer_bus_write"));
+    color_thrust.drive_input("depth_buffer_bus_write_data", interconnect.output("color_thrust_depth_buffer_bus_write_data"));
+    color_thrust.drive_input("depth_buffer_bus_write_byte_enable", interconnect.output("color_thrust_depth_buffer_bus_write_byte_enable"));
+    interconnect.drive_input("color_thrust_depth_buffer_bus_ready", color_thrust.output("depth_buffer_bus_ready"));
+    interconnect.drive_input("color_thrust_depth_buffer_bus_read_data", color_thrust.output("depth_buffer_bus_read_data"));
+    interconnect.drive_input("color_thrust_depth_buffer_bus_read_data_valid", color_thrust.output("depth_buffer_bus_read_data_valid"));
+
     color_thrust.drive_input("tex_buffer_bus_enable", interconnect.output("color_thrust_tex_buffer_bus_enable"));
     color_thrust.drive_input("tex_buffer_bus_addr", interconnect.output("color_thrust_tex_buffer_bus_addr").bits(color_thrust::TEX_PIXELS_WORDS_BITS - 1, 0));
     color_thrust.drive_input("tex_buffer_bus_write", interconnect.output("color_thrust_tex_buffer_bus_write"));
