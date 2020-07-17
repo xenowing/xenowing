@@ -21,6 +21,7 @@ pub const TEX_BUFFER_PIXELS_BITS: u32 = TEX_BUFFER_DIM_BITS * 2;
 pub const TEX_BUFFER_PIXELS: u32 = 1 << TEX_BUFFER_PIXELS_BITS;
 
 pub const W_INVERSE_FRACT_BITS: u32 = 30;
+pub const Z_FRACT_BITS: u32 = 30; // Must be greater than 16
 pub const ST_FRACT_BITS: u32 = 24;
 pub const ST_FILTER_FRACT_BITS: u32 = 4; // Must be less than ST_FRACT_BITS
 pub const RESTORED_W_FRACT_BITS: u32 = 8; // Must be less than W_INVERSE_FRACT_BITS and ST_FRACT_BITS
@@ -54,12 +55,15 @@ pub const REG_A_DY_ADDR: u32 = 21;
 pub const REG_W_INVERSE_MIN_ADDR: u32 = 22;
 pub const REG_W_INVERSE_DX_ADDR: u32 = 23;
 pub const REG_W_INVERSE_DY_ADDR: u32 = 24;
-pub const REG_S_MIN_ADDR: u32 = 25;
-pub const REG_S_DX_ADDR: u32 = 26;
-pub const REG_S_DY_ADDR: u32 = 27;
-pub const REG_T_MIN_ADDR: u32 = 28;
-pub const REG_T_DX_ADDR: u32 = 29;
-pub const REG_T_DY_ADDR: u32 = 30;
+pub const REG_Z_MIN_ADDR: u32 = 25;
+pub const REG_Z_DX_ADDR: u32 = 26;
+pub const REG_Z_DY_ADDR: u32 = 27;
+pub const REG_S_MIN_ADDR: u32 = 28;
+pub const REG_S_DX_ADDR: u32 = 29;
+pub const REG_S_DY_ADDR: u32 = 30;
+pub const REG_T_MIN_ADDR: u32 = 31;
+pub const REG_T_DX_ADDR: u32 = 32;
+pub const REG_T_DY_ADDR: u32 = 33;
 
 pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let m = c.module("ColorThrust");
@@ -170,6 +174,8 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let w_inverse = interpolant("w_inverse", 32, REG_W_INVERSE_MIN_ADDR, REG_W_INVERSE_DX_ADDR, REG_W_INVERSE_DY_ADDR);
 
+    let z = interpolant("z", 32, REG_Z_MIN_ADDR, REG_Z_DX_ADDR, REG_Z_DY_ADDR).bits(31, 16);
+
     let s = interpolant("s", 32, REG_S_MIN_ADDR, REG_S_DX_ADDR, REG_S_DY_ADDR).bits(31, RESTORED_W_FRACT_BITS);
     let t = interpolant("t", 32, REG_T_MIN_ADDR, REG_T_DX_ADDR, REG_T_DY_ADDR).bits(31, RESTORED_W_FRACT_BITS);
 
@@ -192,6 +198,8 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     pixel_pipe.drive_input("in_a", a);
 
     pixel_pipe.drive_input("in_w_inverse", w_inverse);
+
+    pixel_pipe.drive_input("in_z", z);
 
     pixel_pipe.drive_input("in_s", s);
     pixel_pipe.drive_input("in_t", t);
@@ -247,6 +255,55 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     m.output("color_buffer_bus_read_data", color_buffer_read_port_value);
     m.output("color_buffer_bus_read_data_valid", reg_next_with_default("color_buffer_bus_read_data_valid", color_buffer_bus_read_enable, false, m));
+
+    m.output("depth_buffer_bus_ready", m.high());
+    let depth_buffer_bus_enable = m.input("depth_buffer_bus_enable", 1);
+    let depth_buffer_bus_addr = m.input("depth_buffer_bus_addr", TILE_PIXELS_WORDS_BITS - 1);
+    let depth_buffer_bus_write = m.input("depth_buffer_bus_write", 1);
+    let depth_buffer_bus_write_data = m.input("depth_buffer_bus_write_data", 128);
+    let depth_buffer_bus_write_byte_enable = m.input("depth_buffer_bus_write_byte_enable", 16);
+    let depth_buffer_bus_write_word_enable = (0..8).fold(None, |acc, x| {
+        let word_enable_bit = depth_buffer_bus_write_byte_enable.bit(x * 2);
+        Some(if let Some(acc) = acc {
+            word_enable_bit.concat(acc)
+        } else {
+            word_enable_bit
+        })
+    }).unwrap();
+
+    let depth_buffer = WordMem::new(m, "depth_buffer", TILE_PIXELS_WORDS_BITS - 1, 16, 8);
+    let depth_buffer_bus_write_enable = depth_buffer_bus_enable & depth_buffer_bus_write;
+    depth_buffer.write_port(
+        if_(depth_buffer_bus_write_enable, {
+            depth_buffer_bus_addr
+        }).else_({
+            pixel_pipe.output("depth_buffer_write_port_addr")
+        }),
+        if_(depth_buffer_bus_write_enable, {
+            depth_buffer_bus_write_data
+        }).else_({
+            pixel_pipe.output("depth_buffer_write_port_value")
+        }),
+        depth_buffer_bus_write_enable | pixel_pipe.output("depth_buffer_write_port_enable"),
+        if_(depth_buffer_bus_write_enable, {
+            depth_buffer_bus_write_word_enable
+        }).else_({
+            pixel_pipe.output("depth_buffer_write_port_word_enable")
+        }));
+
+    let depth_buffer_bus_read_enable = depth_buffer_bus_enable & !depth_buffer_bus_write;
+    let depth_buffer_read_port_value = depth_buffer.read_port(
+        if_(depth_buffer_bus_read_enable, {
+            depth_buffer_bus_addr
+        }).else_({
+            pixel_pipe.output("depth_buffer_read_port_addr")
+        }),
+        depth_buffer_bus_read_enable | pixel_pipe.output("depth_buffer_read_port_enable"));
+
+    pixel_pipe.drive_input("depth_buffer_read_port_value", depth_buffer_read_port_value);
+
+    m.output("depth_buffer_bus_read_data", depth_buffer_read_port_value);
+    m.output("depth_buffer_bus_read_data_valid", reg_next_with_default("depth_buffer_bus_read_data_valid", depth_buffer_bus_read_enable, false, m));
 
     m.output("tex_buffer_bus_ready", m.high());
     let tex_buffer_bus_enable = m.input("tex_buffer_bus_enable", 1);
@@ -318,6 +375,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let w_inverse = m.input("in_w_inverse", 32);
 
+    let mut z = m.input("in_z", 16);
+
     let mut s = m.input("in_s", 32 - RESTORED_W_FRACT_BITS);
     let mut t = m.input("in_t", 32 - RESTORED_W_FRACT_BITS);
 
@@ -338,6 +397,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
         b = reg_next(format!("stage_{}_b", stage), b, m);
         a = reg_next(format!("stage_{}_a", stage), a, m);
 
+        z = reg_next(format!("stage_{}_z", stage), z, m);
+
         s = reg_next(format!("stage_{}_s", stage), s, m);
         t = reg_next(format!("stage_{}_t", stage), t, m);
     }
@@ -356,6 +417,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let g = reg_next("stage_14_g", g, m);
     let b = reg_next("stage_14_b", b, m);
     let a = reg_next("stage_14_a", a, m);
+
+    let z = reg_next("stage_14_z", z, m);
 
     let s = reg_next("stage_14_s", s, m);
     let t = reg_next("stage_14_t", t, m);
@@ -376,6 +439,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let g = reg_next("stage_15_g", g, m);
     let b = reg_next("stage_15_b", b, m);
     let a = reg_next("stage_15_a", a, m);
+
+    let z = reg_next("stage_15_z", z, m);
 
     let s = reg_next("stage_15_s", s, m);
     let t = reg_next("stage_15_t", t, m);
@@ -431,6 +496,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let g = reg_next("stage_16_g", g, m);
     let b = reg_next("stage_16_b", b, m);
     let a = reg_next("stage_16_a", a, m);
+
+    let z = reg_next("stage_16_z", z, m);
 
     let s_fract = reg_next("stage_16_s_fract", s_fract, m);
     let t_fract = reg_next("stage_16_t_fract", t_fract, m);
@@ -497,6 +564,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let b = reg_next("stage_17_b", b, m);
     let a = reg_next("stage_17_a", a, m);
 
+    let z = reg_next("stage_17_z", z, m);
+
     let t_fract = reg_next("stage_17_t_fract", t_fract, m);
     let one_minus_t_fract = reg_next("stage_17_one_minus_t_fract", one_minus_t_fract, m);
 
@@ -504,6 +573,10 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let upper = Texel::new(reg_next("stage_17_upper", upper, m));
 
     let texel = blend_texels(&lower, &upper, one_minus_t_fract, t_fract).argb();
+
+    //  Issue depth buffer read for prev_depth
+    m.output("depth_buffer_read_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 3));
+    m.output("depth_buffer_read_port_enable", valid);
 
     // Stage 18
     let valid = reg_next_with_default("stage_18_valid", valid, false, m);
@@ -517,6 +590,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let b = reg_next("stage_18_b", b, m);
     let a = reg_next("stage_18_a", a, m);
 
+    let z = reg_next("stage_18_z", z, m);
+
     let texel = reg_next("stage_18_texel", texel, m);
 
     let texel_r = texel.bits(23, 16);
@@ -529,20 +604,58 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let a = (a * texel_a).bits(15, 8);
     let color = a.concat(r).concat(g).concat(b);
 
+    //  Returned from issue in previous stage
+    let prev_depth = m.input("depth_buffer_read_port_value", 128);
+    let prev_depth = if_(tile_addr.bits(2, 0).eq(m.lit(0u32, 3)), {
+        prev_depth.bits(15, 0)
+    }).else_if(tile_addr.bits(2, 0).eq(m.lit(1u32, 3)), {
+        prev_depth.bits(31, 16)
+    }).else_if(tile_addr.bits(2, 0).eq(m.lit(2u32, 3)), {
+        prev_depth.bits(47, 32)
+    }).else_if(tile_addr.bits(2, 0).eq(m.lit(3u32, 3)), {
+        prev_depth.bits(63, 48)
+    }).else_if(tile_addr.bits(2, 0).eq(m.lit(4u32, 3)), {
+        prev_depth.bits(79, 64)
+    }).else_if(tile_addr.bits(2, 0).eq(m.lit(5u32, 3)), {
+        prev_depth.bits(95, 80)
+    }).else_if(tile_addr.bits(2, 0).eq(m.lit(6u32, 3)), {
+        prev_depth.bits(111, 96)
+    }).else_({
+        prev_depth.bits(127, 112)
+    });
+
     // Stage 19
     let valid = reg_next_with_default("stage_19_valid", valid, false, m);
     let last = reg_next_with_default("stage_19_last", last, false, m);
     let tile_addr = reg_next("stage_19_tile_addr", tile_addr, m);
 
+    let z = reg_next("stage_19_z", z, m);
+
     let edge_test = reg_next("stage_19_edge_test", edge_test, m);
 
     let color = reg_next("stage_19_color", color, m);
 
+    let prev_depth = reg_next("stage_19_prev_depth", prev_depth, m);
+
+    let depth_test_result = z.lt(prev_depth);
+
     m.output("color_buffer_write_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
     m.output("color_buffer_write_port_value", color.repeat(4));
-    m.output("color_buffer_write_port_enable", valid & edge_test);
+    m.output("color_buffer_write_port_enable", valid & edge_test & depth_test_result);
     m.output("color_buffer_write_port_word_enable", (0u32..4).fold(None, |acc, x| {
         let word_enable_bit = tile_addr.bits(1, 0).eq(m.lit(x, 2));
+        Some(if let Some(acc) = acc {
+            word_enable_bit.concat(acc)
+        } else {
+            word_enable_bit
+        })
+    }).unwrap());
+
+    m.output("depth_buffer_write_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 3));
+    m.output("depth_buffer_write_port_value", z.repeat(8));
+    m.output("depth_buffer_write_port_enable", valid & edge_test & depth_test_result);
+    m.output("depth_buffer_write_port_word_enable", (0u32..8).fold(None, |acc, x| {
+        let word_enable_bit = tile_addr.bits(2, 0).eq(m.lit(x, 3));
         Some(if let Some(acc) = acc {
             word_enable_bit.concat(acc)
         } else {

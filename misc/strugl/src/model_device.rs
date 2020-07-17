@@ -5,6 +5,7 @@ use rtl::color_thrust::*;
 
 pub struct ModelDevice {
     color_buffer: [u32; TILE_PIXELS as usize],
+    depth_buffer: [u16; TILE_PIXELS as usize],
 
     tex_buffer0: [u32; TEX_BUFFER_PIXELS as usize],
     tex_buffer1: [u32; TEX_BUFFER_PIXELS as usize],
@@ -35,6 +36,9 @@ pub struct ModelDevice {
     w_inverse_min: u32,
     w_inverse_dx: u32,
     w_inverse_dy: u32,
+    z_min: u32,
+    z_dx: u32,
+    z_dy: u32,
     s_min: u32,
     s_dx: u32,
     s_dy: u32,
@@ -47,6 +51,7 @@ impl ModelDevice {
     pub fn new() -> ModelDevice {
         ModelDevice {
             color_buffer: [0; TILE_PIXELS as usize],
+            depth_buffer: [0; TILE_PIXELS as usize],
 
             tex_buffer0: [0; TEX_BUFFER_PIXELS as usize],
             tex_buffer1: [0; TEX_BUFFER_PIXELS as usize],
@@ -77,6 +82,9 @@ impl ModelDevice {
             w_inverse_min: 0,
             w_inverse_dx: 0,
             w_inverse_dy: 0,
+            z_min: 0,
+            z_dx: 0,
+            z_dy: 0,
             s_min: 0,
             s_dx: 0,
             s_dy: 0,
@@ -95,6 +103,7 @@ impl ModelDevice {
         let mut b_row = self.b_min;
         let mut a_row = self.a_min;
         let mut w_inverse_row = self.w_inverse_min;
+        let mut z_row = self.z_min;
         let mut s_row = self.s_min;
         let mut t_row = self.t_min;
 
@@ -107,6 +116,7 @@ impl ModelDevice {
             let mut b = b_row;
             let mut a = a_row;
             let mut w_inverse = w_inverse_row;
+            let mut z = z_row;
             let mut s = s_row;
             let mut t = t_row;
 
@@ -178,7 +188,14 @@ impl ModelDevice {
                     let color_green = color.y().floor() as u32;
                     let color_blue = color.z().floor() as u32;
                     let color_alpha = color.w().floor() as u32;
-                    self.color_buffer[buffer_index] = (color_alpha << 24) | (color_red << 16) | (color_green << 8) | (color_blue << 0);
+
+                    let z = (z >> (Z_FRACT_BITS - 16)) as u16;
+                    let depth_test_result = z < self.depth_buffer[buffer_index];
+
+                    if depth_test_result {
+                        self.color_buffer[buffer_index] = (color_alpha << 24) | (color_red << 16) | (color_green << 8) | (color_blue << 0);
+                        self.depth_buffer[buffer_index] = z;
+                    }
                 }
 
                 w0 += self.w0_dx;
@@ -189,6 +206,7 @@ impl ModelDevice {
                 b += self.b_dx;
                 a += self.a_dx;
                 w_inverse += self.w_inverse_dx;
+                z += self.z_dx;
                 s += self.s_dx;
                 t += self.t_dx;
             }
@@ -201,6 +219,7 @@ impl ModelDevice {
             b_row += self.b_dy;
             a_row += self.a_dy;
             w_inverse_row += self.w_inverse_dy;
+            z_row += self.z_dy;
             s_row += self.s_dy;
             t_row += self.t_dy;
         }
@@ -249,6 +268,9 @@ impl Device for ModelDevice {
             REG_W_INVERSE_MIN_ADDR => { self.w_inverse_min = data; }
             REG_W_INVERSE_DX_ADDR => { self.w_inverse_dx = data; }
             REG_W_INVERSE_DY_ADDR => { self.w_inverse_dy = data; }
+            REG_Z_MIN_ADDR => { self.z_min = data; }
+            REG_Z_DX_ADDR => { self.z_dx = data; }
+            REG_Z_DY_ADDR => { self.z_dy = data; }
             REG_S_MIN_ADDR => { self.s_min = data; }
             REG_S_DX_ADDR => { self.s_dx = data; }
             REG_S_DY_ADDR => { self.s_dy = data; }
@@ -286,6 +308,9 @@ impl Device for ModelDevice {
             REG_W_INVERSE_MIN_ADDR => self.w_inverse_min,
             REG_W_INVERSE_DX_ADDR => self.w_inverse_dx,
             REG_W_INVERSE_DY_ADDR => self.w_inverse_dy,
+            REG_Z_MIN_ADDR => self.z_min,
+            REG_Z_DX_ADDR => self.z_dx,
+            REG_Z_DY_ADDR => self.z_dy,
             REG_S_MIN_ADDR => self.s_min,
             REG_S_DX_ADDR => self.s_dx,
             REG_S_DY_ADDR => self.s_dy,
@@ -302,6 +327,14 @@ impl Device for ModelDevice {
 
     fn read_color_buffer_word(&mut self, addr: u32) -> u32 {
         self.color_buffer[addr as usize]
+    }
+
+    fn write_depth_buffer_word(&mut self, addr: u32, data: u16) {
+        self.depth_buffer[addr as usize] = data;
+    }
+
+    fn read_depth_buffer_word(&mut self, addr: u32) -> u16 {
+        self.depth_buffer[addr as usize]
     }
 
     fn write_tex_buffer_word(&mut self, addr: u32, data: u32) {
