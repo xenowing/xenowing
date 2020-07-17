@@ -596,7 +596,7 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     //  Issue depth buffer read for prev_depth
     m.output("depth_buffer_read_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 3));
-    m.output("depth_buffer_read_port_enable", valid);
+    m.output("depth_buffer_read_port_enable", valid & depth_test_enable);
 
     // Stage 18
     let valid = reg_next_with_default("stage_18_valid", valid, false, m);
