@@ -397,32 +397,6 @@ fn main() {
     let start_time = Instant::now();
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        let frame_time = start_time.elapsed().as_secs_f64();
-
-        // Upload texture
-        //  Interleave texels for different tex memories to allow single-cycle filtered texel reads
-        for block_y in 0..16 / 2 {
-            for block_x in 0..16 / 2 {
-                let mut word = 0;
-                for y in 0..2 {
-                    for x in 0..2 {
-                        let texel_x = block_x * 2 + x;
-                        let texel_y = block_y * 2 + y;
-                        let block_index = y * 2 + x;
-                        let texel = tex.get_pixel(texel_x, 15 - texel_y);
-                        let r = texel[0];
-                        let g = texel[1];
-                        let b = texel[2];
-                        let a = texel[3];
-                        let argb = ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | ((b as u32) << 0);
-                        word |= (argb as u128) << (block_index * 32);
-                    }
-                }
-                let addr = block_y * (16 / 2) + block_x;
-                device.write_tex_buffer_word(addr, word);
-            }
-        }
-
         fn cube(v: &mut Vec<Vertex>) {
             // Front face
             v.push(Vertex {
@@ -617,7 +591,35 @@ fn main() {
             });
         }
 
+        let frame_time = start_time.elapsed().as_secs_f64();
+
         let mut c = Context::new(&mut *device);
+
+        // Upload texture
+        //  Interleave texels for different tex memories to allow single-cycle filtered texel reads
+        for block_y in 0..16 / 2 {
+            for block_x in 0..16 / 2 {
+                let mut word = 0;
+                for y in 0..2 {
+                    for x in 0..2 {
+                        let texel_x = block_x * 2 + x;
+                        let texel_y = block_y * 2 + y;
+                        let block_index = y * 2 + x;
+                        let texel = tex.get_pixel(texel_x, 15 - texel_y);
+                        let r = texel[0];
+                        let g = texel[1];
+                        let b = texel[2];
+                        let a = texel[3];
+                        let argb = ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | ((b as u32) << 0);
+                        word |= (argb as u128) << (block_index * 32);
+                    }
+                }
+                let addr = block_y * (16 / 2) + block_x;
+                c.device.write_tex_buffer_word(addr, word);
+
+                c.estimated_frame_xfer_cycles += 1;
+            }
+        }
 
         c.depth_test_enable = true;
         c.depth_write_mask_enable = true;
