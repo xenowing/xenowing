@@ -3,6 +3,11 @@ use crate::vec4::*;
 
 use rtl::color_thrust::*;
 
+enum TextureFilter {
+    Nearest,
+    Bilinear,
+}
+
 pub struct ModelDevice {
     color_buffer: [u32; TILE_PIXELS as usize],
     depth_buffer: [u16; TILE_PIXELS as usize],
@@ -14,6 +19,8 @@ pub struct ModelDevice {
 
     depth_test_enable: bool,
     depth_write_mask_enable: bool,
+
+    texture_filter: TextureFilter,
 
     w0_min: u32,
     w0_dx: u32,
@@ -63,6 +70,8 @@ impl ModelDevice {
 
             depth_test_enable: false,
             depth_write_mask_enable: false,
+
+            texture_filter: TextureFilter::Nearest,
 
             w0_min: 0,
             w0_dx: 0,
@@ -157,17 +166,26 @@ impl ModelDevice {
 
                     let w = w_approx;
 
-                    // Signed multiplies here fixes seam issue!!!!
-                    //let s = (s >> RESTORED_W_FRACT_BITS) * w;
-                    //let t = (t >> RESTORED_W_FRACT_BITS) * w;
                     let s = (((s as i32) >> RESTORED_W_FRACT_BITS) * (w as i32)) as u32;
                     let t = (((t as i32) >> RESTORED_W_FRACT_BITS) * (w as i32)) as u32;
                     let s_floor = s >> ST_FRACT_BITS;
                     let t_floor = t >> ST_FRACT_BITS;
-                    let s_fract = (s >> (ST_FRACT_BITS - ST_FILTER_FRACT_BITS)) & ((1 << ST_FILTER_FRACT_BITS) - 1);
-                    let t_fract = (t >> (ST_FRACT_BITS - ST_FILTER_FRACT_BITS)) & ((1 << ST_FILTER_FRACT_BITS) - 1);
-                    let one_minus_s_fract = (1 << ST_FILTER_FRACT_BITS) - s_fract;
-                    let one_minus_t_fract = (1 << ST_FILTER_FRACT_BITS) - t_fract;
+                    let mut s_fract = (s >> (ST_FRACT_BITS - ST_FILTER_FRACT_BITS)) & ((1 << ST_FILTER_FRACT_BITS) - 1);
+                    let mut t_fract = (t >> (ST_FRACT_BITS - ST_FILTER_FRACT_BITS)) & ((1 << ST_FILTER_FRACT_BITS) - 1);
+                    let mut one_minus_s_fract = (1 << ST_FILTER_FRACT_BITS) - s_fract;
+                    let mut one_minus_t_fract = (1 << ST_FILTER_FRACT_BITS) - t_fract;
+                    match self.texture_filter {
+                        TextureFilter::Nearest => {
+                            // Lock weights for nearest filtering
+                            let zero = 0;
+                            let one = 1 << ST_FILTER_FRACT_BITS;
+                            s_fract = zero;
+                            one_minus_s_fract = one;
+                            t_fract = zero;
+                            one_minus_t_fract = one;
+                        }
+                        TextureFilter::Bilinear => (), // Do nothing
+                    }
                     let texel_color0 = self.fetch_texel(s_floor + 0, t_floor + 0);
                     let texel_color1 = self.fetch_texel(s_floor + 1, t_floor + 0);
                     let texel_color2 = self.fetch_texel(s_floor + 0, t_floor + 1);
@@ -256,6 +274,13 @@ impl Device for ModelDevice {
                 self.depth_test_enable = (data & (1 << REG_DEPTH_TEST_ENABLE_BIT)) != 0;
                 self.depth_write_mask_enable = (data & (1 << REG_DEPTH_WRITE_MASK_ENABLE_BIT)) != 0;
             }
+            REG_TEXTURE_SETTINGS_ADDR => {
+                self.texture_filter = match (data >> REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT) & 1 {
+                    REG_TEXTURE_SETTINGS_FILTER_SELECT_NEAREST => TextureFilter::Nearest,
+                    REG_TEXTURE_SETTINGS_FILTER_SELECT_BILINEAR => TextureFilter::Bilinear,
+                    _ => unreachable!(),
+                };
+            }
             REG_W0_MIN_ADDR => { self.w0_min = data; }
             REG_W0_DX_ADDR => { self.w0_dx = data; }
             REG_W0_DY_ADDR => { self.w0_dy = data; }
@@ -299,6 +324,12 @@ impl Device for ModelDevice {
             REG_DEPTH_SETTINGS_ADDR => {
                 (if self.depth_test_enable { 1 } else { 0 } << REG_DEPTH_TEST_ENABLE_BIT) |
                 (if self.depth_write_mask_enable { 1 } else { 0 } << REG_DEPTH_WRITE_MASK_ENABLE_BIT)
+            }
+            REG_TEXTURE_SETTINGS_ADDR => {
+                (match self.texture_filter {
+                    TextureFilter::Nearest => REG_TEXTURE_SETTINGS_FILTER_SELECT_NEAREST,
+                    TextureFilter::Bilinear => REG_TEXTURE_SETTINGS_FILTER_SELECT_BILINEAR,
+                }) << REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT
             }
             REG_W0_MIN_ADDR => self.w0_min,
             REG_W0_DX_ADDR => self.w0_dx,

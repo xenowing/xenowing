@@ -35,6 +35,11 @@ struct Vertex {
     tex_coord: Vec2,
 }
 
+enum TextureFilter {
+    Nearest,
+    Bilinear,
+}
+
 struct Context<'a> {
     device: &'a mut dyn Device,
 
@@ -44,10 +49,11 @@ struct Context<'a> {
     depth_test_enable: bool,
     depth_write_mask_enable: bool,
 
+    // TODO: Move to texture object
+    texture_filter: TextureFilter,
+
     model_view: Matrix,
     projection: Matrix,
-
-    verts: Vec<Vertex>,
 }
 
 impl<'a> Context<'a> {
@@ -61,16 +67,16 @@ impl<'a> Context<'a> {
             depth_test_enable: false,
             depth_write_mask_enable: false,
 
+            texture_filter: TextureFilter::Nearest,
+
             model_view: Matrix::identity(),
             projection: Matrix::identity(),
-
-            verts: Vec::new(),
         }
     }
 
-    fn render(&mut self) {
+    fn render(&mut self, verts: &mut Vec<Vertex>) {
         // Transformation
-        for vert in self.verts.iter_mut() {
+        for vert in verts.iter_mut() {
             let object = vert.position;
             let eye = self.model_view * object;
             let clip = self.projection * eye;
@@ -78,12 +84,9 @@ impl<'a> Context<'a> {
         }
 
         // Primitive assembly
-        for i in (0..self.verts.len()).step_by(3) {
-            self.assemble_triangle([self.verts[i + 0], self.verts[i + 1], self.verts[i + 2]])
+        for i in (0..verts.len()).step_by(3) {
+            self.assemble_triangle([verts[i + 0], verts[i + 1], verts[i + 2]])
         }
-
-        // Lol
-        self.verts.clear();
     }
 
     fn assemble_triangle(&mut self, mut verts: [Vertex; 3]) {
@@ -142,8 +145,19 @@ impl<'a> Context<'a> {
             (if self.depth_test_enable { 1 } else { 0 } << REG_DEPTH_TEST_ENABLE_BIT) |
             (if self.depth_write_mask_enable { 1 } else { 0 } << REG_DEPTH_WRITE_MASK_ENABLE_BIT));
 
+        self.device.write_reg(
+            REG_TEXTURE_SETTINGS_ADDR,
+            match self.texture_filter {
+                TextureFilter::Nearest => REG_TEXTURE_SETTINGS_FILTER_SELECT_NEAREST,
+                TextureFilter::Bilinear => REG_TEXTURE_SETTINGS_FILTER_SELECT_BILINEAR,
+            } << REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT);
+
         let texture_dims = Vec2::splat(16.0); // TODO: Proper value and default if no texture is enabled
-        let st_bias = -0.5; // Offset to sample texel centers // TODO: This depends on filtering chosen; 0 for nearest, -0.5 for bilinear
+        // Offset to sample texel centers
+        let st_bias = match self.texture_filter {
+            TextureFilter::Nearest => 0.0,
+            TextureFilter::Bilinear => -0.5,
+        };
         for vert in verts.iter_mut() {
             vert.tex_coord = (vert.tex_coord * texture_dims + st_bias) / vert.position.w();
         }
@@ -366,194 +380,194 @@ fn main() {
             }
         }
 
-        fn cube(c: &mut Context) {
+        fn cube(v: &mut Vec<Vertex>) {
             // Front face
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, -1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 0.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, 1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, 1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
 
             // Back face
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, -1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 0.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, 1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, -1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
 
             // Left face
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 0.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
 
             // Right face
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, -1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, -1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 0.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, 1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, 1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, 1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, -1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
 
             // Top face
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, 1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 0.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, 1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, 1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
 
             // Bottom face
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, -1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 0.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, -1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(1.0, -1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, 1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 1.0),
             });
-            c.verts.push(Vertex {
+            v.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, -1.0, 1.0),
                 color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
@@ -569,6 +583,8 @@ fn main() {
 
         let view = Matrix::translation(0.0, 0.0, -3.0);
 
+        let mut v = Vec::new();
+
         let mut model = Matrix::identity();
         model = model * Matrix::translation(-0.5, 0.0, 0.0);
         let t = (frame_time * 0.1) as f32;
@@ -577,9 +593,13 @@ fn main() {
         model = model * Matrix::rotation_z(t * 0.133);
         c.model_view = view * model;
 
-        cube(&mut c);
+        c.texture_filter = TextureFilter::Nearest;
 
-        c.render();
+        cube(&mut v);
+
+        c.render(&mut v);
+
+        let mut v = Vec::new();
 
         let mut model = Matrix::identity();
         model = model * Matrix::translation(0.5, 0.0, 0.0);
@@ -589,9 +609,11 @@ fn main() {
         model = model * Matrix::rotation_z(t * 0.73);
         c.model_view = view * model;
 
-        cube(&mut c);
+        c.texture_filter = TextureFilter::Bilinear;
 
-        c.render();
+        cube(&mut v);
+
+        c.render(&mut v);
 
         window.update_with_buffer(&c.back_buffer, WIDTH, HEIGHT).unwrap();
     }
