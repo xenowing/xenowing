@@ -136,6 +136,10 @@ impl<'a> Context<'a> {
             (if self.depth_test_enable { 1 } else { 0 } << REG_DEPTH_TEST_ENABLE_BIT) |
             (if self.depth_write_mask_enable { 1 } else { 0 } << REG_DEPTH_WRITE_MASK_ENABLE_BIT));
 
+        for vert in verts.iter_mut() {
+            vert.color = vert.color * 255.0;
+        }
+
         let texture_dims = Vec2::splat(16.0); // TODO: Proper value and default if no texture is enabled
         let st_bias = -0.5; // Offset to sample texel centers // TODO: This depends on filtering chosen; 0 for nearest, -0.5 for bilinear
         for vert in verts.iter_mut() {
@@ -366,192 +370,192 @@ fn main() {
             // Front face
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, -1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 0.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, 1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, 1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
 
             // Back face
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, -1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 0.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, 1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, -1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
 
             // Left face
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 0.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
 
             // Right face
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, -1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, -1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 0.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, 1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, 1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, 1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, -1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
 
             // Top face
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, 1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 0.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, 1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, 1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, 1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
 
             // Bottom face
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, -1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 0.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, -1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(1.0, -1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(1.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, 1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 1.0),
             });
             c.verts.push(Vertex {
                 position: Vec4::new(-1.0, -1.0, -1.0, 1.0),
-                color: Vec4::splat(255.0),
+                color: Vec4::splat(1.0),
                 tex_coord: Vec2::new(0.0, 0.0),
             });
         }
