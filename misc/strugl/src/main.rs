@@ -22,6 +22,7 @@ use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 use rtl::color_thrust::*;
 
 use std::env;
+use std::time::Instant;
 
 const WIDTH: usize = 16 * 8;//320;
 const HEIGHT: usize = 16 * 8;//240;
@@ -338,9 +339,11 @@ fn main() {
 
     let tex = image::open("tex.png").unwrap();
 
-    let mut frame = 0;
+    let start_time = Instant::now();
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
+        let frame_time = start_time.elapsed().as_secs_f64();
+
         // Upload texture
         //  Interleave texels for different tex memories to allow single-cycle filtered texel reads
         for block_y in 0..16 / 2 {
@@ -363,8 +366,6 @@ fn main() {
                 }
             }
         }
-
-        let t = frame as f32 / 60.0; // TODO: Proper frame time
 
         fn cube(c: &mut Context) {
             // Front face
@@ -571,6 +572,7 @@ fn main() {
 
         let mut model = Matrix::identity();
         model = model * Matrix::translation(-0.5, 0.0, 0.0);
+        let t = (frame_time * 0.1) as f32;
         model = model * Matrix::rotation_x(t);
         model = model * Matrix::rotation_y(t * 0.67);
         model = model * Matrix::rotation_z(t * 0.133);
@@ -582,6 +584,7 @@ fn main() {
 
         let mut model = Matrix::identity();
         model = model * Matrix::translation(0.5, 0.0, 0.0);
+        let t = (frame_time * 0.1) as f32;
         model = model * Matrix::rotation_x(t * 1.1);
         model = model * Matrix::rotation_y(t * 0.47);
         model = model * Matrix::rotation_z(t * 0.73);
@@ -592,7 +595,5 @@ fn main() {
         c.render();
 
         window.update_with_buffer(&c.back_buffer, WIDTH, HEIGHT).unwrap();
-
-        frame += 1;
     }
 }
