@@ -96,6 +96,7 @@ struct Context<'a> {
 
     assembled_triangles: Vec<Vec<Triangle>>,
 
+    estimated_frame_reg_cycles: u64,
     estimated_frame_xfer_cycles: u64,
     estimated_frame_rasterization_cycles: u64,
 }
@@ -119,6 +120,7 @@ impl<'a> Context<'a> {
             // TODO: Fixed capacity and splitting drawcalls on overflow
             assembled_triangles: vec![Vec::new(); PIXELS / TILE_PIXELS as usize],
 
+            estimated_frame_reg_cycles: 0,
             estimated_frame_xfer_cycles: 0,
             estimated_frame_rasterization_cycles: 0,
         }
@@ -143,6 +145,7 @@ impl<'a> Context<'a> {
             REG_DEPTH_SETTINGS_ADDR,
             (if self.depth_test_enable { 1 } else { 0 } << REG_DEPTH_TEST_ENABLE_BIT) |
             (if self.depth_write_mask_enable { 1 } else { 0 } << REG_DEPTH_WRITE_MASK_ENABLE_BIT));
+        self.estimated_frame_reg_cycles += 1;
 
         self.device.write_reg(
             REG_TEXTURE_SETTINGS_ADDR,
@@ -150,6 +153,7 @@ impl<'a> Context<'a> {
                 TextureFilter::Nearest => REG_TEXTURE_SETTINGS_FILTER_SELECT_NEAREST,
                 TextureFilter::Bilinear => REG_TEXTURE_SETTINGS_FILTER_SELECT_BILINEAR,
             } << REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT);
+        self.estimated_frame_reg_cycles += 1;
 
         // Primitive rendering
         for tile_index_y in 0..HEIGHT / (TILE_DIM as usize) {
@@ -226,6 +230,7 @@ impl<'a> Context<'a> {
                     self.device.write_reg(REG_T_MIN_ADDR, triangle.t_min);
                     self.device.write_reg(REG_T_DX_ADDR, triangle.t_dx);
                     self.device.write_reg(REG_T_DY_ADDR, triangle.t_dy);
+                    self.estimated_frame_reg_cycles += 33;
 
                     // Rasterize
                     self.device.write_reg(REG_START_ADDR, 1);
@@ -764,9 +769,10 @@ fn main() {
 
         c.render(&mut v);
 
-        let estimated_frame_cycles = c.estimated_frame_xfer_cycles + c.estimated_frame_rasterization_cycles;
+        let estimated_frame_cycles = c.estimated_frame_reg_cycles + c.estimated_frame_xfer_cycles + c.estimated_frame_rasterization_cycles;
         let frame_budget_cycles = 100000000 / 60;
         println!("Est. frame cycles: {} / {} ({:.*}%)", estimated_frame_cycles, frame_budget_cycles, 2, estimated_frame_cycles as f64 / frame_budget_cycles as f64 * 100.0);
+        println!("  regs:            {} ({:.*}%)", c.estimated_frame_reg_cycles, 2, c.estimated_frame_reg_cycles as f64 / estimated_frame_cycles as f64 * 100.0);
         println!("  xfer:            {} ({:.*}%)", c.estimated_frame_xfer_cycles, 2, c.estimated_frame_xfer_cycles as f64 / estimated_frame_cycles as f64 * 100.0);
         println!("  rasterization:   {} ({:.*}%)", c.estimated_frame_rasterization_cycles, 2, c.estimated_frame_rasterization_cycles as f64 / estimated_frame_cycles as f64 * 100.0);
 
