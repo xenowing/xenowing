@@ -120,6 +120,11 @@ impl<'a> Context<'a> {
             Vec2::new(window_verts[1].x(), window_verts[1].y()),
             Vec2::new(window_verts[2].x(), window_verts[2].y()));
 
+        // Always cull zero-area triangles
+        if scaled_area == 0.0 {
+            return;
+        }
+
         // Flip backfacing triangles (TODO: Proper back/front face culling)
         if scaled_area < 0.0 {
             return;
