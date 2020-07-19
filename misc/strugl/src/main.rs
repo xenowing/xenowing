@@ -284,14 +284,16 @@ impl<'a> Context<'a> {
                         self.device.write_color_buffer_word(y as u32 * TILE_DIM / 4 + x as u32, word);
                     }
                 }
-                for y in 0..TILE_DIM as usize {
-                    for x in 0..TILE_DIM as usize / 8 {
-                        let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 8;
-                        let mut word = 0;
-                        for i in 0..8 {
-                            word |= (self.depth_buffer[buffer_index + i] as u128) << (i * 16);
+                if self.depth_test_enable || self.depth_write_mask_enable {
+                    for y in 0..TILE_DIM as usize {
+                        for x in 0..TILE_DIM as usize / 8 {
+                            let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 8;
+                            let mut word = 0;
+                            for i in 0..8 {
+                                word |= (self.depth_buffer[buffer_index + i] as u128) << (i * 16);
+                            }
+                            self.device.write_depth_buffer_word(y as u32 * TILE_DIM / 8 + x as u32, word);
                         }
-                        self.device.write_depth_buffer_word(y as u32 * TILE_DIM / 8 + x as u32, word);
                     }
                 }
 
@@ -345,12 +347,14 @@ impl<'a> Context<'a> {
                         }
                     }
                 }
-                for y in 0..TILE_DIM as usize {
-                    for x in 0..TILE_DIM as usize / 8 {
-                        let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 8;
-                        let word = self.device.read_depth_buffer_word(y as u32 * TILE_DIM / 8 + x as u32);
-                        for i in 0..8 {
-                            self.depth_buffer[buffer_index + i] = (word >> (16 * i)) as _;
+                if self.depth_write_mask_enable {
+                    for y in 0..TILE_DIM as usize {
+                        for x in 0..TILE_DIM as usize / 8 {
+                            let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 8;
+                            let word = self.device.read_depth_buffer_word(y as u32 * TILE_DIM / 8 + x as u32);
+                            for i in 0..8 {
+                                self.depth_buffer[buffer_index + i] = (word >> (16 * i)) as _;
+                            }
                         }
                     }
                 }
