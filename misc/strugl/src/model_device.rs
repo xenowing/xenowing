@@ -368,20 +368,32 @@ impl Device for ModelDevice {
         }
     }
 
-    fn write_color_buffer_word(&mut self, addr: u32, data: u32) {
-        self.color_buffer[addr as usize] = data;
+    fn write_color_buffer_word(&mut self, addr: u32, data: u128) {
+        for i in 0..4 {
+            self.color_buffer[(addr * 4 + i) as usize] = (data >> (i * 32)) as _;
+        }
     }
 
-    fn read_color_buffer_word(&mut self, addr: u32) -> u32 {
-        self.color_buffer[addr as usize]
+    fn read_color_buffer_word(&mut self, addr: u32) -> u128 {
+        let mut ret = 0;
+        for i in 0..4 {
+            ret |= (self.color_buffer[(addr * 4 + i) as usize] as u128) << (i * 32);
+        }
+        ret
     }
 
-    fn write_depth_buffer_word(&mut self, addr: u32, data: u16) {
-        self.depth_buffer[addr as usize] = data;
+    fn write_depth_buffer_word(&mut self, addr: u32, data: u128) {
+        for i in 0..8 {
+            self.depth_buffer[(addr * 8 + i) as usize] = (data >> (i * 16)) as _;
+        }
     }
 
-    fn read_depth_buffer_word(&mut self, addr: u32) -> u16 {
-        self.depth_buffer[addr as usize]
+    fn read_depth_buffer_word(&mut self, addr: u32) -> u128 {
+        let mut ret = 0;
+        for i in 0..8 {
+            ret |= (self.depth_buffer[(addr * 8 + i) as usize] as u128) << (i * 16);
+        }
+        ret
     }
 
     fn write_tex_buffer_word(&mut self, addr: u32, data: u128) {

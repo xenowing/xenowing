@@ -62,12 +62,12 @@ impl Device for SimDevice {
         self.color_thrust.reg_bus_read_data
     }
 
-    fn write_color_buffer_word(&mut self, addr: u32, data: u32) {
-        self.color_thrust.color_buffer_bus_addr = addr >> 2;
+    fn write_color_buffer_word(&mut self, addr: u32, data: u128) {
+        self.color_thrust.color_buffer_bus_addr = addr;
         self.color_thrust.color_buffer_bus_enable = true;
         self.color_thrust.color_buffer_bus_write = true;
-        self.color_thrust.color_buffer_bus_write_byte_enable = 0xf << ((addr & 0x3) * 4);
-        self.color_thrust.color_buffer_bus_write_data = (data as u128) << ((addr & 0x3) * 32);
+        self.color_thrust.color_buffer_bus_write_byte_enable = 0xffff;
+        self.color_thrust.color_buffer_bus_write_data = data;
         self.color_thrust.prop();
         loop {
             let ready = self.color_thrust.color_buffer_bus_ready;
@@ -81,8 +81,8 @@ impl Device for SimDevice {
         self.color_thrust.prop();
     }
 
-    fn read_color_buffer_word(&mut self, addr: u32) -> u32 {
-        self.color_thrust.color_buffer_bus_addr = addr >> 2;
+    fn read_color_buffer_word(&mut self, addr: u32) -> u128 {
+        self.color_thrust.color_buffer_bus_addr = addr;
         self.color_thrust.color_buffer_bus_enable = true;
         self.color_thrust.color_buffer_bus_write = false;
         self.color_thrust.prop();
@@ -100,15 +100,15 @@ impl Device for SimDevice {
             self.color_thrust.posedge_clk();
             self.color_thrust.prop();
         }
-        (self.color_thrust.color_buffer_bus_read_data >> ((addr & 0x3) * 32)) as u32
+        self.color_thrust.color_buffer_bus_read_data
     }
 
-    fn write_depth_buffer_word(&mut self, addr: u32, data: u16) {
-        self.color_thrust.depth_buffer_bus_addr = addr >> 3;
+    fn write_depth_buffer_word(&mut self, addr: u32, data: u128) {
+        self.color_thrust.depth_buffer_bus_addr = addr;
         self.color_thrust.depth_buffer_bus_enable = true;
         self.color_thrust.depth_buffer_bus_write = true;
-        self.color_thrust.depth_buffer_bus_write_byte_enable = 0x3 << ((addr & 0x7) * 2);
-        self.color_thrust.depth_buffer_bus_write_data = (data as u128) << ((addr & 0x7) * 16);
+        self.color_thrust.depth_buffer_bus_write_byte_enable = 0xffff;
+        self.color_thrust.depth_buffer_bus_write_data = data;
         self.color_thrust.prop();
         loop {
             let ready = self.color_thrust.depth_buffer_bus_ready;
@@ -122,8 +122,8 @@ impl Device for SimDevice {
         self.color_thrust.prop();
     }
 
-    fn read_depth_buffer_word(&mut self, addr: u32) -> u16 {
-        self.color_thrust.depth_buffer_bus_addr = addr >> 3;
+    fn read_depth_buffer_word(&mut self, addr: u32) -> u128 {
+        self.color_thrust.depth_buffer_bus_addr = addr;
         self.color_thrust.depth_buffer_bus_enable = true;
         self.color_thrust.depth_buffer_bus_write = false;
         self.color_thrust.prop();
@@ -141,7 +141,7 @@ impl Device for SimDevice {
             self.color_thrust.posedge_clk();
             self.color_thrust.prop();
         }
-        (self.color_thrust.depth_buffer_bus_read_data >> ((addr & 0x7) * 16)) as u16
+        self.color_thrust.depth_buffer_bus_read_data
     }
 
     fn write_tex_buffer_word(&mut self, addr: u32, data: u128) {

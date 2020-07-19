@@ -275,10 +275,23 @@ impl<'a> Context<'a> {
 
                 // Copy tile into rasterizer memory
                 for y in 0..TILE_DIM as usize {
-                    for x in 0..TILE_DIM as usize {
-                        let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x;
-                        self.device.write_color_buffer_word(y as u32 * TILE_DIM + x as u32, self.back_buffer[buffer_index]);
-                        self.device.write_depth_buffer_word(y as u32 * TILE_DIM + x as u32, self.depth_buffer[buffer_index]);
+                    for x in 0..TILE_DIM as usize / 4 {
+                        let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 4;
+                        let mut word = 0;
+                        for i in 0..4 {
+                            word |= (self.back_buffer[buffer_index + i] as u128) << (i * 32);
+                        }
+                        self.device.write_color_buffer_word(y as u32 * TILE_DIM / 4 + x as u32, word);
+                    }
+                }
+                for y in 0..TILE_DIM as usize {
+                    for x in 0..TILE_DIM as usize / 8 {
+                        let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 8;
+                        let mut word = 0;
+                        for i in 0..8 {
+                            word |= (self.depth_buffer[buffer_index + i] as u128) << (i * 16);
+                        }
+                        self.device.write_depth_buffer_word(y as u32 * TILE_DIM / 8 + x as u32, word);
                     }
                 }
 
@@ -324,10 +337,21 @@ impl<'a> Context<'a> {
 
                 // Copy rasterizer memory back to tile
                 for y in 0..TILE_DIM as usize {
-                    for x in 0..TILE_DIM as usize {
-                        let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x;
-                        self.back_buffer[buffer_index] = self.device.read_color_buffer_word(y as u32 * TILE_DIM + x as u32);
-                        self.depth_buffer[buffer_index] = self.device.read_depth_buffer_word(y as u32 * TILE_DIM + x as u32);
+                    for x in 0..TILE_DIM as usize / 4 {
+                        let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 4;
+                        let word = self.device.read_color_buffer_word(y as u32 * TILE_DIM / 4 + x as u32);
+                        for i in 0..4 {
+                            self.back_buffer[buffer_index + i] = (word >> (32 * i)) as _;
+                        }
+                    }
+                }
+                for y in 0..TILE_DIM as usize {
+                    for x in 0..TILE_DIM as usize / 8 {
+                        let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 8;
+                        let word = self.device.read_depth_buffer_word(y as u32 * TILE_DIM / 8 + x as u32);
+                        for i in 0..8 {
+                            self.depth_buffer[buffer_index + i] = (word >> (16 * i)) as _;
+                        }
                     }
                 }
             }
