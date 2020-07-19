@@ -232,11 +232,17 @@ impl<'a> Context<'a> {
                     self.device.write_reg(REG_T_DY_ADDR, triangle.t_dy);
                     self.estimated_frame_reg_cycles += 33;
 
-                    // Rasterize
-                    self.device.write_reg(REG_START_ADDR, 1);
+                    // Ensure last primitive is complete
                     while self.device.read_reg(REG_STATUS_ADDR) != 0 {
                         self.estimated_frame_rasterization_cycles += 1;
                     }
+                    // Dispatch next primitive
+                    self.device.write_reg(REG_START_ADDR, 1);
+                }
+
+                // Ensure last primitive is complete
+                while self.device.read_reg(REG_STATUS_ADDR) != 0 {
+                    self.estimated_frame_rasterization_cycles += 1;
                 }
 
                 assembled_triangles.clear();

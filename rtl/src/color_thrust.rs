@@ -165,11 +165,23 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
         }).else_({
             dx.value
         }));
+        let dx_mirror = m.reg(format!("{}_dx_mirror", name), num_bits);
+        dx_mirror.drive_next(if_(start, {
+            dx.value
+        }).else_({
+            dx_mirror.value
+        }));
         let dy = m.reg(format!("{}_dy", name), num_bits);
         dy.drive_next(if_(reg_bus_write_enable & reg_bus_addr.eq(m.lit(dy_addr, REG_BUS_ADDR_BIT_WIDTH)), {
             reg_bus_write_data.bits(num_bits - 1, 0)
         }).else_({
             dy.value
+        }));
+        let dy_mirror = m.reg(format!("{}_dy_mirror", name), num_bits);
+        dy_mirror.drive_next(if_(start, {
+            dy.value
+        }).else_({
+            dy_mirror.value
         }));
 
         let row = m.reg(format!("{}_row", name), num_bits);
@@ -180,10 +192,10 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
             (min.value, min.value)
         }).else_({
             if_(tile_x_last, {
-                let next = row.value + dy.value;
+                let next = row.value + dy_mirror.value;
                 (next, next)
             }).else_({
-                (row.value, value.value + dx.value)
+                (row.value, value.value + dx_mirror.value)
             })
         });
 
