@@ -142,10 +142,6 @@ impl<'a> Context<'a> {
             (if self.depth_test_enable { 1 } else { 0 } << REG_DEPTH_TEST_ENABLE_BIT) |
             (if self.depth_write_mask_enable { 1 } else { 0 } << REG_DEPTH_WRITE_MASK_ENABLE_BIT));
 
-        for vert in verts.iter_mut() {
-            vert.color = vert.color * 255.0;
-        }
-
         let texture_dims = Vec2::splat(16.0); // TODO: Proper value and default if no texture is enabled
         let st_bias = -0.5; // Offset to sample texel centers // TODO: This depends on filtering chosen; 0 for nearest, -0.5 for bilinear
         for vert in verts.iter_mut() {
@@ -197,13 +193,12 @@ impl<'a> Context<'a> {
         let w1_dy = window_verts[0].x() - window_verts[2].x();
         let w2_dy = window_verts[1].x() - window_verts[0].x();
 
-        let w_fract_bits = 8;
-        self.device.write_reg(REG_W0_DX_ADDR, to_fixed(w0_dx, w_fract_bits) as _);
-        self.device.write_reg(REG_W1_DX_ADDR, to_fixed(w1_dx, w_fract_bits) as _);
-        self.device.write_reg(REG_W2_DX_ADDR, to_fixed(w2_dx, w_fract_bits) as _);
-        self.device.write_reg(REG_W0_DY_ADDR, to_fixed(w0_dy, w_fract_bits) as _);
-        self.device.write_reg(REG_W1_DY_ADDR, to_fixed(w1_dy, w_fract_bits) as _);
-        self.device.write_reg(REG_W2_DY_ADDR, to_fixed(w2_dy, w_fract_bits) as _);
+        self.device.write_reg(REG_W0_DX_ADDR, to_fixed(w0_dx, EDGE_FRACT_BITS) as _);
+        self.device.write_reg(REG_W1_DX_ADDR, to_fixed(w1_dx, EDGE_FRACT_BITS) as _);
+        self.device.write_reg(REG_W2_DX_ADDR, to_fixed(w2_dx, EDGE_FRACT_BITS) as _);
+        self.device.write_reg(REG_W0_DY_ADDR, to_fixed(w0_dy, EDGE_FRACT_BITS) as _);
+        self.device.write_reg(REG_W1_DY_ADDR, to_fixed(w1_dy, EDGE_FRACT_BITS) as _);
+        self.device.write_reg(REG_W2_DY_ADDR, to_fixed(w2_dy, EDGE_FRACT_BITS) as _);
 
         let w0_dx = w0_dx / scaled_area;
         let w1_dx = w1_dx / scaled_area;
@@ -220,15 +215,14 @@ impl<'a> Context<'a> {
         let g_dy = verts[0].color.y() * w0_dy + verts[1].color.y() * w1_dy + verts[2].color.y() * w2_dy;
         let b_dy = verts[0].color.z() * w0_dy + verts[1].color.z() * w1_dy + verts[2].color.z() * w2_dy;
         let a_dy = verts[0].color.w() * w0_dy + verts[1].color.w() * w1_dy + verts[2].color.w() * w2_dy;
-        let color_fract_bits = 12;
-        self.device.write_reg(REG_R_DX_ADDR, to_fixed(r_dx, color_fract_bits) as _);
-        self.device.write_reg(REG_G_DX_ADDR, to_fixed(g_dx, color_fract_bits) as _);
-        self.device.write_reg(REG_B_DX_ADDR, to_fixed(b_dx, color_fract_bits) as _);
-        self.device.write_reg(REG_A_DX_ADDR, to_fixed(a_dx, color_fract_bits) as _);
-        self.device.write_reg(REG_R_DY_ADDR, to_fixed(r_dy, color_fract_bits) as _);
-        self.device.write_reg(REG_G_DY_ADDR, to_fixed(g_dy, color_fract_bits) as _);
-        self.device.write_reg(REG_B_DY_ADDR, to_fixed(b_dy, color_fract_bits) as _);
-        self.device.write_reg(REG_A_DY_ADDR, to_fixed(a_dy, color_fract_bits) as _);
+        self.device.write_reg(REG_R_DX_ADDR, to_fixed(r_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _);
+        self.device.write_reg(REG_G_DX_ADDR, to_fixed(g_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _);
+        self.device.write_reg(REG_B_DX_ADDR, to_fixed(b_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _);
+        self.device.write_reg(REG_A_DX_ADDR, to_fixed(a_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _);
+        self.device.write_reg(REG_R_DY_ADDR, to_fixed(r_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _);
+        self.device.write_reg(REG_G_DY_ADDR, to_fixed(g_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _);
+        self.device.write_reg(REG_B_DY_ADDR, to_fixed(b_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _);
+        self.device.write_reg(REG_A_DY_ADDR, to_fixed(a_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _);
 
         let w_inverse_dx = 1.0 / verts[0].position.w() * w0_dx + 1.0 / verts[1].position.w() * w1_dx + 1.0 / verts[2].position.w() * w2_dx;
         let w_inverse_dy = 1.0 / verts[0].position.w() * w0_dy + 1.0 / verts[1].position.w() * w1_dy + 1.0 / verts[2].position.w() * w2_dy;
@@ -280,9 +274,9 @@ impl<'a> Context<'a> {
                 let w0_min = orient2d(Vec2::new(window_verts[1].x(), window_verts[1].y()), Vec2::new(window_verts[2].x(), window_verts[2].y()), p);
                 let w1_min = orient2d(Vec2::new(window_verts[2].x(), window_verts[2].y()), Vec2::new(window_verts[0].x(), window_verts[0].y()), p);
                 let w2_min = orient2d(Vec2::new(window_verts[0].x(), window_verts[0].y()), Vec2::new(window_verts[1].x(), window_verts[1].y()), p);
-                self.device.write_reg(REG_W0_MIN_ADDR, to_fixed(w0_min, w_fract_bits) as _);
-                self.device.write_reg(REG_W1_MIN_ADDR, to_fixed(w1_min, w_fract_bits) as _);
-                self.device.write_reg(REG_W2_MIN_ADDR, to_fixed(w2_min, w_fract_bits) as _);
+                self.device.write_reg(REG_W0_MIN_ADDR, to_fixed(w0_min, EDGE_FRACT_BITS) as _);
+                self.device.write_reg(REG_W1_MIN_ADDR, to_fixed(w1_min, EDGE_FRACT_BITS) as _);
+                self.device.write_reg(REG_W2_MIN_ADDR, to_fixed(w2_min, EDGE_FRACT_BITS) as _);
 
                 let w0_min = w0_min / scaled_area;
                 let w1_min = w1_min / scaled_area;
@@ -292,10 +286,10 @@ impl<'a> Context<'a> {
                 let g_min = verts[0].color.y() * w0_min + verts[1].color.y() * w1_min + verts[2].color.y() * w2_min;
                 let b_min = verts[0].color.z() * w0_min + verts[1].color.z() * w1_min + verts[2].color.z() * w2_min;
                 let a_min = verts[0].color.w() * w0_min + verts[1].color.w() * w1_min + verts[2].color.w() * w2_min;
-                self.device.write_reg(REG_R_MIN_ADDR, to_fixed(r_min, color_fract_bits) as _);
-                self.device.write_reg(REG_G_MIN_ADDR, to_fixed(g_min, color_fract_bits) as _);
-                self.device.write_reg(REG_B_MIN_ADDR, to_fixed(b_min, color_fract_bits) as _);
-                self.device.write_reg(REG_A_MIN_ADDR, to_fixed(a_min, color_fract_bits) as _);
+                self.device.write_reg(REG_R_MIN_ADDR, to_fixed(r_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _);
+                self.device.write_reg(REG_G_MIN_ADDR, to_fixed(g_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _);
+                self.device.write_reg(REG_B_MIN_ADDR, to_fixed(b_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _);
+                self.device.write_reg(REG_A_MIN_ADDR, to_fixed(a_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _);
 
                 let w_inverse_min = 1.0 / verts[0].position.w() * w0_min + 1.0 / verts[1].position.w() * w1_min + 1.0 / verts[2].position.w() * w2_min;
                 self.device.write_reg(REG_W_INVERSE_MIN_ADDR, to_fixed(w_inverse_min, W_INVERSE_FRACT_BITS) as _);

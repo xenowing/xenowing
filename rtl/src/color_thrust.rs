@@ -20,6 +20,9 @@ pub const TEX_BUFFER_DIM: u32 = 1 << TEX_BUFFER_DIM_BITS;
 pub const TEX_BUFFER_PIXELS_BITS: u32 = TEX_BUFFER_DIM_BITS * 2;
 pub const TEX_BUFFER_PIXELS: u32 = 1 << TEX_BUFFER_PIXELS_BITS;
 
+pub const EDGE_FRACT_BITS: u32 = 8;
+pub const COLOR_WHOLE_BITS: u32 = 9;
+pub const COLOR_FRACT_BITS: u32 = 12;
 pub const W_INVERSE_FRACT_BITS: u32 = 30;
 pub const Z_FRACT_BITS: u32 = 30; // Must be greater than 16
 pub const ST_FRACT_BITS: u32 = 24;
@@ -181,10 +184,10 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let w1 = interpolant("w1", 32, REG_W1_MIN_ADDR, REG_W1_DX_ADDR, REG_W1_DY_ADDR).bit(31);
     let w2 = interpolant("w2", 32, REG_W2_MIN_ADDR, REG_W2_DX_ADDR, REG_W2_DY_ADDR).bit(31);
 
-    let r = interpolant("r", 24, REG_R_MIN_ADDR, REG_R_DX_ADDR, REG_R_DY_ADDR).bits(19, 12);
-    let g = interpolant("g", 24, REG_G_MIN_ADDR, REG_G_DX_ADDR, REG_G_DY_ADDR).bits(19, 12);
-    let b = interpolant("b", 24, REG_B_MIN_ADDR, REG_B_DX_ADDR, REG_B_DY_ADDR).bits(19, 12);
-    let a = interpolant("a", 24, REG_A_MIN_ADDR, REG_A_DX_ADDR, REG_A_DY_ADDR).bits(19, 12);
+    let r = interpolant("r", 24, REG_R_MIN_ADDR, REG_R_DX_ADDR, REG_R_DY_ADDR).bits(COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1, COLOR_FRACT_BITS);
+    let g = interpolant("g", 24, REG_G_MIN_ADDR, REG_G_DX_ADDR, REG_G_DY_ADDR).bits(COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1, COLOR_FRACT_BITS);
+    let b = interpolant("b", 24, REG_B_MIN_ADDR, REG_B_DX_ADDR, REG_B_DY_ADDR).bits(COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1, COLOR_FRACT_BITS);
+    let a = interpolant("a", 24, REG_A_MIN_ADDR, REG_A_DX_ADDR, REG_A_DY_ADDR).bits(COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1, COLOR_FRACT_BITS);
 
     let w_inverse = interpolant("w_inverse", 32, REG_W_INVERSE_MIN_ADDR, REG_W_INVERSE_DX_ADDR, REG_W_INVERSE_DY_ADDR);
 
@@ -388,10 +391,10 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let w2 = m.input("in_w2", 1);
     let mut edge_test = !(w0 | w1 | w2);
 
-    let mut r = m.input("in_r", 8);
-    let mut g = m.input("in_g", 8);
-    let mut b = m.input("in_b", 8);
-    let mut a = m.input("in_a", 8);
+    let mut r = m.input("in_r", COLOR_WHOLE_BITS);
+    let mut g = m.input("in_g", COLOR_WHOLE_BITS);
+    let mut b = m.input("in_b", COLOR_WHOLE_BITS);
+    let mut a = m.input("in_a", COLOR_WHOLE_BITS);
 
     let w_inverse = m.input("in_w_inverse", 32);
 
@@ -614,14 +617,20 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let texel = reg_next("stage_18_texel", texel, m);
 
-    let texel_r = texel.bits(23, 16);
-    let texel_g = texel.bits(15, 8);
-    let texel_b = texel.bits(7, 0);
-    let texel_a = texel.bits(31, 24);
-    let r = (r * texel_r).bits(15, 8);
-    let g = (g * texel_g).bits(15, 8);
-    let b = (b * texel_b).bits(15, 8);
-    let a = (a * texel_a).bits(15, 8);
+    let scale_and_clamp_comp = |color_comp: &'a Signal<'a>, texel_comp: &'a Signal<'a>| -> &'a Signal<'a> {
+        let scaled_comp = (color_comp * texel_comp).bits(16, 8);
+        if_(!scaled_comp.bit(8), {
+            scaled_comp.bits(7, 0)
+        }).else_({
+            m.lit(255u32, 8)
+        })
+    };
+
+    let r = scale_and_clamp_comp(r, texel.bits(23, 16));
+    let g = scale_and_clamp_comp(g, texel.bits(15, 8));
+    let b = scale_and_clamp_comp(b, texel.bits(7, 0));
+    let a = scale_and_clamp_comp(a, texel.bits(31, 24));
+
     let color = a.concat(r).concat(g).concat(b);
 
     //  Returned from issue in previous stage
