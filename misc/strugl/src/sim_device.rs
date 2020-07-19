@@ -147,7 +147,6 @@ impl Device for SimDevice {
     fn write_tex_buffer_word(&mut self, addr: u32, data: u32) {
         self.color_thrust.tex_buffer_bus_addr = addr >> 2;
         self.color_thrust.tex_buffer_bus_enable = true;
-        self.color_thrust.tex_buffer_bus_write = true;
         self.color_thrust.tex_buffer_bus_write_byte_enable = 0xf << ((addr & 0x3) * 4);
         self.color_thrust.tex_buffer_bus_write_data = (data as u128) << ((addr & 0x3) * 32);
         self.color_thrust.prop();
@@ -161,27 +160,5 @@ impl Device for SimDevice {
         }
         self.color_thrust.tex_buffer_bus_enable = false;
         self.color_thrust.prop();
-    }
-
-    fn read_tex_buffer_word(&mut self, addr: u32) -> u32 {
-        self.color_thrust.tex_buffer_bus_addr = addr >> 2;
-        self.color_thrust.tex_buffer_bus_enable = true;
-        self.color_thrust.tex_buffer_bus_write = false;
-        self.color_thrust.prop();
-        loop {
-            let ready = self.color_thrust.tex_buffer_bus_ready;
-            self.color_thrust.posedge_clk();
-            self.color_thrust.prop();
-            if ready {
-                break;
-            }
-        }
-        self.color_thrust.tex_buffer_bus_enable = false;
-        self.color_thrust.prop();
-        while !self.color_thrust.tex_buffer_bus_read_data_valid {
-            self.color_thrust.posedge_clk();
-            self.color_thrust.prop();
-        }
-        (self.color_thrust.tex_buffer_bus_read_data >> ((addr & 0x3) * 32)) as u32
     }
 }

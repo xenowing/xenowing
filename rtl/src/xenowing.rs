@@ -158,12 +158,12 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     color_thrust.drive_input("tex_buffer_bus_enable", interconnect.output("color_thrust_tex_buffer_bus_enable"));
     color_thrust.drive_input("tex_buffer_bus_addr", interconnect.output("color_thrust_tex_buffer_bus_addr").bits(color_thrust::TEX_PIXELS_WORDS_BITS - 1, 0));
-    color_thrust.drive_input("tex_buffer_bus_write", interconnect.output("color_thrust_tex_buffer_bus_write"));
+    //color_thrust.drive_input("tex_buffer_bus_write", interconnect.output("color_thrust_tex_buffer_bus_write"));
     color_thrust.drive_input("tex_buffer_bus_write_data", interconnect.output("color_thrust_tex_buffer_bus_write_data"));
     color_thrust.drive_input("tex_buffer_bus_write_byte_enable", interconnect.output("color_thrust_tex_buffer_bus_write_byte_enable"));
     interconnect.drive_input("color_thrust_tex_buffer_bus_ready", color_thrust.output("tex_buffer_bus_ready"));
-    interconnect.drive_input("color_thrust_tex_buffer_bus_read_data", color_thrust.output("tex_buffer_bus_read_data"));
-    interconnect.drive_input("color_thrust_tex_buffer_bus_read_data_valid", color_thrust.output("tex_buffer_bus_read_data_valid"));
+    interconnect.drive_input("color_thrust_tex_buffer_bus_read_data", m.lit(0u32, 128));
+    interconnect.drive_input("color_thrust_tex_buffer_bus_read_data_valid", m.low());
 
     let ddr3_interface_addr_bit_width = 13;
     let ddr3_interface_bus_enable = interconnect.output("ddr3_interface_bus_enable");

@@ -393,14 +393,4 @@ impl Device for ModelDevice {
             _ => unreachable!()
         }
     }
-
-    fn read_tex_buffer_word(&mut self, addr: u32) -> u32 {
-        match addr & 3 {
-            0 => self.tex_buffer0[(addr >> 2) as usize],
-            1 => self.tex_buffer1[(addr >> 2) as usize],
-            2 => self.tex_buffer2[(addr >> 2) as usize],
-            3 => self.tex_buffer3[(addr >> 2) as usize],
-            _ => unreachable!()
-        }
-    }
 }

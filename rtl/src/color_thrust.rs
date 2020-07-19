@@ -344,14 +344,8 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("tex_buffer_bus_ready", m.high());
     let tex_buffer_bus_enable = m.input("tex_buffer_bus_enable", 1);
     let tex_buffer_bus_addr = m.input("tex_buffer_bus_addr", TEX_PIXELS_WORDS_BITS);
-    let tex_buffer_bus_write = m.input("tex_buffer_bus_write", 1);
     let tex_buffer_bus_write_data = m.input("tex_buffer_bus_write_data", 128);
     let tex_buffer_bus_write_byte_enable = m.input("tex_buffer_bus_write_byte_enable", 16);
-
-    let tex_buffer_bus_write_enable = tex_buffer_bus_enable & tex_buffer_bus_write;
-    let tex_buffer_bus_read_enable = tex_buffer_bus_enable & !tex_buffer_bus_write;
-
-    let mut tex_buffer_read_port_value = None;
 
     for i in 0..4 {
         let tex_buffer = m.mem(format!("tex_buffer{}", i), TEX_BUFFER_PIXELS_BITS, 32);
@@ -359,27 +353,14 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
         tex_buffer.write_port(
             tex_buffer_bus_addr,
             tex_buffer_bus_write_data.bits(tex_buffer_bus_write_data_offset + 31, tex_buffer_bus_write_data_offset),
-            tex_buffer_bus_write_enable & tex_buffer_bus_write_byte_enable.bit(i * 4));
+            tex_buffer_bus_enable & tex_buffer_bus_write_byte_enable.bit(i * 4));
 
         let read_port_value = tex_buffer.read_port(
-            if_(tex_buffer_bus_read_enable, {
-                tex_buffer_bus_addr
-            }).else_({
-                pixel_pipe.output(format!("tex_buffer{}_read_port_addr", i))
-            }),
-            tex_buffer_bus_read_enable | pixel_pipe.output(format!("tex_buffer{}_read_port_enable", i)));
+            pixel_pipe.output(format!("tex_buffer{}_read_port_addr", i)),
+            pixel_pipe.output(format!("tex_buffer{}_read_port_enable", i)));
 
         pixel_pipe.drive_input(format!("tex_buffer{}_read_port_value", i), read_port_value);
-
-        tex_buffer_read_port_value = Some(if let Some(tex_buffer_read_port_value) = tex_buffer_read_port_value {
-            read_port_value.concat(tex_buffer_read_port_value)
-        } else {
-            read_port_value
-        });
     }
-
-    m.output("tex_buffer_bus_read_data", tex_buffer_read_port_value.unwrap());
-    m.output("tex_buffer_bus_read_data_valid", reg_next_with_default("tex_buffer_bus_read_data_valid", tex_buffer_bus_read_enable, false, m));
 
     m
 }
