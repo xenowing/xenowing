@@ -54,6 +54,9 @@ struct Context<'a> {
 
     model_view: Matrix,
     projection: Matrix,
+
+    estimated_frame_xfer_cycles: u64,
+    estimated_frame_rasterization_cycles: u64,
 }
 
 impl<'a> Context<'a> {
@@ -71,6 +74,9 @@ impl<'a> Context<'a> {
 
             model_view: Matrix::identity(),
             projection: Matrix::identity(),
+
+            estimated_frame_xfer_cycles: 0,
+            estimated_frame_rasterization_cycles: 0,
         }
     }
 
@@ -282,6 +288,8 @@ impl<'a> Context<'a> {
                             word |= (self.back_buffer[buffer_index + i] as u128) << (i * 32);
                         }
                         self.device.write_color_buffer_word(y as u32 * TILE_DIM / 4 + x as u32, word);
+
+                        self.estimated_frame_xfer_cycles += 1;
                     }
                 }
                 if self.depth_test_enable || self.depth_write_mask_enable {
@@ -293,6 +301,8 @@ impl<'a> Context<'a> {
                                 word |= (self.depth_buffer[buffer_index + i] as u128) << (i * 16);
                             }
                             self.device.write_depth_buffer_word(y as u32 * TILE_DIM / 8 + x as u32, word);
+
+                            self.estimated_frame_xfer_cycles += 1;
                         }
                     }
                 }
@@ -334,7 +344,7 @@ impl<'a> Context<'a> {
                 // Rasterize
                 self.device.write_reg(REG_START_ADDR, 1);
                 while self.device.read_reg(REG_STATUS_ADDR) != 0 {
-                    // Do nothing
+                    self.estimated_frame_rasterization_cycles += 1;
                 }
 
                 // Copy rasterizer memory back to tile
@@ -345,6 +355,8 @@ impl<'a> Context<'a> {
                         for i in 0..4 {
                             self.back_buffer[buffer_index + i] = (word >> (32 * i)) as _;
                         }
+
+                        self.estimated_frame_xfer_cycles += 1;
                     }
                 }
                 if self.depth_write_mask_enable {
@@ -355,6 +367,8 @@ impl<'a> Context<'a> {
                             for i in 0..8 {
                                 self.depth_buffer[buffer_index + i] = (word >> (16 * i)) as _;
                             }
+
+                            self.estimated_frame_xfer_cycles += 1;
                         }
                     }
                 }
@@ -643,6 +657,12 @@ fn main() {
         cube(&mut v);
 
         c.render(&mut v);
+
+        let estimated_frame_cycles = c.estimated_frame_xfer_cycles + c.estimated_frame_rasterization_cycles;
+        let frame_budget_cycles = 100000000 / 60;
+        println!("Est. frame cycles: {} / {} ({:.*}%)", estimated_frame_cycles, frame_budget_cycles, 2, estimated_frame_cycles as f64 / frame_budget_cycles as f64 * 100.0);
+        println!("  xfer:            {} ({:.*}%)", c.estimated_frame_xfer_cycles, 2, c.estimated_frame_xfer_cycles as f64 / estimated_frame_cycles as f64 * 100.0);
+        println!("  rasterization:   {} ({:.*}%)", c.estimated_frame_rasterization_cycles, 2, c.estimated_frame_rasterization_cycles as f64 / estimated_frame_cycles as f64 * 100.0);
 
         window.update_with_buffer(&c.back_buffer, WIDTH, HEIGHT).unwrap();
     }
