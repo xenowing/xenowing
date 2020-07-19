@@ -384,13 +384,16 @@ impl Device for ModelDevice {
         self.depth_buffer[addr as usize]
     }
 
-    fn write_tex_buffer_word(&mut self, addr: u32, data: u32) {
-        match addr & 3 {
-            0 => { self.tex_buffer0[(addr >> 2) as usize] = data; }
-            1 => { self.tex_buffer1[(addr >> 2) as usize] = data; }
-            2 => { self.tex_buffer2[(addr >> 2) as usize] = data; }
-            3 => { self.tex_buffer3[(addr >> 2) as usize] = data; }
-            _ => unreachable!()
+    fn write_tex_buffer_word(&mut self, addr: u32, data: u128) {
+        for i in 0..4 {
+            let word = (data >> (32 * i)) as u32;
+            match i {
+                0 => { self.tex_buffer0[addr as usize] = word; }
+                1 => { self.tex_buffer1[addr as usize] = word; }
+                2 => { self.tex_buffer2[addr as usize] = word; }
+                3 => { self.tex_buffer3[addr as usize] = word; }
+                _ => unreachable!()
+            }
         }
     }
 }
