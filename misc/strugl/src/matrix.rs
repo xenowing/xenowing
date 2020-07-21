@@ -87,6 +87,16 @@ impl Matrix {
         }
     }
 
+    pub fn scale(x: f32, y: f32, z: f32) -> Matrix {
+        Matrix {
+            values: [
+                x, 0.0, 0.0, 0.0,
+                0.0, y, 0.0, 0.0,
+                0.0, 0.0, z, 0.0,
+                0.0, 0.0, 0.0, 1.0]
+        }
+    }
+
     pub fn ortho(left: f32, right: f32, bottom: f32, top: f32, z_near: f32, z_far: f32) -> Matrix {
         let tx = -(right + left) / (right - left);
         let ty = -(top + bottom) / (top - bottom);

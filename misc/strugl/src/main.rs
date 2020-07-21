@@ -22,6 +22,7 @@ use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 use rtl::color_thrust::*;
 
 use std::env;
+use std::mem;
 use std::time::Instant;
 
 const WIDTH: usize = 16 * 8;//320;
@@ -96,6 +97,7 @@ struct Context<'a> {
 
     assembled_triangles: Vec<Vec<Triangle>>,
 
+    estimated_frame_bin_cycles: u64,
     estimated_frame_reg_cycles: u64,
     estimated_frame_xfer_cycles: u64,
     estimated_frame_rasterization_cycles: u64,
@@ -120,6 +122,7 @@ impl<'a> Context<'a> {
             // TODO: Fixed capacity and splitting drawcalls on overflow
             assembled_triangles: vec![Vec::new(); PIXELS / TILE_PIXELS as usize],
 
+            estimated_frame_bin_cycles: 0,
             estimated_frame_reg_cycles: 0,
             estimated_frame_xfer_cycles: 0,
             estimated_frame_rasterization_cycles: 0,
@@ -232,6 +235,8 @@ impl<'a> Context<'a> {
                     self.device.write_reg(REG_T_DY_ADDR, triangle.t_dy);
                     self.estimated_frame_reg_cycles += 33;
 
+                    self.estimated_frame_bin_cycles += mem::size_of::<Triangle>() as u64;
+
                     // Ensure last primitive is complete
                     while self.device.read_reg(REG_STATUS_ADDR) != 0 {
                         self.estimated_frame_rasterization_cycles += 1;
@@ -245,15 +250,22 @@ impl<'a> Context<'a> {
                     self.estimated_frame_rasterization_cycles += 1;
                 }
 
-                assembled_triangles.clear();
-
                 // Copy rasterizer memory back to tile
                 for y in 0..TILE_DIM as usize {
                     for x in 0..TILE_DIM as usize / 4 {
                         let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 4;
                         let word = self.device.read_color_buffer_word(y as u32 * TILE_DIM / 4 + x as u32);
                         for i in 0..4 {
-                            self.back_buffer[buffer_index + i] = (word >> (32 * i)) as _;
+                            let tile_pixel = (word >> (32 * i)) as u32;
+                            let a = (tile_pixel >> 24) & 0xff;
+                            let r = (tile_pixel >> 16) & 0xff;
+                            let g = (tile_pixel >> 8) & 0xff;
+                            let b = (tile_pixel >> 0) & 0xff;
+                            let r = r + 32 * (assembled_triangles.len() as u32 - 1);
+                            let g = g + 32;
+                            let r = if r > 255 { 255 } else { r };
+                            let g = if g > 255 { 255 } else { g };
+                            self.back_buffer[buffer_index + i] = (a << 24) | (r << 16) | (g << 8) | b;
                         }
 
                         self.estimated_frame_xfer_cycles += 1;
@@ -272,6 +284,8 @@ impl<'a> Context<'a> {
                         }
                     }
                 }
+
+                assembled_triangles.clear();
             }
         }
     }
@@ -487,6 +501,8 @@ impl<'a> Context<'a> {
 
                 let tile_index = tile_index_y * (WIDTH / (TILE_DIM as usize)) + tile_index_x;
                 self.assembled_triangles[tile_index].push(triangle.clone());
+
+                self.estimated_frame_bin_cycles += mem::size_of::<Triangle>() as u64;
             }
         }
     }
@@ -706,7 +722,7 @@ fn main() {
             });
         }
 
-        let frame_time = start_time.elapsed().as_secs_f64();
+        let frame_time = 10.0;//start_time.elapsed().as_secs_f64();
 
         let mut c = Context::new(&mut *device);
 
@@ -741,9 +757,9 @@ fn main() {
 
         c.projection = Matrix::perspective(90.0, WIDTH as f32 / HEIGHT as f32, 1.0, 1000.0);
 
-        let view = Matrix::translation(0.0, 0.0, -3.0);
+        let view = Matrix::translation(0.0, 0.0, -3.5);
 
-        let mut v = Vec::new();
+        /*let mut v = Vec::new();
 
         let mut model = Matrix::identity();
         model = model * Matrix::translation(-0.5, 0.0, 0.0);
@@ -757,16 +773,17 @@ fn main() {
 
         cube(&mut v);
 
-        c.render(&mut v);
+        c.render(&mut v);*/
 
         let mut v = Vec::new();
 
         let mut model = Matrix::identity();
-        model = model * Matrix::translation(0.5, 0.0, 0.0);
+        //model = model * Matrix::translation(0.5, 0.0, 0.0);
         let t = (frame_time * 0.1) as f32;
         model = model * Matrix::rotation_x(t * 1.1);
         model = model * Matrix::rotation_y(t * 0.47);
         model = model * Matrix::rotation_z(t * 0.73);
+        model = model * Matrix::scale(2.0, 1.0, 1.0);
         c.model_view = view * model;
 
         c.texture_filter = TextureFilter::Bilinear;
@@ -775,9 +792,10 @@ fn main() {
 
         c.render(&mut v);
 
-        let estimated_frame_cycles = c.estimated_frame_reg_cycles + c.estimated_frame_xfer_cycles + c.estimated_frame_rasterization_cycles;
+        let estimated_frame_cycles = c.estimated_frame_bin_cycles + c.estimated_frame_reg_cycles + c.estimated_frame_xfer_cycles + c.estimated_frame_rasterization_cycles;
         let frame_budget_cycles = 100000000 / 60;
         println!("Est. frame cycles: {} / {} ({:.*}%)", estimated_frame_cycles, frame_budget_cycles, 2, estimated_frame_cycles as f64 / frame_budget_cycles as f64 * 100.0);
+        println!("  bin r/w:         {} ({:.*}%)", c.estimated_frame_bin_cycles, 2, c.estimated_frame_bin_cycles as f64 / estimated_frame_cycles as f64 * 100.0);
         println!("  regs:            {} ({:.*}%)", c.estimated_frame_reg_cycles, 2, c.estimated_frame_reg_cycles as f64 / estimated_frame_cycles as f64 * 100.0);
         println!("  xfer:            {} ({:.*}%)", c.estimated_frame_xfer_cycles, 2, c.estimated_frame_xfer_cycles as f64 / estimated_frame_cycles as f64 * 100.0);
         println!("  rasterization:   {} ({:.*}%)", c.estimated_frame_rasterization_cycles, 2, c.estimated_frame_rasterization_cycles as f64 / estimated_frame_cycles as f64 * 100.0);
