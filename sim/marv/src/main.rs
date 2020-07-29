@@ -70,7 +70,7 @@ fn main() {
                                 0x20000000 => {
                                     // Test complete!
                                     println!("");
-                                    println!("Test complete!");
+                                    println!("Test complete after {} cycles", i);
                                     println!("");
                                     let return_code = marv.bus_write_data & 0xff;
                                     if return_code == 0 {
