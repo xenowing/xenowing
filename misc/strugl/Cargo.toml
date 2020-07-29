@@ -14,4 +14,5 @@ rtl = { path = "../../rtl" }
 image = "0.23"
 minifb = "0.16"
 rand = "0.7"
+rand_pcg = "0.2.1"
 rtl = { path = "../../rtl" }

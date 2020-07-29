@@ -19,6 +19,8 @@ use vec4::*;
 
 use image::GenericImageView;
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
+use rand::{Rng, SeedableRng};
+use rand_pcg::Pcg32;
 use rtl::color_thrust::*;
 
 use std::env;
@@ -39,6 +41,20 @@ struct Vertex {
 enum TextureFilter {
     Nearest,
     Bilinear,
+}
+
+enum BlendSrcFactor {
+    Zero,
+    One,
+    SrcAlpha,
+    OneMinusSrcAlpha,
+}
+
+enum BlendDstFactor {
+    Zero,
+    One,
+    SrcAlpha,
+    OneMinusSrcAlpha,
 }
 
 // TODO: Figure out the best representation without duplicating tons of data!!
@@ -92,6 +108,9 @@ struct Context<'a> {
     // TODO: Move to texture object
     texture_filter: TextureFilter,
 
+    blend_src_factor: BlendSrcFactor,
+    blend_dst_factor: BlendDstFactor,
+
     model_view: Matrix,
     projection: Matrix,
 
@@ -115,6 +134,9 @@ impl<'a> Context<'a> {
             depth_write_mask_enable: false,
 
             texture_filter: TextureFilter::Nearest,
+
+            blend_src_factor: BlendSrcFactor::One,
+            blend_dst_factor: BlendDstFactor::Zero,
 
             model_view: Matrix::identity(),
             projection: Matrix::identity(),
@@ -156,6 +178,22 @@ impl<'a> Context<'a> {
                 TextureFilter::Nearest => REG_TEXTURE_SETTINGS_FILTER_SELECT_NEAREST,
                 TextureFilter::Bilinear => REG_TEXTURE_SETTINGS_FILTER_SELECT_BILINEAR,
             } << REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT);
+        self.estimated_frame_reg_cycles += 1;
+
+        self.device.write_reg(
+            REG_BLEND_SETTINGS_ADDR,
+            (match self.blend_src_factor {
+                BlendSrcFactor::Zero => REG_BLEND_SETTINGS_SRC_FACTOR_ZERO,
+                BlendSrcFactor::One => REG_BLEND_SETTINGS_SRC_FACTOR_ONE,
+                BlendSrcFactor::SrcAlpha => REG_BLEND_SETTINGS_SRC_FACTOR_SRC_ALPHA,
+                BlendSrcFactor::OneMinusSrcAlpha => REG_BLEND_SETTINGS_SRC_FACTOR_ONE_MINUS_SRC_ALPHA,
+            } << REG_BLEND_SETTINGS_SRC_FACTOR_BIT_OFFSET) |
+            (match self.blend_dst_factor {
+                BlendDstFactor::Zero => REG_BLEND_SETTINGS_DST_FACTOR_ZERO,
+                BlendDstFactor::One => REG_BLEND_SETTINGS_DST_FACTOR_ONE,
+                BlendDstFactor::SrcAlpha => REG_BLEND_SETTINGS_DST_FACTOR_SRC_ALPHA,
+                BlendDstFactor::OneMinusSrcAlpha => REG_BLEND_SETTINGS_DST_FACTOR_ONE_MINUS_SRC_ALPHA,
+            } << REG_BLEND_SETTINGS_DST_FACTOR_BIT_OFFSET));
         self.estimated_frame_reg_cycles += 1;
 
         // Primitive rendering
@@ -261,10 +299,10 @@ impl<'a> Context<'a> {
                             let r = (tile_pixel >> 16) & 0xff;
                             let g = (tile_pixel >> 8) & 0xff;
                             let b = (tile_pixel >> 0) & 0xff;
-                            let r = r + 32 * (assembled_triangles.len() as u32 - 1);
-                            let g = g + 32;
+                            /*let r = r + 16 * (assembled_triangles.len() as u32 - 1);
+                            let g = g + 16;
                             let r = if r > 255 { 255 } else { r };
-                            let g = if g > 255 { 255 } else { g };
+                            let g = if g > 255 { 255 } else { g };*/
                             self.back_buffer[buffer_index + i] = (a << 24) | (r << 16) | (g << 8) | b;
                         }
 
@@ -523,7 +561,7 @@ fn main() {
         ..WindowOptions::default()
     }).unwrap();
 
-    let tex = image::open("tex.png").unwrap();
+    let tex = image::open("tex2.png").unwrap();
 
     let start_time = Instant::now();
 
@@ -722,7 +760,7 @@ fn main() {
             });
         }
 
-        let frame_time = 10.0;//start_time.elapsed().as_secs_f64();
+        let frame_time = start_time.elapsed().as_secs_f64();
 
         let mut c = Context::new(&mut *device);
 
@@ -757,7 +795,11 @@ fn main() {
 
         c.projection = Matrix::perspective(90.0, WIDTH as f32 / HEIGHT as f32, 1.0, 1000.0);
 
-        let view = Matrix::translation(0.0, 0.0, -3.5);
+        let mut view = Matrix::translation(-1.0, 0.0, -4.0);
+        let t = (frame_time * 0.1) as f32;
+        view = view * Matrix::rotation_x(t * 1.1);
+        view = view * Matrix::rotation_y(t * 0.47);
+        view = view * Matrix::rotation_z(t * 0.73);
 
         /*let mut v = Vec::new();
 
@@ -775,22 +817,39 @@ fn main() {
 
         c.render(&mut v);*/
 
-        let mut v = Vec::new();
+        let mut rng: Pcg32 = SeedableRng::seed_from_u64(0xfadebabedeadbeef);
 
-        let mut model = Matrix::identity();
-        //model = model * Matrix::translation(0.5, 0.0, 0.0);
-        let t = (frame_time * 0.1) as f32;
-        model = model * Matrix::rotation_x(t * 1.1);
-        model = model * Matrix::rotation_y(t * 0.47);
-        model = model * Matrix::rotation_z(t * 0.73);
-        model = model * Matrix::scale(2.0, 1.0, 1.0);
-        c.model_view = view * model;
+        for _ in 0..50 {
+            let mut v = Vec::new();
 
-        c.texture_filter = TextureFilter::Bilinear;
+            let mut model = Matrix::identity();
+            //model = model * Matrix::translation(0.5, 0.0, 0.0);
+            let t = (frame_time * 0.2) as f32 + rng.gen::<f32>() * 30.0;
+            model = model * Matrix::rotation_x(t * 1.1);
+            model = model * Matrix::rotation_y(t * 0.47);
+            model = model * Matrix::rotation_z(t * 0.73);
+            model = model * Matrix::translation(0.0, -0.6 + rng.gen::<f32>() * 1.2, -0.6 + rng.gen::<f32>() * 1.2);
+            model = model * Matrix::scale(1.0 + rng.gen::<f32>() * 0.5, 0.1 + rng.gen::<f32>() * 0.2, 0.04);
+            model = model * Matrix::translation(0.5 + rng.gen::<f32>() * 0.5, 0.0, 0.0);
+            c.model_view = view * model;
 
-        cube(&mut v);
+            c.texture_filter = TextureFilter::Bilinear;
 
-        c.render(&mut v);
+            let transparent = rng.gen::<bool>();
+            if transparent {
+                c.depth_write_mask_enable = false;
+                c.blend_src_factor = BlendSrcFactor::One;
+                c.blend_dst_factor = BlendDstFactor::One;
+            } else {
+                c.depth_write_mask_enable = true;
+                c.blend_src_factor = BlendSrcFactor::One;
+                c.blend_dst_factor = BlendDstFactor::Zero;
+            }
+
+            cube(&mut v);
+
+            c.render(&mut v);
+        }
 
         let estimated_frame_cycles = c.estimated_frame_bin_cycles + c.estimated_frame_reg_cycles + c.estimated_frame_xfer_cycles + c.estimated_frame_rasterization_cycles;
         let frame_budget_cycles = 100000000 / 60;

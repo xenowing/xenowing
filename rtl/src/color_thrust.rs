@@ -45,39 +45,54 @@ pub const REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT: u32 = 0;
 pub const REG_TEXTURE_SETTINGS_FILTER_SELECT_NEAREST: u32 = 0;
 pub const REG_TEXTURE_SETTINGS_FILTER_SELECT_BILINEAR: u32 = 1;
 
-pub const REG_W0_MIN_ADDR: u32 = 3;
-pub const REG_W0_DX_ADDR: u32 = 4;
-pub const REG_W0_DY_ADDR: u32 = 5;
-pub const REG_W1_MIN_ADDR: u32 = 6;
-pub const REG_W1_DX_ADDR: u32 = 7;
-pub const REG_W1_DY_ADDR: u32 = 8;
-pub const REG_W2_MIN_ADDR: u32 = 9;
-pub const REG_W2_DX_ADDR: u32 = 10;
-pub const REG_W2_DY_ADDR: u32 = 11;
-pub const REG_R_MIN_ADDR: u32 = 12;
-pub const REG_R_DX_ADDR: u32 = 13;
-pub const REG_R_DY_ADDR: u32 = 14;
-pub const REG_G_MIN_ADDR: u32 = 15;
-pub const REG_G_DX_ADDR: u32 = 16;
-pub const REG_G_DY_ADDR: u32 = 17;
-pub const REG_B_MIN_ADDR: u32 = 18;
-pub const REG_B_DX_ADDR: u32 = 19;
-pub const REG_B_DY_ADDR: u32 = 20;
-pub const REG_A_MIN_ADDR: u32 = 21;
-pub const REG_A_DX_ADDR: u32 = 22;
-pub const REG_A_DY_ADDR: u32 = 23;
-pub const REG_W_INVERSE_MIN_ADDR: u32 = 24;
-pub const REG_W_INVERSE_DX_ADDR: u32 = 25;
-pub const REG_W_INVERSE_DY_ADDR: u32 = 26;
-pub const REG_Z_MIN_ADDR: u32 = 27;
-pub const REG_Z_DX_ADDR: u32 = 28;
-pub const REG_Z_DY_ADDR: u32 = 29;
-pub const REG_S_MIN_ADDR: u32 = 30;
-pub const REG_S_DX_ADDR: u32 = 31;
-pub const REG_S_DY_ADDR: u32 = 32;
-pub const REG_T_MIN_ADDR: u32 = 33;
-pub const REG_T_DX_ADDR: u32 = 34;
-pub const REG_T_DY_ADDR: u32 = 35;
+pub const REG_BLEND_SETTINGS_ADDR: u32 = 3;
+pub const REG_BLEND_SETTINGS_BITS: u32 = 4;
+pub const REG_BLEND_SETTINGS_SRC_FACTOR_BIT_OFFSET: u32 = 0;
+pub const REG_BLEND_SETTINGS_SRC_FACTOR_BITS: u32 = 2;
+pub const REG_BLEND_SETTINGS_SRC_FACTOR_ZERO: u32 = 0;
+pub const REG_BLEND_SETTINGS_SRC_FACTOR_ONE: u32 = 1;
+pub const REG_BLEND_SETTINGS_SRC_FACTOR_SRC_ALPHA: u32 = 2;
+pub const REG_BLEND_SETTINGS_SRC_FACTOR_ONE_MINUS_SRC_ALPHA: u32 = 3;
+pub const REG_BLEND_SETTINGS_DST_FACTOR_BIT_OFFSET: u32 = REG_BLEND_SETTINGS_SRC_FACTOR_BIT_OFFSET + REG_BLEND_SETTINGS_SRC_FACTOR_BITS;
+pub const REG_BLEND_SETTINGS_DST_FACTOR_BITS: u32 = 2;
+pub const REG_BLEND_SETTINGS_DST_FACTOR_ZERO: u32 = 0;
+pub const REG_BLEND_SETTINGS_DST_FACTOR_ONE: u32 = 1;
+pub const REG_BLEND_SETTINGS_DST_FACTOR_SRC_ALPHA: u32 = 2;
+pub const REG_BLEND_SETTINGS_DST_FACTOR_ONE_MINUS_SRC_ALPHA: u32 = 3;
+
+pub const REG_W0_MIN_ADDR: u32 = 4;
+pub const REG_W0_DX_ADDR: u32 = 5;
+pub const REG_W0_DY_ADDR: u32 = 6;
+pub const REG_W1_MIN_ADDR: u32 = 7;
+pub const REG_W1_DX_ADDR: u32 = 8;
+pub const REG_W1_DY_ADDR: u32 = 9;
+pub const REG_W2_MIN_ADDR: u32 = 10;
+pub const REG_W2_DX_ADDR: u32 = 11;
+pub const REG_W2_DY_ADDR: u32 = 12;
+pub const REG_R_MIN_ADDR: u32 = 13;
+pub const REG_R_DX_ADDR: u32 = 14;
+pub const REG_R_DY_ADDR: u32 = 15;
+pub const REG_G_MIN_ADDR: u32 = 16;
+pub const REG_G_DX_ADDR: u32 = 17;
+pub const REG_G_DY_ADDR: u32 = 18;
+pub const REG_B_MIN_ADDR: u32 = 19;
+pub const REG_B_DX_ADDR: u32 = 20;
+pub const REG_B_DY_ADDR: u32 = 21;
+pub const REG_A_MIN_ADDR: u32 = 22;
+pub const REG_A_DX_ADDR: u32 = 23;
+pub const REG_A_DY_ADDR: u32 = 24;
+pub const REG_W_INVERSE_MIN_ADDR: u32 = 25;
+pub const REG_W_INVERSE_DX_ADDR: u32 = 26;
+pub const REG_W_INVERSE_DY_ADDR: u32 = 27;
+pub const REG_Z_MIN_ADDR: u32 = 28;
+pub const REG_Z_DX_ADDR: u32 = 29;
+pub const REG_Z_DY_ADDR: u32 = 30;
+pub const REG_S_MIN_ADDR: u32 = 31;
+pub const REG_S_DX_ADDR: u32 = 32;
+pub const REG_S_DY_ADDR: u32 = 33;
+pub const REG_T_MIN_ADDR: u32 = 34;
+pub const REG_T_DX_ADDR: u32 = 35;
+pub const REG_T_DY_ADDR: u32 = 36;
 
 pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let m = c.module("ColorThrust");
@@ -106,6 +121,15 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
         reg_texture_settings.value
     }));
     let tex_filter_select = reg_texture_settings.value.bit(REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT);
+
+    let reg_blend_settings = m.reg("blend_settings", REG_BLEND_SETTINGS_BITS);
+    reg_blend_settings.drive_next(if_(reg_bus_write_enable & reg_bus_addr.eq(m.lit(REG_BLEND_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
+        reg_bus_write_data.bits(REG_BLEND_SETTINGS_BITS - 1, 0)
+    }).else_({
+        reg_blend_settings.value
+    }));
+    let blend_src_factor = reg_blend_settings.value.bits(REG_BLEND_SETTINGS_SRC_FACTOR_BIT_OFFSET + REG_BLEND_SETTINGS_SRC_FACTOR_BITS - 1, REG_BLEND_SETTINGS_SRC_FACTOR_BIT_OFFSET);
+    let blend_dst_factor = reg_blend_settings.value.bits(REG_BLEND_SETTINGS_DST_FACTOR_BIT_OFFSET + REG_BLEND_SETTINGS_DST_FACTOR_BITS - 1, REG_BLEND_SETTINGS_DST_FACTOR_BIT_OFFSET);
 
     let input_generator_active = m.reg("input_generator_active", 1);
     input_generator_active.default_value(false);
@@ -231,6 +255,9 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     pixel_pipe.drive_input("depth_write_mask_enable", depth_write_mask_enable);
 
     pixel_pipe.drive_input("tex_filter_select", tex_filter_select);
+
+    pixel_pipe.drive_input("blend_src_factor", blend_src_factor);
+    pixel_pipe.drive_input("blend_dst_factor", blend_dst_factor);
 
     pixel_pipe.drive_input("in_valid", input_generator_active.value);
     pixel_pipe.drive_input("in_last", tile_x_last & tile_y_last);
@@ -388,6 +415,9 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let tex_filter_select = m.input("tex_filter_select", 1);
 
+    let blend_src_factor = m.input("blend_src_factor", REG_BLEND_SETTINGS_SRC_FACTOR_BITS);
+    let blend_dst_factor = m.input("blend_dst_factor", REG_BLEND_SETTINGS_DST_FACTOR_BITS);
+
     let active = m.reg("active", 1);
     active.default_value(false);
     m.output("active", active.value);
@@ -507,10 +537,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
         (one_minus_t_fract, t_fract)
     });
 
-    //  Issue color buffer read for prev_color
-    m.output("color_buffer_read_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
-    m.output("color_buffer_read_port_enable", valid);
-
     //  Issue tex buffer reads for filtered texel
     let buffer0_s = (s_floor.bits(3, 0) + m.lit(1u32, 4)).bits(3, 1);
     let buffer0_t = (t_floor.bits(3, 0) + m.lit(1u32, 4)).bits(3, 1);
@@ -546,10 +572,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let t_fract = reg_next("stage_16_t_fract", t_fract, m);
     let one_minus_s_fract = reg_next("stage_16_one_minus_s_fract", one_minus_s_fract, m);
     let one_minus_t_fract = reg_next("stage_16_one_minus_t_fract", one_minus_t_fract, m);
-
-    //  Returned from issue in previous stage
-    //   TODO: Select specific pixel with low bits of tile_addr
-    let prev_color = m.input("color_buffer_read_port_value", 128);
 
     struct Texel<'a> {
         r: &'a Signal<'a>,
@@ -617,10 +639,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let texel = blend_texels(&lower, &upper, one_minus_t_fract, t_fract).argb();
 
-    //  Issue depth buffer read for prev_depth
-    m.output("depth_buffer_read_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 3));
-    m.output("depth_buffer_read_port_enable", valid & depth_test_enable);
-
     // Stage 18
     let valid = reg_next_with_default("stage_18_valid", valid, false, m);
     let last = reg_next_with_default("stage_18_last", last, false, m);
@@ -637,19 +655,111 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let texel = reg_next("stage_18_texel", texel, m);
 
-    let scale_and_clamp_comp = |color_comp: &'a Signal<'a>, texel_comp: &'a Signal<'a>| -> &'a Signal<'a> {
-        let scaled_comp = (color_comp * texel_comp).bits(16, 8);
-        if_(!scaled_comp.bit(8), {
-            scaled_comp.bits(7, 0)
+    let scale_comp = |color_comp: &'a Signal<'a>, texel_comp: &'a Signal<'a>| -> &'a Signal<'a> {
+        (color_comp * texel_comp).bits(16, 8)
+    };
+
+    let r = scale_comp(r, texel.bits(23, 16));
+    let g = scale_comp(g, texel.bits(15, 8));
+    let b = scale_comp(b, texel.bits(7, 0));
+    let a = scale_comp(a, texel.bits(31, 24));
+
+    //  Issue color buffer read for prev_color
+    m.output("color_buffer_read_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
+    m.output("color_buffer_read_port_enable", valid);
+
+    // Stage 19
+    let valid = reg_next_with_default("stage_19_valid", valid, false, m);
+    let last = reg_next_with_default("stage_19_last", last, false, m);
+    let tile_addr = reg_next("stage_19_tile_addr", tile_addr, m);
+
+    let edge_test = reg_next("stage_19_edge_test", edge_test, m);
+
+    let r = reg_next("stage_19_r", r, m);
+    let g = reg_next("stage_19_g", g, m);
+    let b = reg_next("stage_19_b", b, m);
+    let a = reg_next("stage_19_a", a, m);
+
+    let z = reg_next("stage_19_z", z, m);
+
+    let zero = m.lit(0u32, 9);
+    let one = m.high().concat(m.lit(0u32, 8));
+
+    let blend_src_factor = if_(blend_src_factor.eq(m.lit(REG_BLEND_SETTINGS_SRC_FACTOR_ZERO, REG_BLEND_SETTINGS_SRC_FACTOR_BITS)), {
+        zero
+    }).else_if(blend_src_factor.eq(m.lit(REG_BLEND_SETTINGS_SRC_FACTOR_ONE, REG_BLEND_SETTINGS_SRC_FACTOR_BITS)), {
+        one
+    }).else_if(blend_src_factor.eq(m.lit(REG_BLEND_SETTINGS_SRC_FACTOR_SRC_ALPHA, REG_BLEND_SETTINGS_SRC_FACTOR_BITS)), {
+        a
+    }).else_({
+        one - a
+    });
+
+    let blend_dst_factor = if_(blend_dst_factor.eq(m.lit(REG_BLEND_SETTINGS_DST_FACTOR_ZERO, REG_BLEND_SETTINGS_DST_FACTOR_BITS)), {
+        zero
+    }).else_if(blend_dst_factor.eq(m.lit(REG_BLEND_SETTINGS_DST_FACTOR_ONE, REG_BLEND_SETTINGS_DST_FACTOR_BITS)), {
+        one
+    }).else_if(blend_dst_factor.eq(m.lit(REG_BLEND_SETTINGS_DST_FACTOR_SRC_ALPHA, REG_BLEND_SETTINGS_DST_FACTOR_BITS)), {
+        a
+    }).else_({
+        one - a
+    });
+
+    //  Returned from issue in previous stage
+    let prev_color = m.input("color_buffer_read_port_value", 128);
+    let prev_color = if_(tile_addr.bits(1, 0).eq(m.lit(0u32, 2)), {
+        prev_color.bits(31, 0)
+    }).else_if(tile_addr.bits(1, 0).eq(m.lit(1u32, 2)), {
+        prev_color.bits(63, 32)
+    }).else_if(tile_addr.bits(1, 0).eq(m.lit(2u32, 2)), {
+        prev_color.bits(95, 64)
+    }).else_({
+        prev_color.bits(127, 96)
+    });
+
+    //  Issue depth buffer read for prev_depth
+    m.output("depth_buffer_read_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 3));
+    m.output("depth_buffer_read_port_enable", valid & depth_test_enable);
+
+    // Stage 20
+    let valid = reg_next_with_default("stage_20_valid", valid, false, m);
+    let last = reg_next_with_default("stage_20_last", last, false, m);
+    let tile_addr = reg_next("stage_20_tile_addr", tile_addr, m);
+
+    let edge_test = reg_next("stage_20_edge_test", edge_test, m);
+
+    let r = reg_next("stage_20_r", r, m);
+    let g = reg_next("stage_20_g", g, m);
+    let b = reg_next("stage_20_b", b, m);
+    let a = reg_next("stage_20_a", a, m);
+
+    let z = reg_next("stage_20_z", z, m);
+
+    let blend_src_factor = reg_next("stage_20_blend_src_factor", blend_src_factor, m);
+    let blend_dst_factor = reg_next("stage_20_blend_dst_factor", blend_dst_factor, m);
+
+    let prev_color = reg_next("stage_20_prev_color", prev_color, m);
+
+    let r = (r * blend_src_factor).bits(17, 8);
+    let g = (g * blend_src_factor).bits(17, 8);
+    let b = (b * blend_src_factor).bits(17, 8);
+
+    let prev_r = m.lit(0u32, 2).concat((prev_color.bits(23, 16) * blend_dst_factor).bits(16, 9));
+    let prev_g = m.lit(0u32, 2).concat((prev_color.bits(15, 8) * blend_dst_factor).bits(16, 9));
+    let prev_b = m.lit(0u32, 2).concat((prev_color.bits(7, 0) * blend_dst_factor).bits(16, 9));
+
+    let clamp_comp = |comp: &'a Signal<'a>| -> &'a Signal<'a> {
+        if_(comp.bits(9, 8).eq(m.lit(0u32, 2)), {
+            comp.bits(7, 0)
         }).else_({
             m.lit(255u32, 8)
         })
     };
 
-    let r = scale_and_clamp_comp(r, texel.bits(23, 16));
-    let g = scale_and_clamp_comp(g, texel.bits(15, 8));
-    let b = scale_and_clamp_comp(b, texel.bits(7, 0));
-    let a = scale_and_clamp_comp(a, texel.bits(31, 24));
+    let r = clamp_comp(r + prev_r);
+    let g = clamp_comp(g + prev_g);
+    let b = clamp_comp(b + prev_b);
+    let a = clamp_comp(m.low().concat(a));
 
     let color = a.concat(r).concat(g).concat(b);
 
@@ -673,18 +783,18 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
         prev_depth.bits(127, 112)
     });
 
-    // Stage 19
-    let valid = reg_next_with_default("stage_19_valid", valid, false, m);
-    let last = reg_next_with_default("stage_19_last", last, false, m);
-    let tile_addr = reg_next("stage_19_tile_addr", tile_addr, m);
+    // Stage 21
+    let valid = reg_next_with_default("stage_21_valid", valid, false, m);
+    let last = reg_next_with_default("stage_21_last", last, false, m);
+    let tile_addr = reg_next("stage_21_tile_addr", tile_addr, m);
 
-    let z = reg_next("stage_19_z", z, m);
+    let edge_test = reg_next("stage_21_edge_test", edge_test, m);
 
-    let edge_test = reg_next("stage_19_edge_test", edge_test, m);
+    let z = reg_next("stage_21_z", z, m);
 
-    let color = reg_next("stage_19_color", color, m);
+    let color = reg_next("stage_21_color", color, m);
 
-    let prev_depth = reg_next("stage_19_prev_depth", prev_depth, m);
+    let prev_depth = reg_next("stage_21_prev_depth", prev_depth, m);
 
     let depth_test_result = z.lt(prev_depth) | !depth_test_enable;
 
