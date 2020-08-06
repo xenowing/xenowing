@@ -797,6 +797,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "read-cache"
+version = "0.1.0"
+dependencies = [
+ "kaze",
+ "rand 0.7.3",
+ "rand_chacha 0.2.2",
+ "rtl",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.1.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"

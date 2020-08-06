@@ -9,4 +9,5 @@ members = [
     "sim/fifo",
     "sim/marv",
     "sim/peek-buffer",
+    "sim/read-cache",
 ]
