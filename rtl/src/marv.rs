@@ -113,18 +113,13 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     instruction.drive_next(control.output("decode_enable").mux(decode_instruction.value, instruction.value));
     let instruction = Instruction::new(instruction.value);
 
-    let reg1 = m.reg("rs1", 32);
-    let reg2 = m.reg("rs2", 32);
-    reg1.drive_next(control.output("reg_wait_enable").mux(register_file.read_port(decode_instruction.rs1(), m.high()), reg1.value));
-    reg2.drive_next(control.output("reg_wait_enable").mux(register_file.read_port(decode_instruction.rs2(), m.high()), reg2.value));
-
     let alu = m.instance("alu", "Alu");
 
     let execute = m.instance("execute", "Execute");
     execute.drive_input("pc", pc.value);
     execute.drive_input("instruction", instruction.value);
-    execute.drive_input("reg1", reg1.value);
-    execute.drive_input("reg2", reg2.value);
+    execute.drive_input("reg1", register_file.read_port(decode_instruction.rs1(), control.output("decode_enable")));
+    execute.drive_input("reg2", register_file.read_port(decode_instruction.rs2(), control.output("decode_enable")));
     alu.drive_input("op", execute.output("alu_op"));
     alu.drive_input("op_mod", execute.output("alu_op_mod"));
     alu.drive_input("lhs", execute.output("alu_lhs"));
@@ -180,18 +175,15 @@ fn generate_control<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let state_bit_width = 3;
     let state_instruction_fetch = 0u32;
     let state_decode = 1u32;
-    let state_reg_wait = 2u32;
-    let state_execute = 3u32;
-    let state_mem = 4u32;
-    let state_writeback = 5u32;
+    let state_execute = 2u32;
+    let state_mem = 3u32;
+    let state_writeback = 4u32;
     let state = m.reg("state", state_bit_width);
     state.default_value(state_instruction_fetch);
     // TODO: (Enum) matching sugar
     state.drive_next(if_(state.value.eq(m.lit(state_instruction_fetch, state_bit_width)) & m.input("instruction_fetch_ready", 1), {
         m.lit(state_decode, state_bit_width)
     }).else_if(state.value.eq(m.lit(state_decode, state_bit_width)) & m.input("decode_ready", 1), {
-        m.lit(state_reg_wait, state_bit_width)
-    }).else_if(state.value.eq(m.lit(state_reg_wait, state_bit_width)), {
         m.lit(state_execute, state_bit_width)
     }).else_if(state.value.eq(m.lit(state_execute, state_bit_width)), {
         m.lit(state_mem, state_bit_width)
@@ -205,7 +197,6 @@ fn generate_control<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     m.output("instruction_fetch_enable", state.value.eq(m.lit(state_instruction_fetch, state_bit_width)));
     m.output("decode_enable", state.value.eq(m.lit(state_decode, state_bit_width)));
-    m.output("reg_wait_enable", state.value.eq(m.lit(state_reg_wait, state_bit_width)));
     m.output("mem_enable", state.value.eq(m.lit(state_mem, state_bit_width)));
     m.output("writeback_enable", state.value.eq(m.lit(state_writeback, state_bit_width)));
 
