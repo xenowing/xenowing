@@ -9,7 +9,7 @@ mod tests {
     fn test(x: u32, expected_quotient: u32, div_shiz: &mut ApproxReciprocal) {
         div_shiz.x = x;
         div_shiz.prop();
-        for i in 0..13 {
+        for _ in 0..13 {
             div_shiz.posedge_clk();
             // Feed bogus value in between real ones to test that everything's pipelined correctly
             div_shiz.x = 0xfadebabe;
