@@ -13,7 +13,7 @@ fn main() -> Result<()> {
 
     let c = Context::new();
 
-    sim::generate(generate_top(&c), file)
+    sim::generate(generate_top(&c), sim::GenerationOptions::default(), file)
 }
 
 fn generate_top<'a>(c: &'a Context<'a>) -> &Module<'a> {

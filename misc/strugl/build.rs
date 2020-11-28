@@ -13,5 +13,5 @@ fn main() -> Result<()> {
 
     let c = Context::new();
 
-    sim::generate(color_thrust::generate(&c), file)
+    sim::generate(color_thrust::generate(&c), sim::GenerationOptions::default(), file)
 }

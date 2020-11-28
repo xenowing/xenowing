@@ -16,5 +16,5 @@ fn main() -> Result<()> {
     const W_INVERSE_FRACT_BITS: u32 = 30;
     const RESTORED_W_FRACT_BITS: u32 = 8; // Must be less than W_INVERSE_FRACT_BITS and ST_FRACT_BITS
 
-    sim::generate(approx_reciprocal::generate(&c, "ApproxReciprocal", W_INVERSE_FRACT_BITS - RESTORED_W_FRACT_BITS - 3, 4), file)
+    sim::generate(approx_reciprocal::generate(&c, "ApproxReciprocal", W_INVERSE_FRACT_BITS - RESTORED_W_FRACT_BITS - 3, 4), sim::GenerationOptions::default(), file)
 }

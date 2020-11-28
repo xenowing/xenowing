@@ -13,5 +13,5 @@ fn main() -> Result<()> {
 
     let c = Context::new();
 
-    sim::generate(fifo::generate(&c, "Fifo", 4, 32), file)
+    sim::generate(fifo::generate(&c, "Fifo", 4, 32), sim::GenerationOptions::default(), file)
 }

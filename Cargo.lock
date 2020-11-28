@@ -292,11 +292,12 @@ dependencies = [
 
 [[package]]
 name = "kaze"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "997e935e24fad97357a77bf852595cce00e671b9ea4bcee8df48d73cff3943a0"
+checksum = "ad866b6023c9ff3a0e6ad6ede7fe5150acfa2d011b7eeaacdcbea0818f26c1c0"
 dependencies = [
  "typed-arena",
+ "vcd",
 ]
 
 [[package]]
@@ -1032,6 +1033,12 @@ name = "unicode-xid"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
+
+[[package]]
+name = "vcd"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84a5ed196124bf3bb32418e5f79cd7548a455500bba37e094f7ef4cfe91161fc"
 
 [[package]]
 name = "void"
