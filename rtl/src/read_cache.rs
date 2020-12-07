@@ -87,9 +87,10 @@ pub fn generate<'a, S: Into<String>>(
     //  a system level, this fixes a performance bug, not a logical one... though, for a cache, this is probably
     //  not a useful distinction!
     let internal_mem_bypass =
-        reg_next(
+        reg_next_with_default(
             "internal_mem_bypass",
             replica_bus_read_data_valid & primary_bus_enable & primary_bus_addr.eq(issue_buffer_addr.value),
+            false,
             m);
 
     let issue_buffer_valid = (valid_mem_read_port_value & tag_mem_read_port_value.eq(issue_buffer_tag)) | internal_mem_bypass;
