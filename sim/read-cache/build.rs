@@ -27,6 +27,7 @@ fn main() -> Result<()> {
 
     let read_cache = m.instance("read_cache", "ReadCache");
 
+    read_cache.drive_input("invalidate", m.input("invalidate", 1));
     m.output("primary_bus_ready", read_cache.output("primary_bus_ready"));
     read_cache.drive_input("primary_bus_enable", m.input("primary_bus_enable", 1));
     read_cache.drive_input("primary_bus_addr", m.input("primary_bus_addr", addr_bit_width));

@@ -11,7 +11,7 @@ use kaze::runtime::tracing::*;
 use kaze::runtime::tracing::vcd::*;
 
 use rand::{Rng, SeedableRng};
-use rand::distributions::Uniform;
+use rand::distributions::{Distribution, Uniform};
 
 use std::collections::VecDeque;
 use std::env;
@@ -56,6 +56,9 @@ fn main() -> io::Result<()> {
     let mut last_mem_addr = None;
 
     while time_stamp < num_cycles {
+        // Invalidate
+        m.invalidate = Uniform::new_inclusive(0.0, 1.0).sample(&mut rng) < 0.05;
+
         // Mem read return (to cache)
         if let Some(addr) = last_mem_addr {
             m.replica_bus_read_data = mem_data[addr as usize];

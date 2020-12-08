@@ -25,8 +25,6 @@ pub fn generate<'a, S: Into<String>>(
 
     // TODO: Ensure cache_addr_bit_width is less than addr_bit_width
 
-    // TODO: Signal to enter invalidate state, and make sure we're not accepting/returning reads when this is asserted somehow!!
-
     let mod_name = mod_name.into();
 
     let m = c.module(&mod_name);
@@ -53,10 +51,13 @@ pub fn generate<'a, S: Into<String>>(
     let state = m.reg("state", state_bit_width);
     state.default_value(state_invalidate);
 
+    let invalidate = m.input("invalidate", 1);
+    let invalidate_queued = m.reg("invalidate_queued", 1);
+    invalidate_queued.default_value(false);
+    let will_invalidate = invalidate | invalidate_queued.value;
+
     let invalidate_addr = m.reg("invalidate_addr", cache_addr_bit_width);
     invalidate_addr.default_value(0u32);
-    // TODO: Reset value when entering invalidate state
-    invalidate_addr.drive_next(invalidate_addr.value + m.lit(1u32, cache_addr_bit_width));
 
     let primary_bus_enable = m.input("primary_bus_enable", 1);
     let primary_bus_addr = m.input("primary_bus_addr", addr_bit_width);
@@ -102,6 +103,7 @@ pub fn generate<'a, S: Into<String>>(
     let can_accept_issue =
         (state.value.eq(m.lit(state_active, state_bit_width)) & (!issue_buffer_occupied.value | hit)) |
         (state.value.eq(m.lit(state_miss_return, state_bit_width)) & replica_bus_read_data_valid);
+    let can_accept_issue = can_accept_issue & !will_invalidate;
 
     m.output("primary_bus_ready", can_accept_issue);
 
@@ -122,6 +124,22 @@ pub fn generate<'a, S: Into<String>>(
         issue_buffer_addr.value
     }));
 
+    let start_invalidate = will_invalidate & !issue_buffer_occupied.value;
+
+    invalidate_queued.drive_next(if_(start_invalidate | state.value.eq(m.lit(state_invalidate, state_bit_width)), {
+        m.low()
+    }).else_if(invalidate, {
+        m.high()
+    }).else_({
+        invalidate_queued.value
+    }));
+
+    invalidate_addr.drive_next(if_(start_invalidate, {
+        m.lit(0u32, cache_addr_bit_width)
+    }).else_({
+        invalidate_addr.value + m.lit(1u32, cache_addr_bit_width)
+    }));
+
     m.output("replica_bus_enable", state.value.eq(m.lit(state_active, state_bit_width)) & miss);
     m.output("replica_bus_addr", issue_buffer_addr.value);
     m.output("primary_bus_read_data", if_(replica_bus_read_data_valid, {
@@ -133,24 +151,28 @@ pub fn generate<'a, S: Into<String>>(
     }));
     m.output("primary_bus_read_data_valid", replica_bus_read_data_valid | hit);
 
-    state.drive_next(if_(state.value.eq(m.lit(state_invalidate, state_bit_width)), {
-        if_(invalidate_addr.value.eq(m.lit((1u32 << cache_addr_bit_width) - 1, cache_addr_bit_width)), {
-            m.lit(state_active, state_bit_width)
-        }).else_({
-            state.value
-        })
-    }).else_if(state.value.eq(m.lit(state_active, state_bit_width)), {
-        if_(miss & replica_bus_ready, {
-            m.lit(state_miss_return, state_bit_width)
-        }).else_({
-            state.value
-        })
+    state.drive_next(if_(start_invalidate, {
+        m.lit(state_invalidate, state_bit_width)
     }).else_({
-        // state_miss_return
-        if_(replica_bus_read_data_valid, {
-            m.lit(state_active, state_bit_width)
+        if_(state.value.eq(m.lit(state_invalidate, state_bit_width)), {
+            if_(invalidate_addr.value.eq(m.lit((1u32 << cache_addr_bit_width) - 1, cache_addr_bit_width)), {
+                m.lit(state_active, state_bit_width)
+            }).else_({
+                state.value
+            })
+        }).else_if(state.value.eq(m.lit(state_active, state_bit_width)), {
+            if_(miss & replica_bus_ready, {
+                m.lit(state_miss_return, state_bit_width)
+            }).else_({
+                state.value
+            })
         }).else_({
-            state.value
+            // state_miss_return
+            if_(replica_bus_read_data_valid, {
+                m.lit(state_active, state_bit_width)
+            }).else_({
+                state.value
+            })
         })
     }));
 
