@@ -30,7 +30,7 @@ fn main() -> io::Result<()> {
     let seed = env::args().skip(1).nth(0).expect("seed not specified").parse().expect("Couldn't parse seed");
     let num_cycles = env::args().skip(2).nth(0).expect("num cycles not specified").parse().expect("Couldn't parse num cycles");
 
-    let data_bit_width = 16;
+    let data_bit_width = 32;
 
     let mem_addr_bit_width = 4;
     let mem_num_elements = 1 << mem_addr_bit_width;
