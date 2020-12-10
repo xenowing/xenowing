@@ -950,6 +950,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "skid-buffer"
+version = "0.1.0"
+dependencies = [
+ "kaze",
+ "rand 0.7.3",
+ "rand_chacha 0.2.2",
+ "rtl",
+]
+
+[[package]]
 name = "smallvec"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

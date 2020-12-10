@@ -1,0 +1,16 @@
+[package]
+name = "skid-buffer"
+version = "0.1.0"
+authors = ["ferris <yupferris@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+kaze = "0.1"
+rtl = { path = "../../rtl" }
+
+[dependencies]
+kaze = "0.1"
+rand = "0.7"
+rand_chacha = "0.2"
