@@ -421,16 +421,19 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     active.default_value(false);
     m.output("active", active.value);
 
-    let finished_pixel_count = m.reg("finished_pixel_count", TILE_PIXELS_BITS + 1);
+    let finished_pixel_acc = m.reg("finished_pixel_acc", TILE_PIXELS_BITS + 1);
 
     // Inputs
-    let mut valid = m.input("in_valid", 1);
+    let valid = m.input("in_valid", 1);
     let mut tile_addr = m.input("in_tile_addr", TILE_PIXELS_BITS);
 
+    //  Reject pixel if it doesn't pass edge test before it enters the rest of the pipe
     let w0 = m.input("in_w0", 1);
     let w1 = m.input("in_w1", 1);
     let w2 = m.input("in_w2", 1);
-    let mut edge_test = !(w0 | w1 | w2);
+    let edge_test = !(w0 | w1 | w2);
+    let reject = valid & !edge_test;
+    let mut valid = valid & edge_test;
 
     let mut r = m.input("in_r", COLOR_WHOLE_BITS);
     let mut g = m.input("in_g", COLOR_WHOLE_BITS);
@@ -453,8 +456,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
         valid = reg_next_with_default(format!("stage_{}_valid", stage), valid, false, m);
         tile_addr = reg_next(format!("stage_{}_tile_addr", stage), tile_addr, m);
 
-        edge_test = reg_next(format!("stage_{}_edge_test", stage), edge_test, m);
-
         r = reg_next(format!("stage_{}_r", stage), r, m);
         g = reg_next(format!("stage_{}_g", stage), g, m);
         b = reg_next(format!("stage_{}_b", stage), b, m);
@@ -472,8 +473,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     // Stage 14
     let valid = reg_next_with_default("stage_14_valid", valid, false, m);
     let tile_addr = reg_next("stage_14_tile_addr", tile_addr, m);
-
-    let edge_test = reg_next("stage_14_edge_test", edge_test, m);
 
     let r = reg_next("stage_14_r", r, m);
     let g = reg_next("stage_14_g", g, m);
@@ -493,8 +492,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     // Stage 15
     let valid = reg_next_with_default("stage_15_valid", valid, false, m);
     let tile_addr = reg_next("stage_15_tile_addr", tile_addr, m);
-
-    let edge_test = reg_next("stage_15_edge_test", edge_test, m);
 
     let r = reg_next("stage_15_r", r, m);
     let g = reg_next("stage_15_g", g, m);
@@ -554,8 +551,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     // Stage 16
     let valid = reg_next_with_default("stage_16_valid", valid, false, m);
     let tile_addr = reg_next("stage_16_tile_addr", tile_addr, m);
-
-    let edge_test = reg_next("stage_16_edge_test", edge_test, m);
 
     let r = reg_next("stage_16_r", r, m);
     let g = reg_next("stage_16_g", g, m);
@@ -617,8 +612,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let valid = reg_next_with_default("stage_17_valid", valid, false, m);
     let tile_addr = reg_next("stage_17_tile_addr", tile_addr, m);
 
-    let edge_test = reg_next("stage_17_edge_test", edge_test, m);
-
     let r = reg_next("stage_17_r", r, m);
     let g = reg_next("stage_17_g", g, m);
     let b = reg_next("stage_17_b", b, m);
@@ -637,8 +630,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     // Stage 18
     let valid = reg_next_with_default("stage_18_valid", valid, false, m);
     let tile_addr = reg_next("stage_18_tile_addr", tile_addr, m);
-
-    let edge_test = reg_next("stage_18_edge_test", edge_test, m);
 
     let r = reg_next("stage_18_r", r, m);
     let g = reg_next("stage_18_g", g, m);
@@ -665,8 +656,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     // Stage 19
     let valid = reg_next_with_default("stage_19_valid", valid, false, m);
     let tile_addr = reg_next("stage_19_tile_addr", tile_addr, m);
-
-    let edge_test = reg_next("stage_19_edge_test", edge_test, m);
 
     let r = reg_next("stage_19_r", r, m);
     let g = reg_next("stage_19_g", g, m);
@@ -717,8 +706,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     // Stage 20
     let valid = reg_next_with_default("stage_20_valid", valid, false, m);
     let tile_addr = reg_next("stage_20_tile_addr", tile_addr, m);
-
-    let edge_test = reg_next("stage_20_edge_test", edge_test, m);
 
     let r = reg_next("stage_20_r", r, m);
     let g = reg_next("stage_20_g", g, m);
@@ -779,8 +766,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let valid = reg_next_with_default("stage_21_valid", valid, false, m);
     let tile_addr = reg_next("stage_21_tile_addr", tile_addr, m);
 
-    let edge_test = reg_next("stage_21_edge_test", edge_test, m);
-
     let z = reg_next("stage_21_z", z, m);
 
     let color = reg_next("stage_21_color", color, m);
@@ -791,7 +776,7 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     m.output("color_buffer_write_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
     m.output("color_buffer_write_port_value", color.repeat(4));
-    m.output("color_buffer_write_port_enable", valid & edge_test & depth_test_result);
+    m.output("color_buffer_write_port_enable", valid & depth_test_result);
     m.output("color_buffer_write_port_word_enable", (0u32..4).fold(None, |acc, x| {
         let word_enable_bit = tile_addr.bits(1, 0).eq(m.lit(x, 2));
         Some(if let Some(acc) = acc {
@@ -803,7 +788,7 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     m.output("depth_buffer_write_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 3));
     m.output("depth_buffer_write_port_value", z.repeat(8));
-    m.output("depth_buffer_write_port_enable", valid & edge_test & depth_test_result & depth_write_mask_enable);
+    m.output("depth_buffer_write_port_enable", valid & depth_test_result & depth_write_mask_enable);
     m.output("depth_buffer_write_port_word_enable", (0u32..8).fold(None, |acc, x| {
         let word_enable_bit = tile_addr.bits(2, 0).eq(m.lit(x, 3));
         Some(if let Some(acc) = acc {
@@ -815,17 +800,23 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     active.drive_next(if_(start, {
         m.high()
-    }).else_if(finished_pixel_count.value.eq(m.lit(TILE_PIXELS, TILE_PIXELS_BITS + 1)), {
+    }).else_if(finished_pixel_acc.value.eq(m.lit(TILE_PIXELS, TILE_PIXELS_BITS + 1)), {
         m.low()
     }).else_({
         active.value
     }));
 
-    let finished_pixels = valid;
-    finished_pixel_count.drive_next(if_(start, {
+    // Fancy decode to map disjoint, binary finished/reject signals to a count
+    //  00 -> 00
+    //  01 -> 01
+    //  10 -> 01
+    //  11 -> 10
+    let finished_pixel_count = (valid & reject).concat(valid ^ reject);
+
+    finished_pixel_acc.drive_next(if_(start, {
         m.lit(0u32, TILE_PIXELS_BITS + 1)
     }).else_({
-        finished_pixel_count.value + m.lit(0u32, TILE_PIXELS_BITS).concat(finished_pixels)
+        finished_pixel_acc.value + m.lit(0u32, TILE_PIXELS_BITS - 1).concat(finished_pixel_count)
     }));
 
     m
