@@ -260,7 +260,6 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     pixel_pipe.drive_input("blend_dst_factor", blend_dst_factor);
 
     pixel_pipe.drive_input("in_valid", input_generator_active.value);
-    pixel_pipe.drive_input("in_last", tile_x_last & tile_y_last);
     pixel_pipe.drive_input("in_tile_addr", tile_y.value.concat(tile_x.value));
 
     pixel_pipe.drive_input("in_w0", w0);
@@ -422,9 +421,10 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     active.default_value(false);
     m.output("active", active.value);
 
+    let finished_pixel_count = m.reg("finished_pixel_count", TILE_PIXELS_BITS + 1);
+
     // Inputs
     let mut valid = m.input("in_valid", 1);
-    let mut last = m.input("in_last", 1);
     let mut tile_addr = m.input("in_tile_addr", TILE_PIXELS_BITS);
 
     let w0 = m.input("in_w0", 1);
@@ -451,7 +451,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     // Stages 1-13 (mostly just delay for w to arrive)
     for stage in 1..=13 {
         valid = reg_next_with_default(format!("stage_{}_valid", stage), valid, false, m);
-        last = reg_next_with_default(format!("stage_{}_last", stage), last, false, m);
         tile_addr = reg_next(format!("stage_{}_tile_addr", stage), tile_addr, m);
 
         edge_test = reg_next(format!("stage_{}_edge_test", stage), edge_test, m);
@@ -472,7 +471,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     // Stage 14
     let valid = reg_next_with_default("stage_14_valid", valid, false, m);
-    let last = reg_next_with_default("stage_14_last", last, false, m);
     let tile_addr = reg_next("stage_14_tile_addr", tile_addr, m);
 
     let edge_test = reg_next("stage_14_edge_test", edge_test, m);
@@ -494,7 +492,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     // Stage 15
     let valid = reg_next_with_default("stage_15_valid", valid, false, m);
-    let last = reg_next_with_default("stage_15_last", last, false, m);
     let tile_addr = reg_next("stage_15_tile_addr", tile_addr, m);
 
     let edge_test = reg_next("stage_15_edge_test", edge_test, m);
@@ -556,7 +553,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     // Stage 16
     let valid = reg_next_with_default("stage_16_valid", valid, false, m);
-    let last = reg_next_with_default("stage_16_last", last, false, m);
     let tile_addr = reg_next("stage_16_tile_addr", tile_addr, m);
 
     let edge_test = reg_next("stage_16_edge_test", edge_test, m);
@@ -619,7 +615,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     // Stage 17
     let valid = reg_next_with_default("stage_17_valid", valid, false, m);
-    let last = reg_next_with_default("stage_17_last", last, false, m);
     let tile_addr = reg_next("stage_17_tile_addr", tile_addr, m);
 
     let edge_test = reg_next("stage_17_edge_test", edge_test, m);
@@ -641,7 +636,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     // Stage 18
     let valid = reg_next_with_default("stage_18_valid", valid, false, m);
-    let last = reg_next_with_default("stage_18_last", last, false, m);
     let tile_addr = reg_next("stage_18_tile_addr", tile_addr, m);
 
     let edge_test = reg_next("stage_18_edge_test", edge_test, m);
@@ -670,7 +664,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     // Stage 19
     let valid = reg_next_with_default("stage_19_valid", valid, false, m);
-    let last = reg_next_with_default("stage_19_last", last, false, m);
     let tile_addr = reg_next("stage_19_tile_addr", tile_addr, m);
 
     let edge_test = reg_next("stage_19_edge_test", edge_test, m);
@@ -723,7 +716,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     // Stage 20
     let valid = reg_next_with_default("stage_20_valid", valid, false, m);
-    let last = reg_next_with_default("stage_20_last", last, false, m);
     let tile_addr = reg_next("stage_20_tile_addr", tile_addr, m);
 
     let edge_test = reg_next("stage_20_edge_test", edge_test, m);
@@ -785,7 +777,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     // Stage 21
     let valid = reg_next_with_default("stage_21_valid", valid, false, m);
-    let last = reg_next_with_default("stage_21_last", last, false, m);
     let tile_addr = reg_next("stage_21_tile_addr", tile_addr, m);
 
     let edge_test = reg_next("stage_21_edge_test", edge_test, m);
@@ -824,10 +815,17 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     active.drive_next(if_(start, {
         m.high()
-    }).else_if(valid & last, {
+    }).else_if(finished_pixel_count.value.eq(m.lit(TILE_PIXELS, TILE_PIXELS_BITS + 1)), {
         m.low()
     }).else_({
         active.value
+    }));
+
+    let finished_pixels = valid;
+    finished_pixel_count.drive_next(if_(start, {
+        m.lit(0u32, TILE_PIXELS_BITS + 1)
+    }).else_({
+        finished_pixel_count.value + m.lit(0u32, TILE_PIXELS_BITS).concat(finished_pixels)
     }));
 
     m
