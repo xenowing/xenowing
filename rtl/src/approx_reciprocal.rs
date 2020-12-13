@@ -1,5 +1,3 @@
-use crate::helpers::*;
-
 use kaze::*;
 
 // 32 bit internal resolution, 32 - `fract_bits` integral bits, `fract_bits` fractional bits, 1 + 3 * `refinement_stages` cycles latency
@@ -19,10 +17,10 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, fract_bits
 
     // Refinement stages
     for stage in 0..refinement_stages {
-        shr = reg_next(format!("refinement_stage_{}_shr", stage), shr, m);
+        shr = shr.reg_next(format!("refinement_stage_{}_shr", stage));
 
-        e = reg_next(format!("refinement_stage_{}_e", stage), e, m);
-        q = reg_next(format!("refinement_stage_{}_q", stage), q, m);
+        e = e.reg_next(format!("refinement_stage_{}_e", stage));
+        q = q.reg_next(format!("refinement_stage_{}_q", stage));
 
         let mut prev_q = q;
 
@@ -31,21 +29,21 @@ pub fn generate<'a, S: Into<String>>(c: &'a Context<'a>, mod_name: S, fract_bits
 
         // Buffer/pipeline regs to meet timing for multiplies
         for i in 0..2 {
-            shr = reg_next(format!("refinement_stage_{}_buffer_{}_shr", stage, i), shr, m);
+            shr = shr.reg_next(format!("refinement_stage_{}_buffer_{}_shr", stage, i));
 
-            e = reg_next(format!("refinement_stage_{}_buffer_{}_e", stage, i), e, m);
-            q = reg_next(format!("refinement_stage_{}_buffer_{}_q", stage, i), q, m);
+            e = e.reg_next(format!("refinement_stage_{}_buffer_{}_e", stage, i));
+            q = q.reg_next(format!("refinement_stage_{}_buffer_{}_q", stage, i));
 
-            prev_q = reg_next(format!("refinement_stage_{}_buffer_{}_prev_q", stage, i), prev_q, m);
+            prev_q = prev_q.reg_next(format!("refinement_stage_{}_buffer_{}_prev_q", stage, i));
         }
 
         q = q + prev_q;
     }
 
     // Shift stage
-    let shr = reg_next("shift_stage_shr", shr, m);
+    let shr = shr.reg_next("shift_stage_shr");
 
-    let q = reg_next("shift_stage_q", q, m);
+    let q = q.reg_next("shift_stage_q");
 
     let res = (q >> shr) | (m.lit(1u32, 32) << (m.lit(32u32, 6) - m.low().concat(shr)));
 

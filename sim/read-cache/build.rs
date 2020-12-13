@@ -40,8 +40,8 @@ fn main() -> Result<()> {
     let mut replica_bus_read_data = m.input("replica_bus_read_data", data_bit_width);
     let mut replica_bus_read_data_valid = m.input("replica_bus_read_data_valid", 1);
     for i in 0..delay_cycles {
-        replica_bus_read_data = helpers::reg_next(format!("replica_bus_read_data_delay_{}", i), replica_bus_read_data, m);
-        replica_bus_read_data_valid = helpers::reg_next_with_default(format!("replica_bus_read_data_valid_delay_{}", i), replica_bus_read_data_valid, false, m);
+        replica_bus_read_data = replica_bus_read_data.reg_next(format!("replica_bus_read_data_delay_{}", i));
+        replica_bus_read_data_valid = replica_bus_read_data_valid.reg_next_with_default(format!("replica_bus_read_data_valid_delay_{}", i), false);
     }
     read_cache.drive_input("replica_bus_read_data", replica_bus_read_data);
     read_cache.drive_input("replica_bus_read_data_valid", replica_bus_read_data_valid);

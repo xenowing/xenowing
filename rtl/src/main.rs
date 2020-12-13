@@ -2,7 +2,6 @@ mod approx_reciprocal;
 mod buster;
 mod color_thrust;
 mod fifo;
-mod helpers;
 mod interconnect;
 mod led_interface;
 mod marv;

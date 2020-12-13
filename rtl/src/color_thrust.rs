@@ -1,5 +1,4 @@
 use crate::approx_reciprocal;
-use crate::helpers::*;
 use crate::word_mem::*;
 
 use kaze::*;
@@ -279,7 +278,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     pixel_pipe.drive_input("in_t", t);
 
     m.output("reg_bus_read_data", m.lit(0u32, 31).concat(input_generator_active.value | pixel_pipe.output("active")));
-    m.output("reg_bus_read_data_valid", reg_next_with_default("reg_bus_read_data_valid", reg_bus_enable & !reg_bus_write, false, m));
+    m.output("reg_bus_read_data_valid", (reg_bus_enable & !reg_bus_write).reg_next_with_default("reg_bus_read_data_valid", false));
 
     m.output("color_buffer_bus_ready", m.high());
     let color_buffer_bus_enable = m.input("color_buffer_bus_enable", 1);
@@ -328,7 +327,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     pixel_pipe.drive_input("color_buffer_read_port_value", color_buffer_read_port_value);
 
     m.output("color_buffer_bus_read_data", color_buffer_read_port_value);
-    m.output("color_buffer_bus_read_data_valid", reg_next_with_default("color_buffer_bus_read_data_valid", color_buffer_bus_read_enable, false, m));
+    m.output("color_buffer_bus_read_data_valid", color_buffer_bus_read_enable.reg_next_with_default("color_buffer_bus_read_data_valid", false));
 
     m.output("depth_buffer_bus_ready", m.high());
     let depth_buffer_bus_enable = m.input("depth_buffer_bus_enable", 1);
@@ -377,7 +376,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     pixel_pipe.drive_input("depth_buffer_read_port_value", depth_buffer_read_port_value);
 
     m.output("depth_buffer_bus_read_data", depth_buffer_read_port_value);
-    m.output("depth_buffer_bus_read_data_valid", reg_next_with_default("depth_buffer_bus_read_data_valid", depth_buffer_bus_read_enable, false, m));
+    m.output("depth_buffer_bus_read_data_valid", depth_buffer_bus_read_enable.reg_next_with_default("depth_buffer_bus_read_data_valid", false));
 
     m.output("tex_buffer_bus_ready", m.high());
     let tex_buffer_bus_enable = m.input("tex_buffer_bus_enable", 1);
@@ -453,55 +452,55 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     // Stages 1-13 (mostly just delay for w to arrive)
     for stage in 1..=13 {
-        valid = reg_next_with_default(format!("stage_{}_valid", stage), valid, false, m);
-        tile_addr = reg_next(format!("stage_{}_tile_addr", stage), tile_addr, m);
+        valid = valid.reg_next_with_default(format!("stage_{}_valid", stage), false);
+        tile_addr = tile_addr.reg_next(format!("stage_{}_tile_addr", stage));
 
-        r = reg_next(format!("stage_{}_r", stage), r, m);
-        g = reg_next(format!("stage_{}_g", stage), g, m);
-        b = reg_next(format!("stage_{}_b", stage), b, m);
-        a = reg_next(format!("stage_{}_a", stage), a, m);
+        r = r.reg_next(format!("stage_{}_r", stage));
+        g = g.reg_next(format!("stage_{}_g", stage));
+        b = b.reg_next(format!("stage_{}_b", stage));
+        a = a.reg_next(format!("stage_{}_a", stage));
 
-        z = reg_next(format!("stage_{}_z", stage), z, m);
+        z = z.reg_next(format!("stage_{}_z", stage));
 
-        s = reg_next(format!("stage_{}_s", stage), s, m);
-        t = reg_next(format!("stage_{}_t", stage), t, m);
+        s = s.reg_next(format!("stage_{}_s", stage));
+        t = t.reg_next(format!("stage_{}_t", stage));
     }
 
     //  Returned from issue before stage 1
     let w = w_approx_reciprocal.output("quotient");
 
     // Stage 14
-    let valid = reg_next_with_default("stage_14_valid", valid, false, m);
-    let tile_addr = reg_next("stage_14_tile_addr", tile_addr, m);
+    let valid = valid.reg_next_with_default("stage_14_valid", false);
+    let tile_addr = tile_addr.reg_next("stage_14_tile_addr");
 
-    let r = reg_next("stage_14_r", r, m);
-    let g = reg_next("stage_14_g", g, m);
-    let b = reg_next("stage_14_b", b, m);
-    let a = reg_next("stage_14_a", a, m);
+    let r = r.reg_next("stage_14_r");
+    let g = g.reg_next("stage_14_g");
+    let b = b.reg_next("stage_14_b");
+    let a = a.reg_next("stage_14_a");
 
-    let z = reg_next("stage_14_z", z, m);
+    let z = z.reg_next("stage_14_z");
 
-    let s = reg_next("stage_14_s", s, m);
-    let t = reg_next("stage_14_t", t, m);
+    let s = s.reg_next("stage_14_s");
+    let t = t.reg_next("stage_14_t");
 
-    let w = reg_next("stage_14_w", w, m);
+    let w = w.reg_next("stage_14_w");
 
     let s = s.mul_signed(w);
     let t = t.mul_signed(w);
 
     // Stage 15
-    let valid = reg_next_with_default("stage_15_valid", valid, false, m);
-    let tile_addr = reg_next("stage_15_tile_addr", tile_addr, m);
+    let valid = valid.reg_next_with_default("stage_15_valid", false);
+    let tile_addr = tile_addr.reg_next("stage_15_tile_addr");
 
-    let r = reg_next("stage_15_r", r, m);
-    let g = reg_next("stage_15_g", g, m);
-    let b = reg_next("stage_15_b", b, m);
-    let a = reg_next("stage_15_a", a, m);
+    let r = r.reg_next("stage_15_r");
+    let g = g.reg_next("stage_15_g");
+    let b = b.reg_next("stage_15_b");
+    let a = a.reg_next("stage_15_a");
 
-    let z = reg_next("stage_15_z", z, m);
+    let z = z.reg_next("stage_15_z");
 
-    let s = reg_next("stage_15_s", s, m);
-    let t = reg_next("stage_15_t", t, m);
+    let s = s.reg_next("stage_15_s");
+    let t = t.reg_next("stage_15_t");
 
     let s_floor = s.bits(31, ST_FRACT_BITS);
     let t_floor = t.bits(31, ST_FRACT_BITS);
@@ -549,20 +548,20 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     }
 
     // Stage 16
-    let valid = reg_next_with_default("stage_16_valid", valid, false, m);
-    let tile_addr = reg_next("stage_16_tile_addr", tile_addr, m);
+    let valid = valid.reg_next_with_default("stage_16_valid", false);
+    let tile_addr = tile_addr.reg_next("stage_16_tile_addr");
 
-    let r = reg_next("stage_16_r", r, m);
-    let g = reg_next("stage_16_g", g, m);
-    let b = reg_next("stage_16_b", b, m);
-    let a = reg_next("stage_16_a", a, m);
+    let r = r.reg_next("stage_16_r");
+    let g = g.reg_next("stage_16_g");
+    let b = b.reg_next("stage_16_b");
+    let a = a.reg_next("stage_16_a");
 
-    let z = reg_next("stage_16_z", z, m);
+    let z = z.reg_next("stage_16_z");
 
-    let s_fract = reg_next("stage_16_s_fract", s_fract, m);
-    let t_fract = reg_next("stage_16_t_fract", t_fract, m);
-    let one_minus_s_fract = reg_next("stage_16_one_minus_s_fract", one_minus_s_fract, m);
-    let one_minus_t_fract = reg_next("stage_16_one_minus_t_fract", one_minus_t_fract, m);
+    let s_fract = s_fract.reg_next("stage_16_s_fract");
+    let t_fract = t_fract.reg_next("stage_16_t_fract");
+    let one_minus_s_fract = one_minus_s_fract.reg_next("stage_16_one_minus_s_fract");
+    let one_minus_t_fract = one_minus_t_fract.reg_next("stage_16_one_minus_t_fract");
 
     struct Texel<'a> {
         r: &'a Signal<'a>,
@@ -609,36 +608,36 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let upper = blend_texels(&texel2, &texel3, one_minus_s_fract, s_fract).argb();
 
     // Stage 17
-    let valid = reg_next_with_default("stage_17_valid", valid, false, m);
-    let tile_addr = reg_next("stage_17_tile_addr", tile_addr, m);
+    let valid = valid.reg_next_with_default("stage_17_valid", false);
+    let tile_addr = tile_addr.reg_next("stage_17_tile_addr");
 
-    let r = reg_next("stage_17_r", r, m);
-    let g = reg_next("stage_17_g", g, m);
-    let b = reg_next("stage_17_b", b, m);
-    let a = reg_next("stage_17_a", a, m);
+    let r = r.reg_next("stage_17_r");
+    let g = g.reg_next("stage_17_g");
+    let b = b.reg_next("stage_17_b");
+    let a = a.reg_next("stage_17_a");
 
-    let z = reg_next("stage_17_z", z, m);
+    let z = z.reg_next("stage_17_z");
 
-    let t_fract = reg_next("stage_17_t_fract", t_fract, m);
-    let one_minus_t_fract = reg_next("stage_17_one_minus_t_fract", one_minus_t_fract, m);
+    let t_fract = t_fract.reg_next("stage_17_t_fract");
+    let one_minus_t_fract = one_minus_t_fract.reg_next("stage_17_one_minus_t_fract");
 
-    let lower = Texel::new(reg_next("stage_17_lower", lower, m));
-    let upper = Texel::new(reg_next("stage_17_upper", upper, m));
+    let lower = Texel::new(lower.reg_next("stage_17_lower"));
+    let upper = Texel::new(upper.reg_next("stage_17_upper"));
 
     let texel = blend_texels(&lower, &upper, one_minus_t_fract, t_fract).argb();
 
     // Stage 18
-    let valid = reg_next_with_default("stage_18_valid", valid, false, m);
-    let tile_addr = reg_next("stage_18_tile_addr", tile_addr, m);
+    let valid = valid.reg_next_with_default("stage_18_valid", false);
+    let tile_addr = tile_addr.reg_next("stage_18_tile_addr");
 
-    let r = reg_next("stage_18_r", r, m);
-    let g = reg_next("stage_18_g", g, m);
-    let b = reg_next("stage_18_b", b, m);
-    let a = reg_next("stage_18_a", a, m);
+    let r = r.reg_next("stage_18_r");
+    let g = g.reg_next("stage_18_g");
+    let b = b.reg_next("stage_18_b");
+    let a = a.reg_next("stage_18_a");
 
-    let z = reg_next("stage_18_z", z, m);
+    let z = z.reg_next("stage_18_z");
 
-    let texel = reg_next("stage_18_texel", texel, m);
+    let texel = texel.reg_next("stage_18_texel");
 
     let scale_comp = |color_comp: &'a Signal<'a>, texel_comp: &'a Signal<'a>| -> &'a Signal<'a> {
         (color_comp * texel_comp).bits(16, 8)
@@ -654,15 +653,15 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("color_buffer_read_port_enable", valid);
 
     // Stage 19
-    let valid = reg_next_with_default("stage_19_valid", valid, false, m);
-    let tile_addr = reg_next("stage_19_tile_addr", tile_addr, m);
+    let valid = valid.reg_next_with_default("stage_19_valid", false);
+    let tile_addr = tile_addr.reg_next("stage_19_tile_addr");
 
-    let r = reg_next("stage_19_r", r, m);
-    let g = reg_next("stage_19_g", g, m);
-    let b = reg_next("stage_19_b", b, m);
-    let a = reg_next("stage_19_a", a, m);
+    let r = r.reg_next("stage_19_r");
+    let g = g.reg_next("stage_19_g");
+    let b = b.reg_next("stage_19_b");
+    let a = a.reg_next("stage_19_a");
 
-    let z = reg_next("stage_19_z", z, m);
+    let z = z.reg_next("stage_19_z");
 
     let zero = m.lit(0u32, 9);
     let one = m.high().concat(m.lit(0u32, 8));
@@ -704,20 +703,20 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("depth_buffer_read_port_enable", valid & depth_test_enable);
 
     // Stage 20
-    let valid = reg_next_with_default("stage_20_valid", valid, false, m);
-    let tile_addr = reg_next("stage_20_tile_addr", tile_addr, m);
+    let valid = valid.reg_next_with_default("stage_20_valid", false);
+    let tile_addr = tile_addr.reg_next("stage_20_tile_addr");
 
-    let r = reg_next("stage_20_r", r, m);
-    let g = reg_next("stage_20_g", g, m);
-    let b = reg_next("stage_20_b", b, m);
-    let a = reg_next("stage_20_a", a, m);
+    let r = r.reg_next("stage_20_r");
+    let g = g.reg_next("stage_20_g");
+    let b = b.reg_next("stage_20_b");
+    let a = a.reg_next("stage_20_a");
 
-    let z = reg_next("stage_20_z", z, m);
+    let z = z.reg_next("stage_20_z");
 
-    let blend_src_factor = reg_next("stage_20_blend_src_factor", blend_src_factor, m);
-    let blend_dst_factor = reg_next("stage_20_blend_dst_factor", blend_dst_factor, m);
+    let blend_src_factor = blend_src_factor.reg_next("stage_20_blend_src_factor");
+    let blend_dst_factor = blend_dst_factor.reg_next("stage_20_blend_dst_factor");
 
-    let prev_color = reg_next("stage_20_prev_color", prev_color, m);
+    let prev_color = prev_color.reg_next("stage_20_prev_color");
 
     let r = (r * blend_src_factor).bits(17, 8);
     let g = (g * blend_src_factor).bits(17, 8);
@@ -763,14 +762,14 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     });
 
     // Stage 21
-    let valid = reg_next_with_default("stage_21_valid", valid, false, m);
-    let tile_addr = reg_next("stage_21_tile_addr", tile_addr, m);
+    let valid = valid.reg_next_with_default("stage_21_valid", false);
+    let tile_addr = tile_addr.reg_next("stage_21_tile_addr");
 
-    let z = reg_next("stage_21_z", z, m);
+    let z = z.reg_next("stage_21_z");
 
-    let color = reg_next("stage_21_color", color, m);
+    let color = color.reg_next("stage_21_color");
 
-    let prev_depth = reg_next("stage_21_prev_depth", prev_depth, m);
+    let prev_depth = prev_depth.reg_next("stage_21_prev_depth");
 
     let depth_test_result = z.lt(prev_depth) | !depth_test_enable;
 

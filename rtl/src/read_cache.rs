@@ -1,5 +1,3 @@
-use crate::helpers::*;
-
 use kaze::*;
 
 // We're going to drive some mems' read ports' enable signals with logic that includes those read ports'
@@ -88,11 +86,10 @@ pub fn generate<'a, S: Into<String>>(
     //  a system level, this fixes a performance bug, not a logical one... though, for a cache, this is probably
     //  not a useful distinction!
     let internal_mem_bypass =
-        reg_next_with_default(
+        (replica_bus_read_data_valid & primary_bus_enable & primary_bus_addr.eq(issue_buffer_addr.value))
+        .reg_next_with_default(
             "internal_mem_bypass",
-            replica_bus_read_data_valid & primary_bus_enable & primary_bus_addr.eq(issue_buffer_addr.value),
-            false,
-            m);
+            false);
 
     let issue_buffer_valid = (valid_mem_read_port_value & tag_mem_read_port_value.eq(issue_buffer_tag)) | internal_mem_bypass;
 
@@ -145,7 +142,7 @@ pub fn generate<'a, S: Into<String>>(
     m.output("primary_bus_read_data", if_(replica_bus_read_data_valid, {
         replica_bus_read_data
     }).else_if(internal_mem_bypass, {
-        reg_next("internal_mem_bypass_data", replica_bus_read_data, m)
+        replica_bus_read_data.reg_next("internal_mem_bypass_data")
     }).else_({
         data_mem.read_port(cache_addr, accept_issue)
     }));

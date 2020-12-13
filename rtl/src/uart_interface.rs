@@ -1,5 +1,4 @@
 use crate::fifo;
-use crate::helpers::*;
 
 use kaze::*;
 
@@ -22,7 +21,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     rx_fifo.drive_input("read_enable", bus_enable & !bus_write & bus_addr.bits(1, 0).eq(m.lit(3u32, 2)));
 
-    let bus_read_return_addr = reg_next("bus_read_return_addr", bus_addr, m);
+    let bus_read_return_addr = bus_addr.reg_next("bus_read_return_addr");
     m.output("bus_read_data", if_(bus_read_return_addr.bits(1, 0).eq(m.lit(0u32, 2)), {
         m.lit(0u32, 127).concat(tx_ready)
     }).else_if(bus_read_return_addr.bits(1, 0).eq(m.lit(1u32, 2)), {
@@ -32,7 +31,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     }).else_({
         m.lit(0u32, 120).concat(rx_fifo.output("read_data"))
     }));
-    m.output("bus_read_data_valid", reg_next_with_default("bus_read_data_valid", bus_enable & !bus_write, false, m));
+    m.output("bus_read_data_valid", (bus_enable & !bus_write).reg_next_with_default("bus_read_data_valid", false));
 
     m.output("tx_data", bus_write_data.bits(7, 0));
     m.output("tx_enable", bus_enable & bus_write);

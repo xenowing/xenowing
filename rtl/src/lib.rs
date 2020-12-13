@@ -2,7 +2,6 @@ pub mod approx_reciprocal;
 pub mod buster;
 pub mod color_thrust;
 pub mod fifo;
-pub mod helpers;
 pub mod interconnect;
 pub mod led_interface;
 pub mod marv;

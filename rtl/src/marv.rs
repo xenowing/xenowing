@@ -1,5 +1,3 @@
-use crate::helpers::*;
-
 use kaze::*;
 
 struct Instruction<'a> {
@@ -451,12 +449,12 @@ fn generate_mem<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let enable = m.input("enable", 1);
 
-    let bus_enable = reg_next_with_default("bus_enable", m.input("bus_enable_in", 1), false, m);
+    let bus_enable = m.input("bus_enable_in", 1).reg_next_with_default("bus_enable", false);
     m.output("bus_enable_out", enable & bus_enable);
-    m.output("bus_addr_out", reg_next("bus_addr", m.input("bus_addr_in", 32), m));
-    m.output("bus_write_data_out", reg_next("bus_write_data", m.input("bus_write_data_in", 32), m));
-    m.output("bus_write_byte_enable_out", reg_next("bus_write_byte_enable", m.input("bus_write_byte_enable_in", 4), m));
-    m.output("bus_write_out", reg_next("bus_write", m.input("bus_write_in", 1), m));
+    m.output("bus_addr_out", m.input("bus_addr_in", 32).reg_next("bus_addr"));
+    m.output("bus_write_data_out", m.input("bus_write_data_in", 32).reg_next("bus_write_data"));
+    m.output("bus_write_byte_enable_out", m.input("bus_write_byte_enable_in", 4).reg_next("bus_write_byte_enable"));
+    m.output("bus_write_out", m.input("bus_write_in", 1).reg_next("bus_write"));
 
     m.output("ready", bus_enable.mux(m.input("bus_ready", 1), m.high()));
 

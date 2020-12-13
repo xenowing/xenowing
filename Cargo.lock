@@ -292,9 +292,9 @@ dependencies = [
 
 [[package]]
 name = "kaze"
-version = "0.1.15"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48c7ac392853c1345dd0f90c4fb5d0791490cbd527d8c3efbc3bd445a700b766"
+checksum = "cb09a3b51f0f16203c2e70ad9548d80b5773317d318941020f4925865b729cd8"
 dependencies = [
  "typed-arena",
  "vcd",

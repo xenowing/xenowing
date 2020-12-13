@@ -1,5 +1,3 @@
-use crate::helpers::*;
-
 use kaze::*;
 
 pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
@@ -15,7 +13,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let _bus_write_byte_enable = m.input("bus_write_byte_enable", 16);
     m.output("bus_ready", m.high());
     m.output("bus_read_data", m.lit(0u32, 120).concat(leds.value));
-    m.output("bus_read_data_valid", reg_next_with_default("bus_read_data_valid", bus_enable & !bus_write, false, m));
+    m.output("bus_read_data_valid", (bus_enable & !bus_write).reg_next_with_default("bus_read_data_valid", false));
 
     leds.drive_next(if_(bus_enable & bus_write, {
         bus_write_data.bits(7, 0)

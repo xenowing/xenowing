@@ -1,5 +1,4 @@
 use crate::color_thrust;
-use crate::helpers::*;
 use crate::interconnect;
 use crate::led_interface;
 use crate::marv;
@@ -71,7 +70,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     interconnect.drive_input("boot_rom_bus_read_data", boot_rom.read_port(interconnect.output("boot_rom_bus_addr").bits(BOOT_ROM_BITS - 5, 0), m.high()));
     let boot_rom_bus_enable = interconnect.output("boot_rom_bus_enable");
     let boot_rom_bus_write = interconnect.output("boot_rom_bus_write");
-    interconnect.drive_input("boot_rom_bus_read_data_valid", reg_next_with_default("boot_rom_bus_read_data_valid", boot_rom_bus_enable & !boot_rom_bus_write, false, m));
+    interconnect.drive_input("boot_rom_bus_read_data_valid", (boot_rom_bus_enable & !boot_rom_bus_write).reg_next_with_default("boot_rom_bus_read_data_valid", false));
 
     let program_ram_addr_bit_width = 13;
     let program_ram_bus_enable = interconnect.output("program_ram_bus_enable");
@@ -83,7 +82,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let program_ram_mem = WordMem::new(m, "program_ram_mem", program_ram_addr_bit_width, 8, 16);
     program_ram_mem.write_port(program_ram_bus_addr, program_ram_bus_write_data, program_ram_bus_enable & program_ram_bus_write, program_ram_bus_write_byte_enable);
     interconnect.drive_input("program_ram_bus_read_data", program_ram_mem.read_port(program_ram_bus_addr, program_ram_bus_enable & !program_ram_bus_write));
-    interconnect.drive_input("program_ram_bus_read_data_valid", reg_next_with_default("program_ram_bus_read_data_valid", program_ram_bus_enable & !program_ram_bus_write, false, m));
+    interconnect.drive_input("program_ram_bus_read_data_valid", (program_ram_bus_enable & !program_ram_bus_write).reg_next_with_default("program_ram_bus_read_data_valid", false));
 
     led_interface::generate(c);
     let led_interface = m.instance("led_interface", "LedInterface");
@@ -175,7 +174,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let ddr3_mem = WordMem::new(m, "ddr3_mem", ddr3_interface_addr_bit_width, 8, 16);
     ddr3_mem.write_port(ddr3_interface_bus_addr, ddr3_interface_bus_write_data, ddr3_interface_bus_enable & ddr3_interface_bus_write, ddr3_interface_bus_write_byte_enable);
     interconnect.drive_input("ddr3_interface_bus_read_data", ddr3_mem.read_port(ddr3_interface_bus_addr, ddr3_interface_bus_enable & !ddr3_interface_bus_write));
-    interconnect.drive_input("ddr3_interface_bus_read_data_valid", reg_next_with_default("ddr3_interface_bus_read_data_valid", ddr3_interface_bus_enable & !ddr3_interface_bus_write, false, m));
+    interconnect.drive_input("ddr3_interface_bus_read_data_valid", (ddr3_interface_bus_enable & !ddr3_interface_bus_write).reg_next_with_default("ddr3_interface_bus_read_data_valid", false));
 
     /*m.output("ddr3_interface_bus_enable", interconnect.output("ddr3_interface_bus_enable"));
     m.output("ddr3_interface_bus_addr", interconnect.output("ddr3_interface_bus_addr"));
