@@ -7,6 +7,7 @@ members = [
     "sim/approx-reciprocal",
     "sim/buster",
     "sim/fifo",
+    "sim/flow-controlled-pipe",
     "sim/marv",
     "sim/peek-buffer",
     "sim/read-cache",

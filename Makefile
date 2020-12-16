@@ -34,12 +34,13 @@ SIM_DIR=sim
 APPROX_RECIPROCAL_DIR=$(SIM_DIR)/approx-reciprocal
 BUSTER_DIR=$(SIM_DIR)/buster
 FIFO_DIR=$(SIM_DIR)/fifo
+FLOW_CONTROLLED_PIPE_DIR=$(SIM_DIR)/flow-controlled-pipe
 MARV_DIR=$(SIM_DIR)/marv
 PEEK_BUFFER_DIR=$(SIM_DIR)/peek-buffer
 READ_CACHE_DIR=$(SIM_DIR)/read-cache
 
 .PHONY: sim
-sim: approx-reciprocal buster fifo marv peek-buffer read-cache
+sim: approx-reciprocal buster fifo flow-controlled-pipe marv peek-buffer read-cache
 
 .PHONY: approx-reciprocal
 approx-reciprocal:
@@ -52,6 +53,10 @@ buster:
 .PHONY: fifo
 fifo:
 	cd $(FIFO_DIR) && cargo build --release
+
+.PHONY: flow-controlled-pipe
+flow-controlled-pipe:
+	cd $(FLOW_CONTROLLED_PIPE_DIR) && cargo build --release
 
 .PHONY: marv
 marv:
@@ -66,7 +71,7 @@ read-cache:
 	cd $(READ_CACHE_DIR) && cargo build --release
 
 .PHONY: sim-clean
-sim-clean: approx-reciprocal-clean buster-clean fifo-clean marv-clean peek-buffer-clean read-cache-clean
+sim-clean: approx-reciprocal-clean buster-clean fifo-clean flow-controlled-pipe-clean marv-clean peek-buffer-clean read-cache-clean
 
 .PHONY: approx-reciprocal-clean
 approx-reciprocal-clean:
@@ -79,6 +84,10 @@ buster-clean:
 .PHONY: fifo-clean
 fifo-clean:
 	cd $(FIFO_DIR) && cargo clean
+
+.PHONY: flow-controlled-pipe-clean
+flow-controlled-pipe-clean:
+	cd $(FLOW_CONTROLLED_PIPE_DIR) && cargo clean
 
 .PHONY: marv-clean
 marv-clean:
@@ -95,7 +104,7 @@ read-cache-clean:
 TEST_DIR=test
 
 .PHONY: test
-test: approx-reciprocal-test buster-test compliance-test fifo-test peek-buffer-test read-cache-test rtl-test
+test: approx-reciprocal-test buster-test compliance-test fifo-test flow-controlled-pipe-test peek-buffer-test read-cache-test rtl-test
 
 .PHONY: approx-reciprocal-test
 approx-reciprocal-test: approx-reciprocal
@@ -112,6 +121,10 @@ compliance-test: marv
 .PHONY: fifo-test
 fifo-test: fifo
 	cd $(FIFO_DIR) && cargo test --release && cargo run --release -- 10 10000000
+
+.PHONY: flow-controlled-pipe-test
+flow-controlled-pipe-test: flow-controlled-pipe
+	cd $(FLOW_CONTROLLED_PIPE_DIR) && cargo test --release && cargo run --release -- 10 1000
 
 .PHONY: peek-buffer-test
 peek-buffer-test: peek-buffer
