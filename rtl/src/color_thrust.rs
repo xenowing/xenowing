@@ -408,14 +408,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     // Control
     let start = m.input("start", 1);
 
-    let depth_test_enable = m.input("depth_test_enable", 1);
-    let depth_write_mask_enable = m.input("depth_write_mask_enable", 1);
-
-    let tex_filter_select = m.input("tex_filter_select", 1);
-
-    let blend_src_factor = m.input("blend_src_factor", REG_BLEND_SETTINGS_SRC_FACTOR_BITS);
-    let blend_dst_factor = m.input("blend_dst_factor", REG_BLEND_SETTINGS_DST_FACTOR_BITS);
-
     let active = m.reg("active", 1);
     active.default_value(false);
     m.output("active", active.value);
@@ -424,7 +416,7 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     // Inputs
     let valid = m.input("in_valid", 1);
-    let mut tile_addr = m.input("in_tile_addr", TILE_PIXELS_BITS);
+    let tile_addr = m.input("in_tile_addr", TILE_PIXELS_BITS);
 
     //  Reject pixel if it doesn't pass edge test before it enters the rest of the pipe
     let w0 = m.input("in_w0", 1);
@@ -432,7 +424,118 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let w2 = m.input("in_w2", 1);
     let edge_test = !(w0 | w1 | w2);
     let reject = valid & !edge_test;
-    let mut valid = valid & edge_test;
+    let valid = valid & edge_test;
+
+    let r = m.input("in_r", COLOR_WHOLE_BITS);
+    let g = m.input("in_g", COLOR_WHOLE_BITS);
+    let b = m.input("in_b", COLOR_WHOLE_BITS);
+    let a = m.input("in_a", COLOR_WHOLE_BITS);
+
+    let w_inverse = m.input("in_w_inverse", 32);
+
+    let z = m.input("in_z", 16);
+
+    let s = m.input("in_s", 32 - RESTORED_W_FRACT_BITS);
+    let t = m.input("in_t", 32 - RESTORED_W_FRACT_BITS);
+
+    // Inner pipe
+    generate_inner_pipe(c);
+    let inner_pipe = m.instance("inner_pipe", "InnerPipe");
+
+    //  Aux
+    inner_pipe.drive_input("depth_test_enable", m.input("depth_test_enable", 1));
+    inner_pipe.drive_input("depth_write_mask_enable", m.input("depth_write_mask_enable", 1));
+
+    inner_pipe.drive_input("tex_filter_select", m.input("tex_filter_select", 1));
+
+    inner_pipe.drive_input("blend_src_factor", m.input("blend_src_factor", REG_BLEND_SETTINGS_SRC_FACTOR_BITS));
+    inner_pipe.drive_input("blend_dst_factor", m.input("blend_dst_factor", REG_BLEND_SETTINGS_DST_FACTOR_BITS));
+
+    m.output("depth_buffer_read_port_addr", inner_pipe.output("depth_buffer_read_port_addr"));
+    m.output("depth_buffer_read_port_enable", inner_pipe.output("depth_buffer_read_port_enable"));
+
+    inner_pipe.drive_input("depth_buffer_read_port_value", m.input("depth_buffer_read_port_value", 128));
+
+    for i in 0..4 {
+        m.output(format!("tex_buffer{}_read_port_addr", i), inner_pipe.output(format!("tex_buffer{}_read_port_addr", i)));
+        m.output(format!("tex_buffer{}_read_port_enable", i), inner_pipe.output(format!("tex_buffer{}_read_port_enable", i)));
+
+        inner_pipe.drive_input(format!("tex_buffer{}_read_port_value", i), m.input(format!("tex_buffer{}_read_port_value", i), 32));
+    }
+
+    m.output("color_buffer_read_port_addr", inner_pipe.output("color_buffer_read_port_addr"));
+    m.output("color_buffer_read_port_enable", inner_pipe.output("color_buffer_read_port_enable"));
+
+    inner_pipe.drive_input("color_buffer_read_port_value", m.input("color_buffer_read_port_value", 128));
+
+    m.output("color_buffer_write_port_addr", inner_pipe.output("color_buffer_write_port_addr"));
+    m.output("color_buffer_write_port_value", inner_pipe.output("color_buffer_write_port_value"));
+    m.output("color_buffer_write_port_enable", inner_pipe.output("color_buffer_write_port_enable"));
+    m.output("color_buffer_write_port_word_enable", inner_pipe.output("color_buffer_write_port_word_enable"));
+
+    m.output("depth_buffer_write_port_addr", inner_pipe.output("depth_buffer_write_port_addr"));
+    m.output("depth_buffer_write_port_value", inner_pipe.output("depth_buffer_write_port_value"));
+    m.output("depth_buffer_write_port_enable", inner_pipe.output("depth_buffer_write_port_enable"));
+    m.output("depth_buffer_write_port_word_enable", inner_pipe.output("depth_buffer_write_port_word_enable"));
+
+    //  Inputs
+    inner_pipe.drive_input("in_valid", valid);
+    inner_pipe.drive_input("in_tile_addr", tile_addr);
+
+    inner_pipe.drive_input("in_r", r);
+    inner_pipe.drive_input("in_g", g);
+    inner_pipe.drive_input("in_b", b);
+    inner_pipe.drive_input("in_a", a);
+
+    inner_pipe.drive_input("in_w_inverse", w_inverse);
+
+    inner_pipe.drive_input("in_z", z);
+
+    inner_pipe.drive_input("in_s", s);
+    inner_pipe.drive_input("in_t", t);
+
+    //  Outputs
+    let valid = inner_pipe.output("out_valid");
+
+    active.drive_next(if_(start, {
+        m.high()
+    }).else_if(finished_pixel_acc.value.eq(m.lit(TILE_PIXELS, TILE_PIXELS_BITS + 1)), {
+        m.low()
+    }).else_({
+        active.value
+    }));
+
+    // Fancy decode to map disjoint, binary finished/reject signals to a count
+    //  00 -> 00
+    //  01 -> 01
+    //  10 -> 01
+    //  11 -> 10
+    let finished_pixel_count = (valid & reject).concat(valid ^ reject);
+
+    finished_pixel_acc.drive_next(if_(start, {
+        m.lit(0u32, TILE_PIXELS_BITS + 1)
+    }).else_({
+        finished_pixel_acc.value + m.lit(0u32, TILE_PIXELS_BITS - 1).concat(finished_pixel_count)
+    }));
+
+    m
+}
+
+pub fn generate_inner_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
+    let m = c.module("InnerPipe");
+
+    // Aux inputs
+    let depth_test_enable = m.input("depth_test_enable", 1);
+    let depth_write_mask_enable = m.input("depth_write_mask_enable", 1);
+
+    let tex_filter_select = m.input("tex_filter_select", 1);
+
+    let blend_src_factor = m.input("blend_src_factor", REG_BLEND_SETTINGS_SRC_FACTOR_BITS);
+    let blend_dst_factor = m.input("blend_dst_factor", REG_BLEND_SETTINGS_DST_FACTOR_BITS);
+
+    // Inputs
+    let mut valid = m.input("in_valid", 1);
+    let mut tile_addr = m.input("in_tile_addr", TILE_PIXELS_BITS);
 
     let mut r = m.input("in_r", COLOR_WHOLE_BITS);
     let mut g = m.input("in_g", COLOR_WHOLE_BITS);
@@ -809,26 +912,7 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
         })
     }).unwrap());
 
-    active.drive_next(if_(start, {
-        m.high()
-    }).else_if(finished_pixel_acc.value.eq(m.lit(TILE_PIXELS, TILE_PIXELS_BITS + 1)), {
-        m.low()
-    }).else_({
-        active.value
-    }));
-
-    // Fancy decode to map disjoint, binary finished/reject signals to a count
-    //  00 -> 00
-    //  01 -> 01
-    //  10 -> 01
-    //  11 -> 10
-    let finished_pixel_count = (valid & reject).concat(valid ^ reject);
-
-    finished_pixel_acc.drive_next(if_(start, {
-        m.lit(0u32, TILE_PIXELS_BITS + 1)
-    }).else_({
-        finished_pixel_acc.value + m.lit(0u32, TILE_PIXELS_BITS - 1).concat(finished_pixel_count)
-    }));
+    m.output("out_valid", valid);
 
     m
 }
