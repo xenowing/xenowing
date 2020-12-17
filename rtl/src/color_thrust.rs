@@ -469,6 +469,10 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     //  Returned from issue before stage 1
     let w = w_approx_reciprocal.output("quotient");
 
+    //  Issue depth buffer read for prev_depth
+    m.output("depth_buffer_read_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 3));
+    m.output("depth_buffer_read_port_enable", valid & depth_test_enable);
+
     // Stage 14
     let valid = valid.reg_next_with_default("stage_14_valid", false);
     let tile_addr = tile_addr.reg_next("stage_14_tile_addr");
@@ -484,6 +488,26 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let t = t.reg_next("stage_14_t");
 
     let w = w.reg_next("stage_14_w");
+
+    //  Returned from issue in previous stage
+    let prev_depth = m.input("depth_buffer_read_port_value", 128);
+    let prev_depth = if_(tile_addr.bits(2, 0).eq(m.lit(0u32, 3)), {
+        prev_depth.bits(15, 0)
+    }).else_if(tile_addr.bits(2, 0).eq(m.lit(1u32, 3)), {
+        prev_depth.bits(31, 16)
+    }).else_if(tile_addr.bits(2, 0).eq(m.lit(2u32, 3)), {
+        prev_depth.bits(47, 32)
+    }).else_if(tile_addr.bits(2, 0).eq(m.lit(3u32, 3)), {
+        prev_depth.bits(63, 48)
+    }).else_if(tile_addr.bits(2, 0).eq(m.lit(4u32, 3)), {
+        prev_depth.bits(79, 64)
+    }).else_if(tile_addr.bits(2, 0).eq(m.lit(5u32, 3)), {
+        prev_depth.bits(95, 80)
+    }).else_if(tile_addr.bits(2, 0).eq(m.lit(6u32, 3)), {
+        prev_depth.bits(111, 96)
+    }).else_({
+        prev_depth.bits(127, 112)
+    });
 
     let s = s.mul_signed(w);
     let t = t.mul_signed(w);
@@ -501,6 +525,10 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let s = s.reg_next("stage_15_s");
     let t = t.reg_next("stage_15_t");
+
+    let prev_depth = prev_depth.reg_next("stage_15_prev_depth");
+
+    let depth_test_result = z.lt(prev_depth) | !depth_test_enable;
 
     let s_floor = s.bits(31, ST_FRACT_BITS);
     let t_floor = t.bits(31, ST_FRACT_BITS);
@@ -557,6 +585,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let a = a.reg_next("stage_16_a");
 
     let z = z.reg_next("stage_16_z");
+
+    let depth_test_result = depth_test_result.reg_next("stage_16_depth_test_result");
 
     let s_fract = s_fract.reg_next("stage_16_s_fract");
     let t_fract = t_fract.reg_next("stage_16_t_fract");
@@ -618,6 +648,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let z = z.reg_next("stage_17_z");
 
+    let depth_test_result = depth_test_result.reg_next("stage_17_depth_test_result");
+
     let t_fract = t_fract.reg_next("stage_17_t_fract");
     let one_minus_t_fract = one_minus_t_fract.reg_next("stage_17_one_minus_t_fract");
 
@@ -636,6 +668,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let a = a.reg_next("stage_18_a");
 
     let z = z.reg_next("stage_18_z");
+
+    let depth_test_result = depth_test_result.reg_next("stage_18_depth_test_result");
 
     let texel = texel.reg_next("stage_18_texel");
 
@@ -662,6 +696,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let a = a.reg_next("stage_19_a");
 
     let z = z.reg_next("stage_19_z");
+
+    let depth_test_result = depth_test_result.reg_next("stage_19_depth_test_result");
 
     let zero = m.lit(0u32, 9);
     let one = m.high().concat(m.lit(0u32, 8));
@@ -698,10 +734,6 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
         prev_color.bits(127, 96)
     });
 
-    //  Issue depth buffer read for prev_depth
-    m.output("depth_buffer_read_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 3));
-    m.output("depth_buffer_read_port_enable", valid & depth_test_enable);
-
     // Stage 20
     let valid = valid.reg_next_with_default("stage_20_valid", false);
     let tile_addr = tile_addr.reg_next("stage_20_tile_addr");
@@ -712,6 +744,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let a = a.reg_next("stage_20_a");
 
     let z = z.reg_next("stage_20_z");
+
+    let depth_test_result = depth_test_result.reg_next("stage_20_depth_test_result");
 
     let blend_src_factor = blend_src_factor.reg_next("stage_20_blend_src_factor");
     let blend_dst_factor = blend_dst_factor.reg_next("stage_20_blend_dst_factor");
@@ -741,37 +775,15 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let color = a.concat(r).concat(g).concat(b);
 
-    //  Returned from issue in previous stage
-    let prev_depth = m.input("depth_buffer_read_port_value", 128);
-    let prev_depth = if_(tile_addr.bits(2, 0).eq(m.lit(0u32, 3)), {
-        prev_depth.bits(15, 0)
-    }).else_if(tile_addr.bits(2, 0).eq(m.lit(1u32, 3)), {
-        prev_depth.bits(31, 16)
-    }).else_if(tile_addr.bits(2, 0).eq(m.lit(2u32, 3)), {
-        prev_depth.bits(47, 32)
-    }).else_if(tile_addr.bits(2, 0).eq(m.lit(3u32, 3)), {
-        prev_depth.bits(63, 48)
-    }).else_if(tile_addr.bits(2, 0).eq(m.lit(4u32, 3)), {
-        prev_depth.bits(79, 64)
-    }).else_if(tile_addr.bits(2, 0).eq(m.lit(5u32, 3)), {
-        prev_depth.bits(95, 80)
-    }).else_if(tile_addr.bits(2, 0).eq(m.lit(6u32, 3)), {
-        prev_depth.bits(111, 96)
-    }).else_({
-        prev_depth.bits(127, 112)
-    });
-
     // Stage 21
     let valid = valid.reg_next_with_default("stage_21_valid", false);
     let tile_addr = tile_addr.reg_next("stage_21_tile_addr");
 
     let z = z.reg_next("stage_21_z");
 
+    let depth_test_result = depth_test_result.reg_next("stage_21_depth_test_result");
+
     let color = color.reg_next("stage_21_color");
-
-    let prev_depth = prev_depth.reg_next("stage_21_prev_depth");
-
-    let depth_test_result = z.lt(prev_depth) | !depth_test_enable;
 
     m.output("color_buffer_write_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
     m.output("color_buffer_write_port_value", color.repeat(4));
