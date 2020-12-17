@@ -418,12 +418,12 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let valid = m.input("in_valid", 1);
     let tile_addr = m.input("in_tile_addr", TILE_PIXELS_BITS);
 
-    //  Reject pixel if it doesn't pass edge test before it enters the rest of the pipe
+    //  Reject pixel if it doesn't pass edge test before it enters the first pipe
     let w0 = m.input("in_w0", 1);
     let w1 = m.input("in_w1", 1);
     let w2 = m.input("in_w2", 1);
     let edge_test = !(w0 | w1 | w2);
-    let reject = valid & !edge_test;
+    let edge_test_reject = valid & !edge_test;
     let valid = valid & edge_test;
 
     let r = m.input("in_r", COLOR_WHOLE_BITS);
@@ -483,6 +483,10 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let t = depth_test_pipe.output("out_t");
 
     let depth_test_result = depth_test_pipe.output("out_depth_test_result");
+
+    // Reject pixel if it doesn't pass depth test before entering the next pipe
+    let depth_test_reject = valid & !depth_test_result;
+    let valid = valid & depth_test_result;
 
     // Back pipe
     generate_back_pipe(c);
@@ -547,12 +551,25 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
         active.value
     }));
 
-    // Fancy decode to map disjoint, binary finished/reject signals to a count
-    //  00 -> 00
-    //  01 -> 01
-    //  10 -> 01
-    //  11 -> 10
-    let finished_pixel_count = (valid & reject).concat(valid ^ reject);
+    // TODO: There's gotta be a simpler way to do this!
+    let finished_pixel_bits = edge_test_reject.concat(depth_test_reject).concat(valid);
+    let finished_pixel_count = if_(finished_pixel_bits.eq(m.lit(0b000u32, 3)), {
+        m.lit(0u32, 2)
+    }).else_if(finished_pixel_bits.eq(m.lit(0b001u32, 3)), {
+        m.lit(1u32, 2)
+    }).else_if(finished_pixel_bits.eq(m.lit(0b010u32, 3)), {
+        m.lit(1u32, 2)
+    }).else_if(finished_pixel_bits.eq(m.lit(0b011u32, 3)), {
+        m.lit(2u32, 2)
+    }).else_if(finished_pixel_bits.eq(m.lit(0b100u32, 3)), {
+        m.lit(1u32, 2)
+    }).else_if(finished_pixel_bits.eq(m.lit(0b101u32, 3)), {
+        m.lit(2u32, 2)
+    }).else_if(finished_pixel_bits.eq(m.lit(0b110u32, 3)), {
+        m.lit(2u32, 2)
+    }).else_({
+        m.lit(3u32, 2)
+    });
 
     finished_pixel_acc.drive_next(if_(start, {
         m.lit(0u32, TILE_PIXELS_BITS + 1)
