@@ -2,6 +2,7 @@ mod approx_reciprocal;
 mod buster;
 mod color_thrust;
 mod fifo;
+mod flow_controlled_pipe;
 mod interconnect;
 mod led_interface;
 mod marv;
