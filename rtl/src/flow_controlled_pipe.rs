@@ -125,7 +125,7 @@ impl<'a> FlowControlledPipe<'a> {
         self.pipe.drive_input(name, input);
     }
 
-    /// Specifies an output to the inner pipeline module.
+    /// Specifies an output from the inner pipeline module.
     ///
     /// An output port will be added to the generated module that forwards data directly from the corresponding inner pipeline module's output.
     ///

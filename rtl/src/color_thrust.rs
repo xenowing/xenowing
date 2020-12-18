@@ -1,4 +1,5 @@
 use crate::approx_reciprocal;
+use crate::flow_controlled_pipe;
 use crate::word_mem::*;
 
 use kaze::*;
@@ -440,7 +441,57 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     // Depth test pipe
     generate_depth_test_pipe(c);
-    let depth_test_pipe = m.instance("depth_test_pipe", "DepthTestPipe");
+    let mut depth_test_pipe = flow_controlled_pipe::FlowControlledPipe::new(
+        c,
+        "FlowControlledDepthTestPipe",
+        "DepthTestPipe",
+        2);
+
+    //  Aux
+    depth_test_pipe.aux_input("depth_test_enable", 1);
+
+    depth_test_pipe.aux_output("depth_buffer_read_port_addr");
+    depth_test_pipe.aux_output("depth_buffer_read_port_enable");
+
+    depth_test_pipe.aux_input("depth_buffer_read_port_value", 128);
+
+    //  Inputs
+    depth_test_pipe.input("tile_addr", TILE_PIXELS_BITS);
+
+    depth_test_pipe.input("r", COLOR_WHOLE_BITS);
+    depth_test_pipe.input("g", COLOR_WHOLE_BITS);
+    depth_test_pipe.input("b", COLOR_WHOLE_BITS);
+    depth_test_pipe.input("a", COLOR_WHOLE_BITS);
+
+    depth_test_pipe.input("w_inverse", 32);
+
+    depth_test_pipe.input("z", 16);
+
+    depth_test_pipe.input("s", 32 - RESTORED_W_FRACT_BITS);
+    depth_test_pipe.input("t", 32 - RESTORED_W_FRACT_BITS);
+
+    //  Outputs
+    depth_test_pipe.output("tile_addr", TILE_PIXELS_BITS);
+
+    depth_test_pipe.output("r", COLOR_WHOLE_BITS);
+    depth_test_pipe.output("g", COLOR_WHOLE_BITS);
+    depth_test_pipe.output("b", COLOR_WHOLE_BITS);
+    depth_test_pipe.output("a", COLOR_WHOLE_BITS);
+
+    depth_test_pipe.output("w_inverse", 32);
+
+    depth_test_pipe.output("z", 16);
+
+    depth_test_pipe.output("s", 32 - RESTORED_W_FRACT_BITS);
+    depth_test_pipe.output("t", 32 - RESTORED_W_FRACT_BITS);
+
+    depth_test_pipe.output("depth_test_result", 1);
+
+    let depth_test_pipe = m.instance("depth_test_pipe", "FlowControlledDepthTestPipe");
+
+    // TODO!
+    let _in_ready = depth_test_pipe.output("in_ready");
+    depth_test_pipe.drive_input("out_ready", m.high());
 
     //  Aux
     depth_test_pipe.drive_input("depth_test_enable", m.input("depth_test_enable", 1));
