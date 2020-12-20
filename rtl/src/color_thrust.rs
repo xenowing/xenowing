@@ -966,16 +966,16 @@ pub fn generate_back_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let depth_test_result = depth_test_result.reg_next("stage_18_depth_test_result");
 
-    let texel = texel.reg_next("stage_18_texel");
+    let texel = Texel::new(texel.reg_next("stage_18_texel"));
 
     let scale_comp = |color_comp: &'a Signal<'a>, texel_comp: &'a Signal<'a>| -> &'a Signal<'a> {
         (color_comp * texel_comp).bits(16, 8)
     };
 
-    let r = scale_comp(r, texel.bits(23, 16));
-    let g = scale_comp(g, texel.bits(15, 8));
-    let b = scale_comp(b, texel.bits(7, 0));
-    let a = scale_comp(a, texel.bits(31, 24));
+    let r = scale_comp(r, texel.r);
+    let g = scale_comp(g, texel.g);
+    let b = scale_comp(b, texel.b);
+    let a = scale_comp(a, texel.a);
 
     //  Issue color buffer read for prev_color
     m.output("color_buffer_read_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
