@@ -141,6 +141,25 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let start = reg_bus_write_enable & reg_bus_addr.eq(m.lit(REG_START_ADDR, REG_BUS_ADDR_BIT_WIDTH));
 
+    generate_pixel_pipe(c);
+    let pixel_pipe = m.instance("pixel_pipe", "PixelPipe");
+
+    pixel_pipe.drive_input("start", start);
+
+    pixel_pipe.drive_input("depth_test_enable", depth_test_enable);
+    pixel_pipe.drive_input("depth_write_mask_enable", depth_write_mask_enable);
+
+    pixel_pipe.drive_input("tex_filter_select", tex_filter_select);
+
+    pixel_pipe.drive_input("blend_src_factor", blend_src_factor);
+    pixel_pipe.drive_input("blend_dst_factor", blend_dst_factor);
+
+    pixel_pipe.drive_input("in_valid", input_generator_active.value);
+    pixel_pipe.drive_input("in_tile_addr", tile_y.value.concat(tile_x.value));
+
+    // TODO: Rename?
+    let pixel_pipe_in_ready = pixel_pipe.output("in_ready");
+
     let (next_input_generator_active, next_tile_x, next_tile_y) = if_(start, {
         let next_input_generator_active = m.high();
 
@@ -148,7 +167,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
         let next_tile_y = m.lit(0u32, TILE_DIM_BITS);
 
         (next_input_generator_active, next_tile_x, next_tile_y)
-    }).else_({
+    }).else_if(pixel_pipe_in_ready, {
         let next_input_generator_active = input_generator_active.value;
 
         let next_tile_x = tile_x.value + m.lit(1u32, TILE_DIM_BITS);
@@ -169,6 +188,8 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
         });
 
         (next_input_generator_active, next_tile_x, next_tile_y)
+    }).else_({
+        (input_generator_active.value, tile_x.value, tile_y.value)
     });
 
     input_generator_active.drive_next(next_input_generator_active);
@@ -214,13 +235,15 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
         let (next_row, next_value) = if_(start, {
             (min.value, min.value)
-        }).else_({
+        }).else_if(pixel_pipe_in_ready, {
             if_(tile_x_last, {
                 let next = row.value + dy_mirror.value;
                 (next, next)
             }).else_({
                 (row.value, value.value + dx_mirror.value)
             })
+        }).else_({
+            (row.value, value.value)
         });
 
         row.drive_next(next_row);
@@ -245,22 +268,6 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let s = interpolant("s", 32, REG_S_MIN_ADDR, REG_S_DX_ADDR, REG_S_DY_ADDR).bits(31, RESTORED_W_FRACT_BITS);
     let t = interpolant("t", 32, REG_T_MIN_ADDR, REG_T_DX_ADDR, REG_T_DY_ADDR).bits(31, RESTORED_W_FRACT_BITS);
-
-    generate_pixel_pipe(c);
-    let pixel_pipe = m.instance("pixel_pipe", "PixelPipe");
-
-    pixel_pipe.drive_input("start", start);
-
-    pixel_pipe.drive_input("depth_test_enable", depth_test_enable);
-    pixel_pipe.drive_input("depth_write_mask_enable", depth_write_mask_enable);
-
-    pixel_pipe.drive_input("tex_filter_select", tex_filter_select);
-
-    pixel_pipe.drive_input("blend_src_factor", blend_src_factor);
-    pixel_pipe.drive_input("blend_dst_factor", blend_dst_factor);
-
-    pixel_pipe.drive_input("in_valid", input_generator_active.value);
-    pixel_pipe.drive_input("in_tile_addr", tile_y.value.concat(tile_x.value));
 
     pixel_pipe.drive_input("in_w0", w0);
     pixel_pipe.drive_input("in_w1", w1);
@@ -490,7 +497,7 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let depth_test_pipe = m.instance("depth_test_pipe", "FlowControlledDepthTestPipe");
 
     // TODO!
-    let _in_ready = depth_test_pipe.output("in_ready");
+    m.output("in_ready", depth_test_pipe.output("in_ready"));
     depth_test_pipe.drive_input("out_ready", m.high());
 
     //  Aux
