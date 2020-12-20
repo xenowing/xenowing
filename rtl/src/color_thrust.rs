@@ -546,6 +546,74 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let depth_test_reject = valid & !depth_test_result;
     let valid = valid & depth_test_result;
 
+    // Front pipe
+    generate_front_pipe(c);
+    let front_pipe = m.instance("front_pipe", "FrontPipe");
+
+    //  Aux
+    front_pipe.drive_input("tex_filter_select", m.input("tex_filter_select", 1));
+
+    //  Inputs
+    front_pipe.drive_input("in_valid", valid);
+    front_pipe.drive_input("in_tile_addr", tile_addr);
+
+    front_pipe.drive_input("in_r", r);
+    front_pipe.drive_input("in_g", g);
+    front_pipe.drive_input("in_b", b);
+    front_pipe.drive_input("in_a", a);
+
+    front_pipe.drive_input("in_w_inverse", w_inverse);
+
+    front_pipe.drive_input("in_z", z);
+
+    front_pipe.drive_input("in_s", s);
+    front_pipe.drive_input("in_t", t);
+
+    front_pipe.drive_input("in_depth_test_result", depth_test_result);
+
+    //  Outputs
+    let valid = front_pipe.output("out_valid");
+    let tile_addr = front_pipe.output("out_tile_addr");
+
+    let r = front_pipe.output("out_r");
+    let g = front_pipe.output("out_g");
+    let b = front_pipe.output("out_b");
+    let a = front_pipe.output("out_a");
+
+    let z = front_pipe.output("out_z");
+
+    let depth_test_result = front_pipe.output("out_depth_test_result");
+
+    let s_fract = front_pipe.output("out_s_fract");
+    let one_minus_s_fract = front_pipe.output("out_one_minus_s_fract");
+    let t_fract = front_pipe.output("out_t_fract");
+    let one_minus_t_fract = front_pipe.output("out_one_minus_t_fract");
+
+    for i in 0..4 {
+        m.output(format!("tex_buffer{}_read_port_addr", i), front_pipe.output(format!("out_tex_buffer{}_read_addr", i)));
+        m.output(format!("tex_buffer{}_read_port_enable", i), valid);
+    }
+
+    // Tex cache interface
+    //  TODO: Do this properly :)
+
+    let valid = valid.reg_next("temp_valid");
+    let tile_addr = tile_addr.reg_next("tile_addr");
+
+    let r = r.reg_next("temp_r");
+    let g = g.reg_next("temp_g");
+    let b = b.reg_next("temp_b");
+    let a = a.reg_next("temp_a");
+
+    let z = z.reg_next("temp_z");
+
+    let depth_test_result = depth_test_result.reg_next("temp_depth_test_result");
+
+    let s_fract = s_fract.reg_next("temp_s_fract");
+    let one_minus_s_fract = one_minus_s_fract.reg_next("temp_one_minus_s_fract");
+    let t_fract = t_fract.reg_next("temp_t_fract");
+    let one_minus_t_fract = one_minus_t_fract.reg_next("temp_one_minus_t_fract");
+
     // Back pipe
     generate_back_pipe(c);
     let back_pipe = m.instance("back_pipe", "BackPipe");
@@ -553,17 +621,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     //  Aux
     back_pipe.drive_input("depth_write_mask_enable", m.input("depth_write_mask_enable", 1));
 
-    back_pipe.drive_input("tex_filter_select", m.input("tex_filter_select", 1));
-
     back_pipe.drive_input("blend_src_factor", m.input("blend_src_factor", REG_BLEND_SETTINGS_SRC_FACTOR_BITS));
     back_pipe.drive_input("blend_dst_factor", m.input("blend_dst_factor", REG_BLEND_SETTINGS_DST_FACTOR_BITS));
-
-    for i in 0..4 {
-        m.output(format!("tex_buffer{}_read_port_addr", i), back_pipe.output(format!("tex_buffer{}_read_port_addr", i)));
-        m.output(format!("tex_buffer{}_read_port_enable", i), back_pipe.output(format!("tex_buffer{}_read_port_enable", i)));
-
-        back_pipe.drive_input(format!("tex_buffer{}_read_port_value", i), m.input(format!("tex_buffer{}_read_port_value", i), 32));
-    }
 
     m.output("color_buffer_read_port_addr", back_pipe.output("color_buffer_read_port_addr"));
     m.output("color_buffer_read_port_enable", back_pipe.output("color_buffer_read_port_enable"));
@@ -589,14 +648,18 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     back_pipe.drive_input("in_b", b);
     back_pipe.drive_input("in_a", a);
 
-    back_pipe.drive_input("in_w_inverse", w_inverse);
-
     back_pipe.drive_input("in_z", z);
 
-    back_pipe.drive_input("in_s", s);
-    back_pipe.drive_input("in_t", t);
-
     back_pipe.drive_input("in_depth_test_result", depth_test_result);
+
+    back_pipe.drive_input("in_s_fract", s_fract);
+    back_pipe.drive_input("in_one_minus_s_fract", one_minus_s_fract);
+    back_pipe.drive_input("in_t_fract", t_fract);
+    back_pipe.drive_input("in_one_minus_t_fract", one_minus_t_fract);
+
+    for i in 0..4 {
+        back_pipe.drive_input(format!("in_tex_buffer{}_read_value", i), m.input(format!("tex_buffer{}_read_port_value", i), 32));
+    }
 
     //  Outputs
     let valid = back_pipe.output("out_valid");
@@ -741,16 +804,11 @@ pub fn generate_depth_test_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m
 }
 
-pub fn generate_back_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
-    let m = c.module("BackPipe");
+pub fn generate_front_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
+    let m = c.module("FrontPipe");
 
     // Aux inputs
-    let depth_write_mask_enable = m.input("depth_write_mask_enable", 1);
-
     let tex_filter_select = m.input("tex_filter_select", 1);
-
-    let blend_src_factor = m.input("blend_src_factor", REG_BLEND_SETTINGS_SRC_FACTOR_BITS);
-    let blend_dst_factor = m.input("blend_dst_factor", REG_BLEND_SETTINGS_DST_FACTOR_BITS);
 
     // Inputs
     let mut valid = m.input("in_valid", 1);
@@ -860,7 +918,24 @@ pub fn generate_back_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
         (one_minus_t_fract, t_fract)
     });
 
-    //  Issue tex buffer reads for filtered texel
+    // Outputs
+    m.output("out_valid", valid);
+    m.output("out_tile_addr", tile_addr);
+
+    m.output("out_r", r);
+    m.output("out_g", g);
+    m.output("out_b", b);
+    m.output("out_a", a);
+
+    m.output("out_z", z);
+
+    m.output("out_depth_test_result", depth_test_result);
+
+    m.output("out_s_fract", s_fract);
+    m.output("out_one_minus_s_fract", one_minus_s_fract);
+    m.output("out_t_fract", t_fract);
+    m.output("out_one_minus_t_fract", one_minus_t_fract);
+
     let buffer0_s = (s_floor.bits(3, 0) + m.lit(1u32, 4)).bits(3, 1);
     let buffer0_t = (t_floor.bits(3, 0) + m.lit(1u32, 4)).bits(3, 1);
     let buffer1_s = s_floor.bits(3, 1);
@@ -869,32 +944,40 @@ pub fn generate_back_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let buffer2_t = t_floor.bits(3, 1);
     let buffer3_s = s_floor.bits(3, 1);
     let buffer3_t = t_floor.bits(3, 1);
-    m.output("tex_buffer0_read_port_addr", buffer0_t.concat(buffer0_s));
-    m.output("tex_buffer1_read_port_addr", buffer1_t.concat(buffer1_s));
-    m.output("tex_buffer2_read_port_addr", buffer2_t.concat(buffer2_s));
-    m.output("tex_buffer3_read_port_addr", buffer3_t.concat(buffer3_s));
-    for i in 0..4 {
-        m.output(format!("tex_buffer{}_read_port_enable", i), valid);
-    }
+    m.output("out_tex_buffer0_read_addr", buffer0_t.concat(buffer0_s));
+    m.output("out_tex_buffer1_read_addr", buffer1_t.concat(buffer1_s));
+    m.output("out_tex_buffer2_read_addr", buffer2_t.concat(buffer2_s));
+    m.output("out_tex_buffer3_read_addr", buffer3_t.concat(buffer3_s));
 
-    // Stage 16
-    let valid = valid.reg_next_with_default("stage_16_valid", false);
-    let tile_addr = tile_addr.reg_next("stage_16_tile_addr");
+    m
+}
 
-    let r = r.reg_next("stage_16_r");
-    let g = g.reg_next("stage_16_g");
-    let b = b.reg_next("stage_16_b");
-    let a = a.reg_next("stage_16_a");
+pub fn generate_back_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
+    let m = c.module("BackPipe");
 
-    let z = z.reg_next("stage_16_z");
+    // Aux inputs
+    let depth_write_mask_enable = m.input("depth_write_mask_enable", 1);
 
-    let depth_test_result = depth_test_result.reg_next("stage_16_depth_test_result");
+    let blend_src_factor = m.input("blend_src_factor", REG_BLEND_SETTINGS_SRC_FACTOR_BITS);
+    let blend_dst_factor = m.input("blend_dst_factor", REG_BLEND_SETTINGS_DST_FACTOR_BITS);
 
-    let s_fract = s_fract.reg_next("stage_16_s_fract");
-    let t_fract = t_fract.reg_next("stage_16_t_fract");
-    let one_minus_s_fract = one_minus_s_fract.reg_next("stage_16_one_minus_s_fract");
-    let one_minus_t_fract = one_minus_t_fract.reg_next("stage_16_one_minus_t_fract");
+    // Inputs
+    let valid = m.input("in_valid", 1);
+    let tile_addr = m.input("in_tile_addr", TILE_PIXELS_BITS);
 
+    let r = m.input("in_r", 9);
+    let g = m.input("in_g", 9);
+    let b = m.input("in_b", 9);
+    let a = m.input("in_a", 9);
+
+    let z = m.input("in_z", 16);
+
+    let depth_test_result = m.input("in_depth_test_result", 1);
+
+    let s_fract = m.input("in_s_fract", ST_FILTER_FRACT_BITS + 1);
+    let one_minus_s_fract = m.input("in_one_minus_s_fract", ST_FILTER_FRACT_BITS + 1);
+    let t_fract = m.input("in_t_fract", ST_FILTER_FRACT_BITS + 1);
+    let one_minus_t_fract = m.input("in_one_minus_t_fract", ST_FILTER_FRACT_BITS + 1);
     struct Texel<'a> {
         r: &'a Signal<'a>,
         g: &'a Signal<'a>,
@@ -917,6 +1000,12 @@ pub fn generate_back_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
         }
     }
 
+    let texel0 = Texel::new(m.input("in_tex_buffer0_read_value", 32));
+    let texel1 = Texel::new(m.input("in_tex_buffer1_read_value", 32));
+    let texel2 = Texel::new(m.input("in_tex_buffer2_read_value", 32));
+    let texel3 = Texel::new(m.input("in_tex_buffer3_read_value", 32));
+
+    // Stage 1
     fn blend_component<'a>(a: &'a Signal<'a>, b: &'a Signal<'a>, a_fract: &'a Signal<'a>, b_fract: &'a Signal<'a>) -> &'a Signal<'a> {
         (a * a_fract + b * b_fract).bits(8 + ST_FILTER_FRACT_BITS - 1, ST_FILTER_FRACT_BITS)
     }
@@ -930,50 +1019,44 @@ pub fn generate_back_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
         }
     }
 
-    //  Returned from issues in previous stage
-    let texel0 = Texel::new(m.input("tex_buffer0_read_port_value", 32));
-    let texel1 = Texel::new(m.input("tex_buffer1_read_port_value", 32));
-    let texel2 = Texel::new(m.input("tex_buffer2_read_port_value", 32));
-    let texel3 = Texel::new(m.input("tex_buffer3_read_port_value", 32));
-
     let lower = blend_texels(&texel0, &texel1, one_minus_s_fract, s_fract).argb();
     let upper = blend_texels(&texel2, &texel3, one_minus_s_fract, s_fract).argb();
 
-    // Stage 17
-    let valid = valid.reg_next_with_default("stage_17_valid", false);
-    let tile_addr = tile_addr.reg_next("stage_17_tile_addr");
+    // Stage 2
+    let valid = valid.reg_next_with_default("stage_2_valid", false);
+    let tile_addr = tile_addr.reg_next("stage_2_tile_addr");
 
-    let r = r.reg_next("stage_17_r");
-    let g = g.reg_next("stage_17_g");
-    let b = b.reg_next("stage_17_b");
-    let a = a.reg_next("stage_17_a");
+    let r = r.reg_next("stage_2_r");
+    let g = g.reg_next("stage_2_g");
+    let b = b.reg_next("stage_2_b");
+    let a = a.reg_next("stage_2_a");
 
-    let z = z.reg_next("stage_17_z");
+    let z = z.reg_next("stage_2_z");
 
-    let depth_test_result = depth_test_result.reg_next("stage_17_depth_test_result");
+    let depth_test_result = depth_test_result.reg_next("stage_2_depth_test_result");
 
-    let t_fract = t_fract.reg_next("stage_17_t_fract");
-    let one_minus_t_fract = one_minus_t_fract.reg_next("stage_17_one_minus_t_fract");
+    let t_fract = t_fract.reg_next("stage_2_t_fract");
+    let one_minus_t_fract = one_minus_t_fract.reg_next("stage_2_one_minus_t_fract");
 
-    let lower = Texel::new(lower.reg_next("stage_17_lower"));
-    let upper = Texel::new(upper.reg_next("stage_17_upper"));
+    let lower = Texel::new(lower.reg_next("stage_2_lower"));
+    let upper = Texel::new(upper.reg_next("stage_2_upper"));
 
     let texel = blend_texels(&lower, &upper, one_minus_t_fract, t_fract).argb();
 
-    // Stage 18
-    let valid = valid.reg_next_with_default("stage_18_valid", false);
-    let tile_addr = tile_addr.reg_next("stage_18_tile_addr");
+    // Stage 3
+    let valid = valid.reg_next_with_default("stage_3_valid", false);
+    let tile_addr = tile_addr.reg_next("stage_3_tile_addr");
 
-    let r = r.reg_next("stage_18_r");
-    let g = g.reg_next("stage_18_g");
-    let b = b.reg_next("stage_18_b");
-    let a = a.reg_next("stage_18_a");
+    let r = r.reg_next("stage_3_r");
+    let g = g.reg_next("stage_3_g");
+    let b = b.reg_next("stage_3_b");
+    let a = a.reg_next("stage_3_a");
 
-    let z = z.reg_next("stage_18_z");
+    let z = z.reg_next("stage_3_z");
 
-    let depth_test_result = depth_test_result.reg_next("stage_18_depth_test_result");
+    let depth_test_result = depth_test_result.reg_next("stage_3_depth_test_result");
 
-    let texel = Texel::new(texel.reg_next("stage_18_texel"));
+    let texel = Texel::new(texel.reg_next("stage_3_texel"));
 
     let scale_comp = |color_comp: &'a Signal<'a>, texel_comp: &'a Signal<'a>| -> &'a Signal<'a> {
         (color_comp * texel_comp).bits(16, 8)
@@ -988,18 +1071,18 @@ pub fn generate_back_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("color_buffer_read_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
     m.output("color_buffer_read_port_enable", valid);
 
-    // Stage 19
-    let valid = valid.reg_next_with_default("stage_19_valid", false);
-    let tile_addr = tile_addr.reg_next("stage_19_tile_addr");
+    // Stage 4
+    let valid = valid.reg_next_with_default("stage_4_valid", false);
+    let tile_addr = tile_addr.reg_next("stage_4_tile_addr");
 
-    let r = r.reg_next("stage_19_r");
-    let g = g.reg_next("stage_19_g");
-    let b = b.reg_next("stage_19_b");
-    let a = a.reg_next("stage_19_a");
+    let r = r.reg_next("stage_4_r");
+    let g = g.reg_next("stage_4_g");
+    let b = b.reg_next("stage_4_b");
+    let a = a.reg_next("stage_4_a");
 
-    let z = z.reg_next("stage_19_z");
+    let z = z.reg_next("stage_4_z");
 
-    let depth_test_result = depth_test_result.reg_next("stage_19_depth_test_result");
+    let depth_test_result = depth_test_result.reg_next("stage_4_depth_test_result");
 
     let zero = m.lit(0u32, 9);
     let one = m.high().concat(m.lit(0u32, 8));
@@ -1036,23 +1119,23 @@ pub fn generate_back_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
         prev_color.bits(127, 96)
     });
 
-    // Stage 20
-    let valid = valid.reg_next_with_default("stage_20_valid", false);
-    let tile_addr = tile_addr.reg_next("stage_20_tile_addr");
+    // Stage 5
+    let valid = valid.reg_next_with_default("stage_5_valid", false);
+    let tile_addr = tile_addr.reg_next("stage_5_tile_addr");
 
-    let r = r.reg_next("stage_20_r");
-    let g = g.reg_next("stage_20_g");
-    let b = b.reg_next("stage_20_b");
-    let a = a.reg_next("stage_20_a");
+    let r = r.reg_next("stage_5_r");
+    let g = g.reg_next("stage_5_g");
+    let b = b.reg_next("stage_5_b");
+    let a = a.reg_next("stage_5_a");
 
-    let z = z.reg_next("stage_20_z");
+    let z = z.reg_next("stage_5_z");
 
-    let depth_test_result = depth_test_result.reg_next("stage_20_depth_test_result");
+    let depth_test_result = depth_test_result.reg_next("stage_5_depth_test_result");
 
-    let blend_src_factor = blend_src_factor.reg_next("stage_20_blend_src_factor");
-    let blend_dst_factor = blend_dst_factor.reg_next("stage_20_blend_dst_factor");
+    let blend_src_factor = blend_src_factor.reg_next("stage_5_blend_src_factor");
+    let blend_dst_factor = blend_dst_factor.reg_next("stage_5_blend_dst_factor");
 
-    let prev_color = prev_color.reg_next("stage_20_prev_color");
+    let prev_color = prev_color.reg_next("stage_5_prev_color");
 
     let r = (r * blend_src_factor).bits(17, 8);
     let g = (g * blend_src_factor).bits(17, 8);
@@ -1077,15 +1160,15 @@ pub fn generate_back_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let color = a.concat(r).concat(g).concat(b);
 
-    // Stage 21
-    let valid = valid.reg_next_with_default("stage_21_valid", false);
-    let tile_addr = tile_addr.reg_next("stage_21_tile_addr");
+    // Stage 6
+    let valid = valid.reg_next_with_default("stage_6_valid", false);
+    let tile_addr = tile_addr.reg_next("stage_6_tile_addr");
 
-    let z = z.reg_next("stage_21_z");
+    let z = z.reg_next("stage_6_z");
 
-    let depth_test_result = depth_test_result.reg_next("stage_21_depth_test_result");
+    let depth_test_result = depth_test_result.reg_next("stage_6_depth_test_result");
 
-    let color = color.reg_next("stage_21_color");
+    let color = color.reg_next("stage_6_color");
 
     m.output("color_buffer_write_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
     m.output("color_buffer_write_port_value", color.repeat(4));
@@ -1111,6 +1194,7 @@ pub fn generate_back_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
         })
     }).unwrap());
 
+    // Outputs
     m.output("out_valid", valid);
 
     m
