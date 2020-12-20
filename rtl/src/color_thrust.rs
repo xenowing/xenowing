@@ -496,9 +496,7 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let depth_test_pipe = m.instance("depth_test_pipe", "FlowControlledDepthTestPipe");
 
-    // TODO!
     m.output("in_ready", depth_test_pipe.output("in_ready"));
-    depth_test_pipe.drive_input("out_ready", m.high());
 
     //  Aux
     depth_test_pipe.drive_input("depth_test_enable", m.input("depth_test_enable", 1));
@@ -548,7 +546,60 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     // Front pipe
     generate_front_pipe(c);
-    let front_pipe = m.instance("front_pipe", "FrontPipe");
+    let mut front_pipe = flow_controlled_pipe::FlowControlledPipe::new(
+        c,
+        "FlowControlledFrontPipe",
+        "FrontPipe",
+        15);
+
+    //  Aux
+    front_pipe.aux_input("tex_filter_select", 1);
+
+    //  Inputs
+    front_pipe.input("tile_addr", TILE_PIXELS_BITS);
+
+    front_pipe.input("r", COLOR_WHOLE_BITS);
+    front_pipe.input("g", COLOR_WHOLE_BITS);
+    front_pipe.input("b", COLOR_WHOLE_BITS);
+    front_pipe.input("a", COLOR_WHOLE_BITS);
+
+    front_pipe.input("w_inverse", 32);
+
+    front_pipe.input("z", 16);
+
+    front_pipe.input("s", 32 - RESTORED_W_FRACT_BITS);
+    front_pipe.input("t", 32 - RESTORED_W_FRACT_BITS);
+
+    front_pipe.input("depth_test_result", 1);
+
+    //  Outputs
+    front_pipe.output("tile_addr", TILE_PIXELS_BITS);
+
+    front_pipe.output("r", 9);
+    front_pipe.output("g", 9);
+    front_pipe.output("b", 9);
+    front_pipe.output("a", 9);
+
+    front_pipe.output("z", 16);
+
+    front_pipe.output("depth_test_result", 1);
+
+    front_pipe.output("s_fract", ST_FILTER_FRACT_BITS + 1);
+    front_pipe.output("one_minus_s_fract", ST_FILTER_FRACT_BITS + 1);
+    front_pipe.output("t_fract", ST_FILTER_FRACT_BITS + 1);
+    front_pipe.output("one_minus_t_fract", ST_FILTER_FRACT_BITS + 1);
+
+    front_pipe.output("tex_buffer0_read_addr", TEX_BUFFER_PIXELS_BITS);
+    front_pipe.output("tex_buffer1_read_addr", TEX_BUFFER_PIXELS_BITS);
+    front_pipe.output("tex_buffer2_read_addr", TEX_BUFFER_PIXELS_BITS);
+    front_pipe.output("tex_buffer3_read_addr", TEX_BUFFER_PIXELS_BITS);
+
+    let front_pipe = m.instance("front_pipe", "FlowControlledFrontPipe");
+
+    depth_test_pipe.drive_input("out_ready", front_pipe.output("in_ready"));
+
+    // TODO!
+    front_pipe.drive_input("out_ready", m.high());
 
     //  Aux
     front_pipe.drive_input("tex_filter_select", m.input("tex_filter_select", 1));
