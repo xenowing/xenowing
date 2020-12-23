@@ -1,3 +1,5 @@
+mod tex_cache;
+
 use crate::approx_reciprocal;
 use crate::flow_controlled_pipe;
 use crate::word_mem::*;
@@ -10,15 +12,8 @@ pub const TILE_PIXELS_BITS: u32 = TILE_DIM_BITS * 2;
 pub const TILE_PIXELS: u32 = 1 << TILE_PIXELS_BITS;
 pub const TILE_PIXELS_WORDS_BITS: u32 = TILE_PIXELS_BITS - 2;
 
-pub const TEX_DIM_BITS: u32 = 4;
-pub const TEX_DIM: u32 = 1 << TEX_DIM_BITS;
-pub const TEX_PIXELS_BITS: u32 = TEX_DIM_BITS * 2;
-pub const TEX_PIXELS: u32 = 1 << TEX_PIXELS_BITS;
-pub const TEX_PIXELS_WORDS_BITS: u32 = TEX_PIXELS_BITS - 2;
-pub const TEX_BUFFER_DIM_BITS: u32 = TEX_DIM_BITS - 1;
-pub const TEX_BUFFER_DIM: u32 = 1 << TEX_BUFFER_DIM_BITS;
-pub const TEX_BUFFER_PIXELS_BITS: u32 = TEX_BUFFER_DIM_BITS * 2;
-pub const TEX_BUFFER_PIXELS: u32 = 1 << TEX_BUFFER_PIXELS_BITS;
+pub const TEX_PIXEL_ADDR_BITS: u32 = 17 - 2;
+pub const TEX_WORD_ADDR_BITS: u32 = TEX_PIXEL_ADDR_BITS - 2;
 
 pub const EDGE_FRACT_BITS: u32 = 8;
 pub const COLOR_WHOLE_BITS: u32 = 9;
@@ -34,18 +29,29 @@ pub const REG_BUS_ADDR_BIT_WIDTH: u32 = 6;
 pub const REG_STATUS_ADDR: u32 = 0;
 pub const REG_START_ADDR: u32 = 0;
 
-pub const REG_DEPTH_SETTINGS_ADDR: u32 = 1;
+pub const REG_TEX_CACHE_INVALIDATE_ADDR: u32 = 1;
+
+pub const REG_DEPTH_SETTINGS_ADDR: u32 = 2;
 pub const REG_DEPTH_SETTINGS_BITS: u32 = 2;
 pub const REG_DEPTH_TEST_ENABLE_BIT: u32 = 0;
 pub const REG_DEPTH_WRITE_MASK_ENABLE_BIT: u32 = 1;
 
-pub const REG_TEXTURE_SETTINGS_ADDR: u32 = 2;
-pub const REG_TEXTURE_SETTINGS_BITS: u32 = 1;
-pub const REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT: u32 = 0;
+pub const REG_TEXTURE_SETTINGS_ADDR: u32 = 3;
+pub const REG_TEXTURE_SETTINGS_BITS: u32 = 3;
+pub const REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT_OFFSET: u32 = 0;
+pub const REG_TEXTURE_SETTINGS_FILTER_SELECT_BITS: u32 = 1;
 pub const REG_TEXTURE_SETTINGS_FILTER_SELECT_NEAREST: u32 = 0;
 pub const REG_TEXTURE_SETTINGS_FILTER_SELECT_BILINEAR: u32 = 1;
+pub const REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET: u32 = REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT_OFFSET + REG_TEXTURE_SETTINGS_FILTER_SELECT_BITS;
+pub const REG_TEXTURE_SETTINGS_DIM_BITS: u32 = 2;
+pub const REG_TEXTURE_SETTINGS_DIM_16: u32 = 0;
+pub const REG_TEXTURE_SETTINGS_DIM_32: u32 = 1;
+pub const REG_TEXTURE_SETTINGS_DIM_64: u32 = 2;
+pub const REG_TEXTURE_SETTINGS_DIM_128: u32 = 3;
 
-pub const REG_BLEND_SETTINGS_ADDR: u32 = 3;
+pub const REG_TEXTURE_BASE_ADDR: u32 = 4;
+
+pub const REG_BLEND_SETTINGS_ADDR: u32 = 5;
 pub const REG_BLEND_SETTINGS_BITS: u32 = 4;
 pub const REG_BLEND_SETTINGS_SRC_FACTOR_BIT_OFFSET: u32 = 0;
 pub const REG_BLEND_SETTINGS_SRC_FACTOR_BITS: u32 = 2;
@@ -60,39 +66,39 @@ pub const REG_BLEND_SETTINGS_DST_FACTOR_ONE: u32 = 1;
 pub const REG_BLEND_SETTINGS_DST_FACTOR_SRC_ALPHA: u32 = 2;
 pub const REG_BLEND_SETTINGS_DST_FACTOR_ONE_MINUS_SRC_ALPHA: u32 = 3;
 
-pub const REG_W0_MIN_ADDR: u32 = 4;
-pub const REG_W0_DX_ADDR: u32 = 5;
-pub const REG_W0_DY_ADDR: u32 = 6;
-pub const REG_W1_MIN_ADDR: u32 = 7;
-pub const REG_W1_DX_ADDR: u32 = 8;
-pub const REG_W1_DY_ADDR: u32 = 9;
-pub const REG_W2_MIN_ADDR: u32 = 10;
-pub const REG_W2_DX_ADDR: u32 = 11;
-pub const REG_W2_DY_ADDR: u32 = 12;
-pub const REG_R_MIN_ADDR: u32 = 13;
-pub const REG_R_DX_ADDR: u32 = 14;
-pub const REG_R_DY_ADDR: u32 = 15;
-pub const REG_G_MIN_ADDR: u32 = 16;
-pub const REG_G_DX_ADDR: u32 = 17;
-pub const REG_G_DY_ADDR: u32 = 18;
-pub const REG_B_MIN_ADDR: u32 = 19;
-pub const REG_B_DX_ADDR: u32 = 20;
-pub const REG_B_DY_ADDR: u32 = 21;
-pub const REG_A_MIN_ADDR: u32 = 22;
-pub const REG_A_DX_ADDR: u32 = 23;
-pub const REG_A_DY_ADDR: u32 = 24;
-pub const REG_W_INVERSE_MIN_ADDR: u32 = 25;
-pub const REG_W_INVERSE_DX_ADDR: u32 = 26;
-pub const REG_W_INVERSE_DY_ADDR: u32 = 27;
-pub const REG_Z_MIN_ADDR: u32 = 28;
-pub const REG_Z_DX_ADDR: u32 = 29;
-pub const REG_Z_DY_ADDR: u32 = 30;
-pub const REG_S_MIN_ADDR: u32 = 31;
-pub const REG_S_DX_ADDR: u32 = 32;
-pub const REG_S_DY_ADDR: u32 = 33;
-pub const REG_T_MIN_ADDR: u32 = 34;
-pub const REG_T_DX_ADDR: u32 = 35;
-pub const REG_T_DY_ADDR: u32 = 36;
+pub const REG_W0_MIN_ADDR: u32 = 6;
+pub const REG_W0_DX_ADDR: u32 = 7;
+pub const REG_W0_DY_ADDR: u32 = 8;
+pub const REG_W1_MIN_ADDR: u32 = 9;
+pub const REG_W1_DX_ADDR: u32 = 10;
+pub const REG_W1_DY_ADDR: u32 = 11;
+pub const REG_W2_MIN_ADDR: u32 = 12;
+pub const REG_W2_DX_ADDR: u32 = 13;
+pub const REG_W2_DY_ADDR: u32 = 14;
+pub const REG_R_MIN_ADDR: u32 = 15;
+pub const REG_R_DX_ADDR: u32 = 16;
+pub const REG_R_DY_ADDR: u32 = 17;
+pub const REG_G_MIN_ADDR: u32 = 18;
+pub const REG_G_DX_ADDR: u32 = 19;
+pub const REG_G_DY_ADDR: u32 = 20;
+pub const REG_B_MIN_ADDR: u32 = 21;
+pub const REG_B_DX_ADDR: u32 = 22;
+pub const REG_B_DY_ADDR: u32 = 23;
+pub const REG_A_MIN_ADDR: u32 = 24;
+pub const REG_A_DX_ADDR: u32 = 25;
+pub const REG_A_DY_ADDR: u32 = 26;
+pub const REG_W_INVERSE_MIN_ADDR: u32 = 27;
+pub const REG_W_INVERSE_DX_ADDR: u32 = 28;
+pub const REG_W_INVERSE_DY_ADDR: u32 = 29;
+pub const REG_Z_MIN_ADDR: u32 = 30;
+pub const REG_Z_DX_ADDR: u32 = 31;
+pub const REG_Z_DY_ADDR: u32 = 32;
+pub const REG_S_MIN_ADDR: u32 = 33;
+pub const REG_S_DX_ADDR: u32 = 34;
+pub const REG_S_DY_ADDR: u32 = 35;
+pub const REG_T_MIN_ADDR: u32 = 36;
+pub const REG_T_DX_ADDR: u32 = 37;
+pub const REG_T_DY_ADDR: u32 = 38;
 
 pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let m = c.module("ColorThrust");
@@ -104,6 +110,8 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let reg_bus_write_data = m.input("reg_bus_write_data", 32);
 
     let reg_bus_write_enable = reg_bus_enable & reg_bus_write;
+
+    let tex_cache_invalidate = reg_bus_write_enable & reg_bus_addr.eq(m.lit(REG_TEX_CACHE_INVALIDATE_ADDR, REG_BUS_ADDR_BIT_WIDTH));
 
     let reg_depth_settings = m.reg("depth_settings", REG_DEPTH_SETTINGS_BITS);
     reg_depth_settings.drive_next(if_(reg_bus_write_enable & reg_bus_addr.eq(m.lit(REG_DEPTH_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
@@ -120,7 +128,16 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     }).else_({
         reg_texture_settings.value
     }));
-    let tex_filter_select = reg_texture_settings.value.bit(REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT);
+    let tex_filter_select = reg_texture_settings.value.bit(REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT_OFFSET);
+    let tex_dim = reg_texture_settings.value.bits(REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET + REG_TEXTURE_SETTINGS_DIM_BITS - 1, REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET);
+
+    let reg_texture_base = m.reg("texture_base", TEX_PIXEL_ADDR_BITS - 8);
+    reg_texture_base.drive_next(if_(reg_bus_write_enable & reg_bus_addr.eq(m.lit(REG_TEXTURE_BASE_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
+        // TODO: I don't think this bit range is correct!
+        reg_bus_write_data.bits(TEX_PIXEL_ADDR_BITS - 1, 8)
+    }).else_({
+        reg_texture_base.value
+    }));
 
     let reg_blend_settings = m.reg("blend_settings", REG_BLEND_SETTINGS_BITS);
     reg_blend_settings.drive_next(if_(reg_bus_write_enable & reg_bus_addr.eq(m.lit(REG_BLEND_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
@@ -150,6 +167,8 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     pixel_pipe.drive_input("depth_write_mask_enable", depth_write_mask_enable);
 
     pixel_pipe.drive_input("tex_filter_select", tex_filter_select);
+    pixel_pipe.drive_input("tex_dim", tex_dim);
+    pixel_pipe.drive_input("tex_base", reg_texture_base.value);
 
     pixel_pipe.drive_input("blend_src_factor", blend_src_factor);
     pixel_pipe.drive_input("blend_dst_factor", blend_dst_factor);
@@ -157,7 +176,6 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     pixel_pipe.drive_input("in_valid", input_generator_active.value);
     pixel_pipe.drive_input("in_tile_addr", tile_y.value.concat(tile_x.value));
 
-    // TODO: Rename?
     let pixel_pipe_in_ready = pixel_pipe.output("in_ready");
 
     let (next_input_generator_active, next_tile_x, next_tile_y) = if_(start, {
@@ -386,26 +404,17 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("depth_buffer_bus_read_data", depth_buffer_read_port_value);
     m.output("depth_buffer_bus_read_data_valid", depth_buffer_bus_read_enable.reg_next_with_default("depth_buffer_bus_read_data_valid", false));
 
-    m.output("tex_buffer_bus_ready", m.high());
-    let tex_buffer_bus_enable = m.input("tex_buffer_bus_enable", 1);
-    let tex_buffer_bus_addr = m.input("tex_buffer_bus_addr", TEX_PIXELS_WORDS_BITS);
-    let tex_buffer_bus_write_data = m.input("tex_buffer_bus_write_data", 128);
-    let tex_buffer_bus_write_byte_enable = m.input("tex_buffer_bus_write_byte_enable", 16);
-
-    for i in 0..4 {
-        let tex_buffer = m.mem(format!("tex_buffer{}", i), TEX_BUFFER_PIXELS_BITS, 32);
-        let tex_buffer_bus_write_data_offset = i * 32;
-        tex_buffer.write_port(
-            tex_buffer_bus_addr,
-            tex_buffer_bus_write_data.bits(tex_buffer_bus_write_data_offset + 31, tex_buffer_bus_write_data_offset),
-            tex_buffer_bus_enable & tex_buffer_bus_write_byte_enable.bit(i * 4));
-
-        let read_port_value = tex_buffer.read_port(
-            pixel_pipe.output(format!("tex_buffer{}_read_port_addr", i)),
-            pixel_pipe.output(format!("tex_buffer{}_read_port_enable", i)));
-
-        pixel_pipe.drive_input(format!("tex_buffer{}_read_port_value", i), read_port_value);
-    }
+    pixel_pipe.drive_input("tex_cache_invalidate", tex_cache_invalidate);
+    let replica_bus_ready = m.input("replica_bus_ready", 1);
+    pixel_pipe.drive_input("replica_bus_ready", replica_bus_ready);
+    let replica_bus_enable = pixel_pipe.output("replica_bus_enable");
+    m.output("replica_bus_enable", replica_bus_enable);
+    m.output("replica_bus_addr", pixel_pipe.output("replica_bus_addr"));
+    // TODO: Noooo no no no no :D
+    pixel_pipe.drive_input("replica_bus_read_data", m.input("replica_bus_read_data", 128).reg_next("even_moar_haxx"));
+    let haxx = (replica_bus_ready & replica_bus_enable).reg_next("haxx");
+    m.output("haxx", haxx);
+    pixel_pipe.drive_input("replica_bus_read_data_valid", haxx/*m.input("replica_bus_read_data_valid", 1)*/);
 
     m
 }
@@ -496,7 +505,7 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     let depth_test_pipe = m.instance("depth_test_pipe", "FlowControlledDepthTestPipe");
 
-    m.output("in_ready", depth_test_pipe.output("in_ready"));
+    m.output("in_ready", depth_test_pipe.output("in_ready") | edge_test_reject);
 
     //  Aux
     depth_test_pipe.drive_input("depth_test_enable", m.input("depth_test_enable", 1));
@@ -554,6 +563,8 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     //  Aux
     front_pipe.aux_input("tex_filter_select", 1);
+    front_pipe.aux_input("tex_dim", 2);
+    front_pipe.aux_input("tex_base", TEX_PIXEL_ADDR_BITS - 8);
 
     //  Inputs
     front_pipe.input("tile_addr", TILE_PIXELS_BITS);
@@ -589,20 +600,19 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     front_pipe.output("t_fract", ST_FILTER_FRACT_BITS + 1);
     front_pipe.output("one_minus_t_fract", ST_FILTER_FRACT_BITS + 1);
 
-    front_pipe.output("tex_buffer0_read_addr", TEX_BUFFER_PIXELS_BITS);
-    front_pipe.output("tex_buffer1_read_addr", TEX_BUFFER_PIXELS_BITS);
-    front_pipe.output("tex_buffer2_read_addr", TEX_BUFFER_PIXELS_BITS);
-    front_pipe.output("tex_buffer3_read_addr", TEX_BUFFER_PIXELS_BITS);
+    front_pipe.output("tex_buffer0_read_addr", TEX_PIXEL_ADDR_BITS);
+    front_pipe.output("tex_buffer1_read_addr", TEX_PIXEL_ADDR_BITS);
+    front_pipe.output("tex_buffer2_read_addr", TEX_PIXEL_ADDR_BITS);
+    front_pipe.output("tex_buffer3_read_addr", TEX_PIXEL_ADDR_BITS);
 
     let front_pipe = m.instance("front_pipe", "FlowControlledFrontPipe");
 
-    depth_test_pipe.drive_input("out_ready", front_pipe.output("in_ready"));
-
-    // TODO!
-    front_pipe.drive_input("out_ready", m.high());
+    depth_test_pipe.drive_input("out_ready", front_pipe.output("in_ready") | depth_test_reject);
 
     //  Aux
     front_pipe.drive_input("tex_filter_select", m.input("tex_filter_select", 1));
+    front_pipe.drive_input("tex_dim", m.input("tex_dim", 2));
+    front_pipe.drive_input("tex_base", m.input("tex_base", TEX_PIXEL_ADDR_BITS - 8));
 
     //  Inputs
     front_pipe.drive_input("in_valid", valid);
@@ -640,30 +650,60 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     let t_fract = front_pipe.output("out_t_fract");
     let one_minus_t_fract = front_pipe.output("out_one_minus_t_fract");
 
+    // Tex cache
+    tex_cache::generate(c);
+    let tex_cache = m.instance("tex_cache", "TexCache");
+
+    //  Aux
+    tex_cache.drive_input("invalidate", m.input("tex_cache_invalidate", 1));
+
+    tex_cache.drive_input("replica_bus_ready", m.input("replica_bus_ready", 1));
+    m.output("replica_bus_enable", tex_cache.output("replica_bus_enable"));
+    m.output("replica_bus_addr", tex_cache.output("replica_bus_addr"));
+    tex_cache.drive_input("replica_bus_read_data", m.input("replica_bus_read_data", 128));
+    tex_cache.drive_input("replica_bus_read_data_valid", m.input("replica_bus_read_data_valid", 1));
+
+    //  Inputs
+    front_pipe.drive_input("out_ready", tex_cache.output("in_ready"));
+
+    tex_cache.drive_input("in_valid", valid);
+    tex_cache.drive_input("in_tile_addr", tile_addr);
+
+    tex_cache.drive_input("in_r", r);
+    tex_cache.drive_input("in_g", g);
+    tex_cache.drive_input("in_b", b);
+    tex_cache.drive_input("in_a", a);
+
+    tex_cache.drive_input("in_z", z);
+
+    tex_cache.drive_input("in_depth_test_result", depth_test_result);
+
+    tex_cache.drive_input("in_s_fract", s_fract);
+    tex_cache.drive_input("in_one_minus_s_fract", one_minus_s_fract);
+    tex_cache.drive_input("in_t_fract", t_fract);
+    tex_cache.drive_input("in_one_minus_t_fract", one_minus_t_fract);
+
     for i in 0..4 {
-        m.output(format!("tex_buffer{}_read_port_addr", i), front_pipe.output(format!("out_tex_buffer{}_read_addr", i)));
-        m.output(format!("tex_buffer{}_read_port_enable", i), valid);
+        tex_cache.drive_input(format!("in_tex_buffer{}_read_addr", i), front_pipe.output(format!("out_tex_buffer{}_read_addr", i)));
     }
 
-    // Tex cache interface
-    //  TODO: Do this properly :)
+    //  Outputs
+    let valid = tex_cache.output("out_valid");
+    let tile_addr = tex_cache.output("out_tile_addr");
 
-    let valid = valid.reg_next("temp_valid");
-    let tile_addr = tile_addr.reg_next("tile_addr");
+    let r = tex_cache.output("out_r");
+    let g = tex_cache.output("out_g");
+    let b = tex_cache.output("out_b");
+    let a = tex_cache.output("out_a");
 
-    let r = r.reg_next("temp_r");
-    let g = g.reg_next("temp_g");
-    let b = b.reg_next("temp_b");
-    let a = a.reg_next("temp_a");
+    let z = tex_cache.output("out_z");
 
-    let z = z.reg_next("temp_z");
+    let depth_test_result = tex_cache.output("out_depth_test_result");
 
-    let depth_test_result = depth_test_result.reg_next("temp_depth_test_result");
-
-    let s_fract = s_fract.reg_next("temp_s_fract");
-    let one_minus_s_fract = one_minus_s_fract.reg_next("temp_one_minus_s_fract");
-    let t_fract = t_fract.reg_next("temp_t_fract");
-    let one_minus_t_fract = one_minus_t_fract.reg_next("temp_one_minus_t_fract");
+    let s_fract = tex_cache.output("out_s_fract");
+    let one_minus_s_fract = tex_cache.output("out_one_minus_s_fract");
+    let t_fract = tex_cache.output("out_t_fract");
+    let one_minus_t_fract = tex_cache.output("out_one_minus_t_fract");
 
     // Back pipe
     generate_back_pipe(c);
@@ -709,7 +749,7 @@ pub fn generate_pixel_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     back_pipe.drive_input("in_one_minus_t_fract", one_minus_t_fract);
 
     for i in 0..4 {
-        back_pipe.drive_input(format!("in_tex_buffer{}_read_value", i), m.input(format!("tex_buffer{}_read_port_value", i), 32));
+        back_pipe.drive_input(format!("in_tex_buffer{}_read_value", i), tex_cache.output(format!("out_tex_buffer{}_read_value", i)));
     }
 
     //  Outputs
@@ -860,6 +900,8 @@ pub fn generate_front_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
 
     // Aux inputs
     let tex_filter_select = m.input("tex_filter_select", 1);
+    let tex_dim = m.input("tex_dim", 2);
+    let tex_base = m.input("tex_base", TEX_PIXEL_ADDR_BITS - 8);
 
     // Inputs
     let mut valid = m.input("in_valid", 1);
@@ -987,18 +1029,45 @@ pub fn generate_front_pipe<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("out_t_fract", t_fract);
     m.output("out_one_minus_t_fract", one_minus_t_fract);
 
-    let buffer0_s = (s_floor.bits(3, 0) + m.lit(1u32, 4)).bits(3, 1);
-    let buffer0_t = (t_floor.bits(3, 0) + m.lit(1u32, 4)).bits(3, 1);
-    let buffer1_s = s_floor.bits(3, 1);
-    let buffer1_t = (t_floor.bits(3, 0) + m.lit(1u32, 4)).bits(3, 1);
-    let buffer2_s = (s_floor.bits(3, 0) + m.lit(1u32, 4)).bits(3, 1);
-    let buffer2_t = t_floor.bits(3, 1);
-    let buffer3_s = s_floor.bits(3, 1);
-    let buffer3_t = t_floor.bits(3, 1);
-    m.output("out_tex_buffer0_read_addr", buffer0_t.concat(buffer0_s));
-    m.output("out_tex_buffer1_read_addr", buffer1_t.concat(buffer1_s));
-    m.output("out_tex_buffer2_read_addr", buffer2_t.concat(buffer2_s));
-    m.output("out_tex_buffer3_read_addr", buffer3_t.concat(buffer3_s));
+    let buffer0_s = (s_floor.bits(6, 0) + m.lit(1u32, 7)).bits(6, 1);
+    let buffer0_t = (t_floor.bits(6, 0) + m.lit(1u32, 7)).bits(6, 1);
+    let buffer1_s = s_floor.bits(6, 1);
+    let buffer1_t = buffer0_t;
+    let buffer2_s = buffer0_s;
+    let buffer2_t = t_floor.bits(6, 1);
+    let buffer3_s = buffer1_s;
+    let buffer3_t = buffer2_t;
+    let read_addr = |s: &'a Signal<'a>, t: &'a Signal<'a>, buffer_index: u32| {
+        if_(tex_dim.eq(m.lit(REG_TEXTURE_SETTINGS_DIM_16, REG_TEXTURE_SETTINGS_DIM_BITS)), {
+            tex_base
+            .concat(m.lit(buffer_index, 2))
+            .concat(t.bits(2, 0))
+            .concat(s.bits(2, 0))
+        }).else_if(tex_dim.eq(m.lit(REG_TEXTURE_SETTINGS_DIM_32, REG_TEXTURE_SETTINGS_DIM_BITS)), {
+            tex_base
+            .bits(6, 2)
+            .concat(m.lit(buffer_index, 2))
+            .concat(t.bits(3, 0))
+            .concat(s.bits(3, 0))
+        }).else_if(tex_dim.eq(m.lit(REG_TEXTURE_SETTINGS_DIM_64, REG_TEXTURE_SETTINGS_DIM_BITS)), {
+            tex_base
+            .bits(6, 4)
+            .concat(m.lit(buffer_index, 2))
+            .concat(t.bits(4, 0))
+            .concat(s.bits(4, 0))
+        }).else_({
+            // REG_TEXTURE_SETTINGS_DIM_128
+            tex_base
+            .bit(6)
+            .concat(m.lit(buffer_index, 2))
+            .concat(t)
+            .concat(s)
+        })
+    };
+    m.output("out_tex_buffer0_read_addr", read_addr(buffer0_s, buffer0_t, 0));
+    m.output("out_tex_buffer1_read_addr", read_addr(buffer1_s, buffer1_t, 1));
+    m.output("out_tex_buffer2_read_addr", read_addr(buffer2_s, buffer2_t, 2));
+    m.output("out_tex_buffer3_read_addr", read_addr(buffer3_s, buffer3_t, 3));
 
     m
 }

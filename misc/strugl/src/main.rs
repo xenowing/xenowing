@@ -43,6 +43,25 @@ enum TextureFilter {
     Bilinear,
 }
 
+#[derive(Clone, Copy)]
+enum TextureDim {
+    X16,
+    X32,
+    X64,
+    X128,
+}
+
+impl TextureDim {
+    fn to_u32(&self) -> u32 {
+        match *self {
+            TextureDim::X16 => 16,
+            TextureDim::X32 => 32,
+            TextureDim::X64 => 64,
+            TextureDim::X128 => 128,
+        }
+    }
+}
+
 enum BlendSrcFactor {
     Zero,
     One,
@@ -107,6 +126,7 @@ struct Context<'a> {
 
     // TODO: Move to texture object
     texture_filter: TextureFilter,
+    texture_dim: TextureDim,
 
     blend_src_factor: BlendSrcFactor,
     blend_dst_factor: BlendDstFactor,
@@ -134,6 +154,7 @@ impl<'a> Context<'a> {
             depth_write_mask_enable: false,
 
             texture_filter: TextureFilter::Nearest,
+            texture_dim: TextureDim::X16,
 
             blend_src_factor: BlendSrcFactor::One,
             blend_dst_factor: BlendDstFactor::Zero,
@@ -174,10 +195,19 @@ impl<'a> Context<'a> {
 
         self.device.write_reg(
             REG_TEXTURE_SETTINGS_ADDR,
-            match self.texture_filter {
+            (match self.texture_filter {
                 TextureFilter::Nearest => REG_TEXTURE_SETTINGS_FILTER_SELECT_NEAREST,
                 TextureFilter::Bilinear => REG_TEXTURE_SETTINGS_FILTER_SELECT_BILINEAR,
-            } << REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT);
+            } << REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT_OFFSET) |
+            (match self.texture_dim {
+                TextureDim::X16 => REG_TEXTURE_SETTINGS_DIM_16,
+                TextureDim::X32 => REG_TEXTURE_SETTINGS_DIM_32,
+                TextureDim::X64 => REG_TEXTURE_SETTINGS_DIM_64,
+                TextureDim::X128 => REG_TEXTURE_SETTINGS_DIM_128,
+            } << REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET));
+        self.estimated_frame_reg_cycles += 1;
+        // TODO: Proper addr where texture data is loaded
+        self.device.write_reg(REG_TEXTURE_BASE_ADDR, 0x00000000);
         self.estimated_frame_reg_cycles += 1;
 
         self.device.write_reg(
@@ -380,7 +410,7 @@ impl<'a> Context<'a> {
             scaled_area = -scaled_area;*/
         }
 
-        let texture_dims = Vec2::splat(16.0); // TODO: Proper value and default if no texture is enabled
+        let texture_dims = Vec2::splat(self.texture_dim.to_u32() as _);
         // Offset to sample texel centers
         let st_bias = match self.texture_filter {
             TextureFilter::Nearest => 0.0,
@@ -561,7 +591,45 @@ fn main() {
         ..WindowOptions::default()
     }).unwrap();
 
-    let tex = image::open("tex2.png").unwrap();
+    let tex = image::open("myface.png").unwrap();
+
+    // TODO: Move to texture object
+    let texture_dim = match tex.width() {
+        16 => TextureDim::X16,
+        32 => TextureDim::X32,
+        64 => TextureDim::X64,
+        128 => TextureDim::X128,
+        _ => panic!("Unsupported texture size")
+    };
+    if tex.width() != tex.height() {
+        panic!("Non-square textures not supported");
+    }
+
+    // Upload texture
+    //  Interleave texels for different tex memories to allow single-cycle filtered texel reads
+    let mut addr = 0;
+    for block_y in 0..2 {
+        for block_x in 0..2 {
+            for chunk_y in 0..texture_dim.to_u32() / 2 {
+                for chunk_x in 0..texture_dim.to_u32() / 2 / 4 {
+                    let mut word = 0;
+                    for x in 0..4 {
+                        let texel_x = block_x + (chunk_x * 4 + x) * 2;
+                        let texel_y = block_y + chunk_y * 2;
+                        let texel = tex.get_pixel(texel_x, texture_dim.to_u32() - 1 - texel_y);
+                        let r = texel[0];
+                        let g = texel[1];
+                        let b = texel[2];
+                        let a = texel[3];
+                        let argb = ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | ((b as u32) << 0);
+                        word |= (argb as u128) << (x * 32);
+                    }
+                    device.write_tex_buffer_word(addr, word);
+                    addr += 1;
+                }
+            }
+        }
+    }
 
     let start_time = Instant::now();
 
@@ -764,38 +832,14 @@ fn main() {
 
         let mut c = Context::new(&mut *device);
 
-        // Upload texture
-        //  Interleave texels for different tex memories to allow single-cycle filtered texel reads
-        for block_y in 0..16 / 2 {
-            for block_x in 0..16 / 2 {
-                let mut word = 0;
-                for y in 0..2 {
-                    for x in 0..2 {
-                        let texel_x = block_x * 2 + x;
-                        let texel_y = block_y * 2 + y;
-                        let block_index = y * 2 + x;
-                        let texel = tex.get_pixel(texel_x, 15 - texel_y);
-                        let r = texel[0];
-                        let g = texel[1];
-                        let b = texel[2];
-                        let a = texel[3];
-                        let argb = ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | ((b as u32) << 0);
-                        word |= (argb as u128) << (block_index * 32);
-                    }
-                }
-                let addr = block_y * (16 / 2) + block_x;
-                c.device.write_tex_buffer_word(addr, word);
-
-                c.estimated_frame_xfer_cycles += 1;
-            }
-        }
-
         c.depth_test_enable = true;
         c.depth_write_mask_enable = true;
 
+        c.texture_dim = texture_dim;
+
         c.projection = Matrix::perspective(90.0, WIDTH as f32 / HEIGHT as f32, 1.0, 1000.0);
 
-        let mut view = Matrix::translation(-1.0, 0.0, -4.0);
+        let mut view = Matrix::translation(/*-1.0*/0.0, 0.0, -3.0/*-4.0*/);
         let t = (frame_time * 0.1) as f32;
         view = view * Matrix::rotation_x(t * 1.1);
         view = view * Matrix::rotation_y(t * 0.47);
@@ -819,18 +863,18 @@ fn main() {
 
         let mut rng: Pcg32 = SeedableRng::seed_from_u64(0xfadebabedeadbeef);
 
-        for _ in 0..50 {
+        for _ in 0..1/*50*/ {
             let mut v = Vec::new();
 
             let mut model = Matrix::identity();
             //model = model * Matrix::translation(0.5, 0.0, 0.0);
-            let t = (frame_time * 0.2) as f32 + rng.gen::<f32>() * 30.0;
+            /*let t = (frame_time * 0.2) as f32 + rng.gen::<f32>() * 30.0;
             model = model * Matrix::rotation_x(t * 1.1);
             model = model * Matrix::rotation_y(t * 0.47);
             model = model * Matrix::rotation_z(t * 0.73);
             model = model * Matrix::translation(0.0, -0.6 + rng.gen::<f32>() * 1.2, -0.6 + rng.gen::<f32>() * 1.2);
             model = model * Matrix::scale(1.0 + rng.gen::<f32>() * 0.5, 0.1 + rng.gen::<f32>() * 0.2, 0.04);
-            model = model * Matrix::translation(0.5 + rng.gen::<f32>() * 0.5, 0.0, 0.0);
+            model = model * Matrix::translation(0.5 + rng.gen::<f32>() * 0.5, 0.0, 0.0);*/
             c.model_view = view * model;
 
             c.texture_filter = TextureFilter::Bilinear;

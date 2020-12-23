@@ -25,10 +25,7 @@ pub struct ModelDevice {
     color_buffer: [u32; TILE_PIXELS as usize],
     depth_buffer: [u16; TILE_PIXELS as usize],
 
-    tex_buffer0: [u32; TEX_BUFFER_PIXELS as usize],
-    tex_buffer1: [u32; TEX_BUFFER_PIXELS as usize],
-    tex_buffer2: [u32; TEX_BUFFER_PIXELS as usize],
-    tex_buffer3: [u32; TEX_BUFFER_PIXELS as usize],
+    tex_buffer: [u128; (1 << TEX_WORD_ADDR_BITS) as usize],
 
     depth_test_enable: bool,
     depth_write_mask_enable: bool,
@@ -79,10 +76,7 @@ impl ModelDevice {
             color_buffer: [0; TILE_PIXELS as usize],
             depth_buffer: [0; TILE_PIXELS as usize],
 
-            tex_buffer0: [0; TEX_BUFFER_PIXELS as usize],
-            tex_buffer1: [0; TEX_BUFFER_PIXELS as usize],
-            tex_buffer2: [0; TEX_BUFFER_PIXELS as usize],
-            tex_buffer3: [0; TEX_BUFFER_PIXELS as usize],
+            tex_buffer: [0; (1 << TEX_WORD_ADDR_BITS) as usize],
 
             depth_test_enable: false,
             depth_write_mask_enable: false,
@@ -323,7 +317,7 @@ impl ModelDevice {
         let s = s as usize & (texture_width - 1);
         let t = t as usize & (texture_height - 1);
         // TODO: Proper fetch from correct address
-        let texel = self.tex_buffer0[t / 2 * texture_width / 2 + s / 2];
+        let texel = self.tex_buffer[t / 2 * texture_width / 2 + s / 2] as u32;
         let texel_red = (texel >> 16) & 0xff;
         let texel_green = (texel >> 8) & 0xff;
         let texel_blue = (texel >> 0) & 0xff;
@@ -341,7 +335,7 @@ impl Device for ModelDevice {
                 self.depth_write_mask_enable = (data & (1 << REG_DEPTH_WRITE_MASK_ENABLE_BIT)) != 0;
             }
             REG_TEXTURE_SETTINGS_ADDR => {
-                self.texture_filter = match (data >> REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT) & ((1 << REG_TEXTURE_SETTINGS_BITS) - 1) {
+                self.texture_filter = match (data >> REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT_OFFSET) & ((1 << REG_TEXTURE_SETTINGS_BITS) - 1) {
                     REG_TEXTURE_SETTINGS_FILTER_SELECT_NEAREST => TextureFilter::Nearest,
                     REG_TEXTURE_SETTINGS_FILTER_SELECT_BILINEAR => TextureFilter::Bilinear,
                     _ => unreachable!(),
@@ -411,7 +405,7 @@ impl Device for ModelDevice {
                 (match self.texture_filter {
                     TextureFilter::Nearest => REG_TEXTURE_SETTINGS_FILTER_SELECT_NEAREST,
                     TextureFilter::Bilinear => REG_TEXTURE_SETTINGS_FILTER_SELECT_BILINEAR,
-                }) << REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT
+                }) << REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT_OFFSET
             }
             REG_BLEND_SETTINGS_ADDR => {
                 (match self.blend_src_factor {
@@ -493,15 +487,6 @@ impl Device for ModelDevice {
     }
 
     fn write_tex_buffer_word(&mut self, addr: u32, data: u128) {
-        for i in 0..4 {
-            let word = (data >> (32 * i)) as u32;
-            match i {
-                0 => { self.tex_buffer0[addr as usize] = word; }
-                1 => { self.tex_buffer1[addr as usize] = word; }
-                2 => { self.tex_buffer2[addr as usize] = word; }
-                3 => { self.tex_buffer3[addr as usize] = word; }
-                _ => unreachable!()
-            }
-        }
+        self.tex_buffer[addr as usize] = data;
     }
 }

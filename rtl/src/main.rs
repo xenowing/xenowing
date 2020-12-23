@@ -9,6 +9,7 @@ mod marv;
 mod marv_interconnect_bridge;
 mod mimas_a7;
 mod peek_buffer;
+mod read_cache;
 mod uart;
 mod uart_interface;
 mod word_mem;
