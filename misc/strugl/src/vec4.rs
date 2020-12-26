@@ -1,47 +1,55 @@
-#[cfg(target_arch = "x86")]
-use std::arch::x86::*;
-#[cfg(target_arch = "x86_64")]
-use std::arch::x86_64::*;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, Sub};
 
 #[derive(Clone, Copy)]
 pub struct Vec4 {
-    inner: __m128,
+    x: f32,
+    y: f32,
+    z: f32,
+    w: f32,
 }
 
 impl Vec4 {
     pub fn new(x: f32, y: f32, z: f32, w: f32) -> Vec4 {
         Vec4 {
-            inner: unsafe { _mm_set_ps(w, z, y, x) },
+            x,
+            y,
+            z,
+            w,
         }
     }
 
     pub fn splat(value: f32) -> Vec4 {
         Vec4 {
-            inner: unsafe { _mm_set1_ps(value) },
+            x: value,
+            y: value,
+            z: value,
+            w: value,
         }
     }
 
     pub fn zero() -> Vec4 {
         Vec4 {
-            inner: unsafe { _mm_setzero_ps() },
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 0.0,
         }
     }
 
     pub fn x(&self) -> f32 {
-        unsafe { _mm_cvtss_f32(self.inner) }
+        self.x
     }
 
     pub fn y(&self) -> f32 {
-        unsafe { _mm_cvtss_f32(_mm_shuffle_ps(self.inner, self.inner, _MM_SHUFFLE(0, 0, 0, 1) as _)) }
+        self.y
     }
 
     pub fn z(&self) -> f32 {
-        unsafe { _mm_cvtss_f32(_mm_shuffle_ps(self.inner, self.inner, _MM_SHUFFLE(0, 0, 0, 2) as _)) }
+        self.z
     }
 
     pub fn w(&self) -> f32 {
-        unsafe { _mm_cvtss_f32(_mm_shuffle_ps(self.inner, self.inner, _MM_SHUFFLE(0, 0, 0, 3) as _)) }
+        self.w
     }
 
     pub fn len(self) -> f32 {
@@ -54,23 +62,24 @@ impl Vec4 {
     }
 
     pub fn dot(self, other: Vec4) -> f32 {
-        unsafe {
-            let mut product = _mm_mul_ps(self.inner, other.inner);
-            product = _mm_hadd_ps(product, product);
-            product = _mm_hadd_ps(product, product);
-            _mm_cvtss_f32(product)
-        }
+        self.x * other.x + self.y * other.y + self.z * other.z + self.w * other.w
     }
 
     pub fn min(self, other: Vec4) -> Vec4 {
         Vec4 {
-            inner: unsafe { _mm_min_ps(self.inner, other.inner) },
+            x: self.x.min(other.x),
+            y: self.y.min(other.y),
+            z: self.z.min(other.z),
+            w: self.w.min(other.w),
         }
     }
 
     pub fn max(self, other: Vec4) -> Vec4 {
         Vec4 {
-            inner: unsafe { _mm_max_ps(self.inner, other.inner) },
+            x: self.x.max(other.x),
+            y: self.y.max(other.y),
+            z: self.z.max(other.z),
+            w: self.w.max(other.w),
         }
     }
 }
@@ -80,7 +89,10 @@ impl Add for Vec4 {
 
     fn add(self, other: Vec4) -> Vec4 {
         Vec4 {
-            inner: unsafe { _mm_add_ps(self.inner, other.inner) },
+            x: self.x + other.x,
+            y: self.y + other.y,
+            z: self.z + other.z,
+            w: self.w + other.w,
         }
     }
 }
@@ -96,7 +108,10 @@ impl Div for Vec4 {
 
     fn div(self, other: Vec4) -> Vec4 {
         Vec4 {
-            inner: unsafe { _mm_div_ps(self.inner, other.inner) },
+            x: self.x / other.x,
+            y: self.y / other.y,
+            z: self.z / other.z,
+            w: self.w / other.w,
         }
     }
 }
@@ -106,7 +121,10 @@ impl Div<f32> for Vec4 {
 
     fn div(self, other: f32) -> Vec4 {
         Vec4 {
-            inner: unsafe { _mm_div_ps(self.inner, _mm_set1_ps(other)) },
+            x: self.x / other,
+            y: self.y / other,
+            z: self.z / other,
+            w: self.w / other,
         }
     }
 }
@@ -122,7 +140,10 @@ impl Mul for Vec4 {
 
     fn mul(self, other: Vec4) -> Vec4 {
         Vec4 {
-            inner: unsafe { _mm_mul_ps(self.inner, other.inner) },
+            x: self.x * other.x,
+            y: self.y * other.y,
+            z: self.z * other.z,
+            w: self.w * other.w,
         }
     }
 }
@@ -132,7 +153,10 @@ impl Mul<f32> for Vec4 {
 
     fn mul(self, other: f32) -> Vec4 {
         Vec4 {
-            inner: unsafe { _mm_mul_ps(self.inner, _mm_set1_ps(other)) },
+            x: self.x * other,
+            y: self.y * other,
+            z: self.z * other,
+            w: self.w * other,
         }
     }
 }
@@ -142,7 +166,10 @@ impl Sub for Vec4 {
 
     fn sub(self, other: Vec4) -> Vec4 {
         Vec4 {
-            inner: unsafe { _mm_sub_ps(self.inner, other.inner) },
+            x: self.x - other.x,
+            y: self.y - other.y,
+            z: self.z - other.z,
+            w: self.w - other.w,
         }
     }
 }

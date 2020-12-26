@@ -1,5 +1,3 @@
-#![feature(stdarch)]
-
 mod device;
 mod matrix;
 mod model_device;
