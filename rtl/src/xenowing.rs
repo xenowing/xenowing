@@ -42,7 +42,7 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     const BOOT_ROM_BITS: u32 = 12;
     const BOOT_ROM_SIZE: u32 = 1 << BOOT_ROM_BITS;
     let boot_rom_contents_bytes = {
-        let mut ret = include_bytes!("../../boot_rom/boot_rom.bin").iter().cloned().collect::<Vec<u8>>();
+        let mut ret = include_bytes!("../../sw/boot_rom/boot_rom.bin").iter().cloned().collect::<Vec<u8>>();
         if ret.len() as u32 > BOOT_ROM_SIZE {
             panic!("BIOS ROM cannot be larger than {} bytes", BOOT_ROM_SIZE);
         }

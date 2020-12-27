@@ -1,5 +1,5 @@
 [package]
-name = "strugl"
+name = "xw-blaster"
 version = "0.1.0"
 authors = ["ferris <yupferris@gmail.com>"]
 edition = "2018"
@@ -8,11 +8,12 @@ edition = "2018"
 
 [build-dependencies]
 kaze = "0.1"
-rtl = { path = "../../rtl" }
+rtl = { path = "../../../rtl" }
 
 [dependencies]
 image = "0.23"
 minifb = "0.16"
 rand = "0.7"
-rand_pcg = "0.2.1"
-rtl = { path = "../../rtl" }
+rtl = { path = "../../../rtl" }
+serialport = "3.3.0"
+termcolor = "1"

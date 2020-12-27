@@ -1,8 +1,6 @@
 [workspace]
 
 members = [
-    "misc/strugl",
-    "misc/xw-blaster",
     "rtl",
     "sim/approx-reciprocal",
     "sim/buster",
@@ -11,4 +9,6 @@ members = [
     "sim/marv",
     "sim/peek-buffer",
     "sim/read-cache",
+    "sw/misc/strugl",
+    "sw/misc/xw-blaster",
 ]
