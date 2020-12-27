@@ -17,7 +17,38 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("marv_bus_read_data", cpu.output("primary0_bus_read_data"));
     m.output("marv_bus_read_data_valid", cpu.output("primary0_bus_read_data_valid"));
 
-    buster::generate(c, "Sys", 1, 8, 24, 4, 128, 5);
+    // TODO: Better name?
+    buster::generate(c, "MemCrossbar", 2, 1, 13, 0, 128, 5);
+    let mem = m.instance("mem", "MemCrossbar");
+
+    mem.drive_input("primary0_bus_enable", cpu.output("replica1_bus_enable"));
+    mem.drive_input("primary0_bus_addr", cpu.output("replica1_bus_addr").bits(12, 0));
+    mem.drive_input("primary0_bus_write", cpu.output("replica1_bus_write"));
+    mem.drive_input("primary0_bus_write_data", cpu.output("replica1_bus_write_data"));
+    mem.drive_input("primary0_bus_write_byte_enable", cpu.output("replica1_bus_write_byte_enable"));
+    cpu.drive_input("replica1_bus_ready", mem.output("primary0_bus_ready"));
+    cpu.drive_input("replica1_bus_read_data", mem.output("primary0_bus_read_data"));
+    cpu.drive_input("replica1_bus_read_data_valid", mem.output("primary0_bus_read_data_valid"));
+
+    mem.drive_input("primary1_bus_enable", m.input("color_thrust_replica_bus_enable", 1));
+    mem.drive_input("primary1_bus_addr", m.input("color_thrust_replica_bus_addr", 13));
+    mem.drive_input("primary1_bus_write", m.low());
+    mem.drive_input("primary1_bus_write_data", m.lit(0u32, 128));
+    mem.drive_input("primary1_bus_write_byte_enable", m.lit(0u32, 16));
+    m.output("color_thrust_replica_bus_ready", mem.output("primary1_bus_ready"));
+    m.output("color_thrust_replica_bus_read_data", mem.output("primary1_bus_read_data"));
+    m.output("color_thrust_replica_bus_read_data_valid", mem.output("primary1_bus_read_data_valid"));
+
+    m.output("ddr3_interface_bus_enable", mem.output("replica0_bus_enable"));
+    m.output("ddr3_interface_bus_addr", mem.output("replica0_bus_addr"));
+    m.output("ddr3_interface_bus_write", mem.output("replica0_bus_write"));
+    m.output("ddr3_interface_bus_write_data", mem.output("replica0_bus_write_data"));
+    m.output("ddr3_interface_bus_write_byte_enable", mem.output("replica0_bus_write_byte_enable"));
+    mem.drive_input("replica0_bus_ready", m.input("ddr3_interface_bus_ready", 1));
+    mem.drive_input("replica0_bus_read_data", m.input("ddr3_interface_bus_read_data", 128));
+    mem.drive_input("replica0_bus_read_data_valid", m.input("ddr3_interface_bus_read_data_valid", 1));
+
+    buster::generate(c, "Sys", 1, 7, 24, 4, 128, 5);
     let sys = m.instance("sys", "Sys");
 
     sys.drive_input("primary0_bus_enable", cpu.output("replica0_bus_enable"));
@@ -91,24 +122,6 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     sys.drive_input("replica6_bus_ready", m.input("color_thrust_depth_buffer_bus_ready", 1));
     sys.drive_input("replica6_bus_read_data", m.input("color_thrust_depth_buffer_bus_read_data", 128));
     sys.drive_input("replica6_bus_read_data_valid", m.input("color_thrust_depth_buffer_bus_read_data_valid", 1));
-
-    m.output("color_thrust_tex_buffer_bus_enable", sys.output("replica7_bus_enable"));
-    m.output("color_thrust_tex_buffer_bus_addr", sys.output("replica7_bus_addr"));
-    m.output("color_thrust_tex_buffer_bus_write", sys.output("replica7_bus_write"));
-    m.output("color_thrust_tex_buffer_bus_write_data", sys.output("replica7_bus_write_data"));
-    m.output("color_thrust_tex_buffer_bus_write_byte_enable", sys.output("replica7_bus_write_byte_enable"));
-    sys.drive_input("replica7_bus_ready", m.input("color_thrust_tex_buffer_bus_ready", 1));
-    sys.drive_input("replica7_bus_read_data", m.input("color_thrust_tex_buffer_bus_read_data", 128));
-    sys.drive_input("replica7_bus_read_data_valid", m.input("color_thrust_tex_buffer_bus_read_data_valid", 1));
-
-    m.output("ddr3_interface_bus_enable", cpu.output("replica1_bus_enable"));
-    m.output("ddr3_interface_bus_addr", cpu.output("replica1_bus_addr"));
-    m.output("ddr3_interface_bus_write", cpu.output("replica1_bus_write"));
-    m.output("ddr3_interface_bus_write_data", cpu.output("replica1_bus_write_data"));
-    m.output("ddr3_interface_bus_write_byte_enable", cpu.output("replica1_bus_write_byte_enable"));
-    cpu.drive_input("replica1_bus_ready", m.input("ddr3_interface_bus_ready", 1));
-    cpu.drive_input("replica1_bus_read_data", m.input("ddr3_interface_bus_read_data", 128));
-    cpu.drive_input("replica1_bus_read_data_valid", m.input("ddr3_interface_bus_read_data_valid", 1));
 
     m
 }

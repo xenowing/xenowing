@@ -296,7 +296,7 @@ fn main() -> Result<(), Error> {
                 // Upload texture
                 writeln!(&mut stdout, "  write tex mem")?;
                 //  Interleave texels for different tex memories to allow single-cycle filtered texel reads
-                for block_y in 0..16 / 2 {
+                /*for block_y in 0..16 / 2 {
                     for block_x in 0..16 / 2 {
                         for y in 0..2 {
                             for x in 0..2 {
@@ -315,7 +315,7 @@ fn main() -> Result<(), Error> {
                             }
                         }
                     }
-                }
+                }*/
 
                 for i in 0..1/*5*/ {
                     writeln!(&mut stdout, "  primitive {}", i)?;

@@ -405,16 +405,11 @@ pub fn generate<'a>(c: &'a Context<'a>) -> &Module<'a> {
     m.output("depth_buffer_bus_read_data_valid", depth_buffer_bus_read_enable.reg_next_with_default("depth_buffer_bus_read_data_valid", false));
 
     pixel_pipe.drive_input("tex_cache_invalidate", tex_cache_invalidate);
-    let replica_bus_ready = m.input("replica_bus_ready", 1);
-    pixel_pipe.drive_input("replica_bus_ready", replica_bus_ready);
-    let replica_bus_enable = pixel_pipe.output("replica_bus_enable");
-    m.output("replica_bus_enable", replica_bus_enable);
+    pixel_pipe.drive_input("replica_bus_ready", m.input("replica_bus_ready", 1));
+    m.output("replica_bus_enable", pixel_pipe.output("replica_bus_enable"));
     m.output("replica_bus_addr", pixel_pipe.output("replica_bus_addr"));
-    // TODO: Noooo no no no no :D
-    pixel_pipe.drive_input("replica_bus_read_data", m.input("replica_bus_read_data", 128).reg_next("even_moar_haxx"));
-    let haxx = (replica_bus_ready & replica_bus_enable).reg_next("haxx");
-    m.output("haxx", haxx);
-    pixel_pipe.drive_input("replica_bus_read_data_valid", haxx/*m.input("replica_bus_read_data_valid", 1)*/);
+    pixel_pipe.drive_input("replica_bus_read_data", m.input("replica_bus_read_data", 128));
+    pixel_pipe.drive_input("replica_bus_read_data_valid", m.input("replica_bus_read_data_valid", 1));
 
     m
 }
