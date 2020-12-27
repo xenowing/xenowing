@@ -113,8 +113,8 @@ struct Triangle {
     t_dy: u32,
 }
 
-struct Context<'a> {
-    device: &'a mut dyn Device,
+struct Context<D: Device> {
+    device: D,
 
     back_buffer: Vec<u32>,
     depth_buffer: Vec<u16>,
@@ -140,8 +140,8 @@ struct Context<'a> {
     estimated_frame_rasterization_cycles: u64,
 }
 
-impl<'a> Context<'a> {
-    fn new(device: &'a mut dyn Device) -> Context<'a> {
+impl<D: Device> Context<D> {
+    fn new(device: D) -> Context<D> {
         Context {
             device,
 
