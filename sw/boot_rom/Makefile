@@ -1,8 +1,7 @@
+TARGET_PREFIX=riscv64-unknown-elf-
 ifeq ($(OS),Windows_NT)
-	TARGET_PREFIX=riscv-none-embed-
 	EXE_EXT=.exe
 else
-	TARGET_PREFIX=riscv64-unknown-elf-
 	EXE_EXT=
 endif
 
