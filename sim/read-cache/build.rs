@@ -1,5 +1,5 @@
 use kaze::*;
-use rtl::*;
+use rtl::read_cache::*;
 
 use std::env;
 use std::fs::File;

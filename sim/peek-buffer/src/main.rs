@@ -4,11 +4,24 @@ mod modules {
 
 use modules::*;
 
+use kaze::runtime::tracing::*;
+use kaze::runtime::tracing::vcd::*;
+
 use rand::{Rng, SeedableRng};
 
 use std::env;
+use std::fs::File;
+use std::io;
 
-fn main() {
+fn build_trace(test_name: &'static str) -> io::Result<impl Trace> {
+    let mut path = env::temp_dir();
+    path.push(format!("{}.vcd", test_name));
+    println!("Writing trace to {:?}", path);
+    let file = File::create(path)?;
+    VcdTrace::new(file, 10, TimeScaleUnit::Ns)
+}
+
+fn main() -> io::Result<()> {
     let seed = env::args().skip(1).nth(0).expect("seed not specified").parse().expect("Couldn't parse seed");
     let num_elements = env::args().skip(1).nth(1).expect("num_elements not specified").parse().expect("Couldn't parse num_elements");
 
@@ -20,12 +33,14 @@ fn main() {
 
     let mut read_data = Vec::new();
 
-    let mut m = PeekBuffer::new();
+    let trace = build_trace("PeekBuffer__fuzz")?;
+
+    let mut m = TracingPeekBuffer::new(trace)?;
+    let mut time_stamp = 0;
+
     m.reset();
 
     let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
-
-    let mut num_cycles = 0;
 
     loop {
         m.prop();
@@ -59,9 +74,13 @@ fn main() {
         }
 
         m.prop();
+        m.update_trace(time_stamp)?;
+
         m.posedge_clk();
-        num_cycles += 1;
+        time_stamp += 1;
     }
 
-    println!("Test successful after {} cycles", num_cycles);
+    println!("Test successful after {} cycles", time_stamp);
+
+    Ok(())
 }

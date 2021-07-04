@@ -1,5 +1,5 @@
 use kaze::*;
-use rtl::*;
+use rtl::fifo::*;
 
 use std::env;
 use std::fs::File;
@@ -13,5 +13,6 @@ fn main() -> Result<()> {
 
     let c = Context::new();
 
-    sim::generate(fifo::generate(&c, "Fifo", 4, 32), sim::GenerationOptions::default(), file)
+    let fifo = Fifo::new("fifo", 4, 32, &c);
+    sim::generate(fifo.m, sim::GenerationOptions::default(), file)
 }

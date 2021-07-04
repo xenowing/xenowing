@@ -1,17 +1,19 @@
 mod approx_reciprocal;
+mod boot_rom;
+mod byte_ram;
 mod buster;
 mod color_thrust;
 mod fifo;
 mod flow_controlled_pipe;
-mod interconnect;
 mod led_interface;
 mod marv;
-mod marv_interconnect_bridge;
+mod marv_system_bridge;
 mod mimas_a7;
 mod peek_buffer;
 mod read_cache;
 mod uart;
 mod uart_interface;
+mod wire;
 mod word_mem;
 mod xenowing;
 

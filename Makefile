@@ -128,7 +128,7 @@ flow-controlled-pipe-test: flow-controlled-pipe
 
 .PHONY: peek-buffer-test
 peek-buffer-test: peek-buffer
-	cd $(PEEK_BUFFER_DIR) && cargo test --release && cargo run --release -- 10 10000000
+	cd $(PEEK_BUFFER_DIR) && cargo test --release && cargo run --release -- 10 1000
 
 .PHONY: read-cache-test
 read-cache-test: read-cache

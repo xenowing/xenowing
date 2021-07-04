@@ -7,7 +7,7 @@ pub struct WordMem<'a> {
 }
 
 impl<'a> WordMem<'a> {
-    pub fn new<S: Into<String>>(module: &'a Module<'a>, name: S, address_bit_width: u32, element_bit_width: u32, elements_per_word: u32) -> WordMem<'a> {
+    pub fn new(module: &'a Module<'a>, name: impl Into<String>, address_bit_width: u32, element_bit_width: u32, elements_per_word: u32) -> WordMem<'a> {
         let name = name.into();
 
         WordMem {
@@ -22,7 +22,7 @@ impl<'a> WordMem<'a> {
         }
     }
 
-    pub fn read_port(&self, address: &'a Signal<'a>, enable: &'a Signal<'a>) -> &'a Signal<'a> {
+    pub fn read_port(&self, address: &'a dyn Signal<'a>, enable: &'a dyn Signal<'a>) -> &'a dyn Signal<'a> {
         let mut ret = None;
 
         for mem in self.mems.iter() {
@@ -37,7 +37,7 @@ impl<'a> WordMem<'a> {
         ret.unwrap()
     }
 
-    pub fn write_port(&self, address: &'a Signal<'a>, value: &'a Signal<'a>, enable: &'a Signal<'a>, element_enable: &'a Signal<'a>) {
+    pub fn write_port(&self, address: &'a dyn Signal<'a>, value: &'a dyn Signal<'a>, enable: &'a dyn Signal<'a>, element_enable: &'a dyn Signal<'a>) {
         for (element_index, mem) in self.mems.iter().enumerate() {
             let element_index = element_index as u32;
             let element_word_offset_bits = element_index * self.element_bit_width;
