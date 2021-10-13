@@ -46,9 +46,9 @@ impl<'a> ReadCache<'a> {
         let invalidate_addr = m.reg("invalidate_addr", cache_addr_bit_width);
         invalidate_addr.default_value(0u32);
 
-        let replica_bus_enable = m.input("replica_bus_enable", 1);
-        let replica_bus_addr = m.input("replica_bus_addr", addr_bit_width);
-        let cache_addr = replica_bus_addr.bits(cache_addr_bit_width - 1, 0);
+        let client_bus_enable = m.input("client_bus_enable", 1);
+        let client_bus_addr = m.input("client_bus_addr", addr_bit_width);
+        let cache_addr = client_bus_addr.bits(cache_addr_bit_width - 1, 0);
 
         let issue_buffer_occupied = m.reg("issue_buffer_occupied", 1);
         issue_buffer_occupied.default_value(false);
@@ -75,7 +75,7 @@ impl<'a> ReadCache<'a> {
         //  a system level, this fixes a performance bug, not a logical one... though, for a cache, this is probably
         //  not a useful distinction!
         let internal_mem_bypass =
-            (system_bus_read_data_valid & replica_bus_enable & replica_bus_addr.eq(issue_buffer_addr))
+            (system_bus_read_data_valid & client_bus_enable & client_bus_addr.eq(issue_buffer_addr))
             .reg_next_with_default(
                 "internal_mem_bypass",
                 false);
@@ -91,9 +91,9 @@ impl<'a> ReadCache<'a> {
             (state.eq(m.lit(state_miss_return, state_bit_width)) & system_bus_read_data_valid);
         let can_accept_issue = can_accept_issue & !will_invalidate;
 
-        let replica_bus_ready = m.output("replica_bus_ready", can_accept_issue);
+        let client_bus_ready = m.output("client_bus_ready", can_accept_issue);
 
-        let accept_issue = can_accept_issue & replica_bus_enable;
+        let accept_issue = can_accept_issue & client_bus_enable;
 
         valid_mem_read_port_value_wire.i.drive(valid_mem.read_port(cache_addr, accept_issue));
         tag_mem_read_port_value_wire.i.drive(tag_mem.read_port(cache_addr, accept_issue));
@@ -105,7 +105,7 @@ impl<'a> ReadCache<'a> {
         }));
 
         issue_buffer_addr.drive_next(if_(accept_issue, {
-            replica_bus_addr
+            client_bus_addr
         }).else_({
             issue_buffer_addr
         }));
@@ -128,14 +128,14 @@ impl<'a> ReadCache<'a> {
 
         let system_bus_enable = m.output("system_bus_enable", state.eq(m.lit(state_active, state_bit_width)) & miss);
         let system_bus_addr = m.output("system_bus_addr", issue_buffer_addr);
-        let replica_bus_read_data = m.output("replica_bus_read_data", if_(system_bus_read_data_valid, {
+        let client_bus_read_data = m.output("client_bus_read_data", if_(system_bus_read_data_valid, {
             system_bus_read_data.into()
         }).else_if(internal_mem_bypass, {
             system_bus_read_data.reg_next("internal_mem_bypass_data")
         }).else_({
             data_mem.read_port(cache_addr, accept_issue)
         }));
-        let replica_bus_read_data_valid = m.output("replica_bus_read_data_valid", system_bus_read_data_valid | hit);
+        let client_bus_read_data_valid = m.output("client_bus_read_data_valid", system_bus_read_data_valid | hit);
 
         state.drive_next(if_(start_invalidate, {
             m.lit(state_invalidate, state_bit_width)
@@ -183,14 +183,14 @@ impl<'a> ReadCache<'a> {
             m,
             invalidate,
             client_port: ReplicaPort {
-                bus_enable: replica_bus_enable,
-                bus_addr: replica_bus_addr,
-                bus_write: m.input("replica_bus_write", 1),
-                bus_write_data: m.input("replica_bus_write_data", data_bit_width),
-                bus_write_byte_enable: m.input("replica_bus_write_byte_enable", data_bit_width / 8),
-                bus_ready: replica_bus_ready,
-                bus_read_data: replica_bus_read_data,
-                bus_read_data_valid: replica_bus_read_data_valid,
+                bus_enable: client_bus_enable,
+                bus_addr: client_bus_addr,
+                bus_write: m.input("client_bus_write", 1),
+                bus_write_data: m.input("client_bus_write_data", data_bit_width),
+                bus_write_byte_enable: m.input("client_bus_write_byte_enable", data_bit_width / 8),
+                bus_ready: client_bus_ready,
+                bus_read_data: client_bus_read_data,
+                bus_read_data_valid: client_bus_read_data_valid,
             },
             system_port: PrimaryPort {
                 bus_enable: system_bus_enable,
