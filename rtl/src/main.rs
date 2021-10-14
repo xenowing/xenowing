@@ -17,20 +17,22 @@ mod wire;
 mod word_mem;
 mod xenowing;
 
+use mimas_a7::test::lfsr::*;
+use mimas_a7::test::uart::*;
+use xenowing::*;
+
 use kaze::*;
 
-use std::io::{Result, stdout};
+use std::io::Result;
 
 fn main() -> Result<()> {
     let c = Context::new();
 
-    xenowing::generate(&c);
-    mimas_a7::test::lfsr::generate(&c);
-    mimas_a7::test::uart::generate(&c);
+    let _xenowing = Xenowing::new("xenowing", &c);
+    let _lfsr = Lfsr::new("lfsr", &c);
+    let _uart = Uart::new("uart", &c);
 
-    for m in c.modules().values() {
-        verilog::generate(m, stdout())?;
-    }
+    // TODO: Generate verilog for above modules
 
     Ok(())
 }
