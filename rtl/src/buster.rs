@@ -23,7 +23,7 @@ impl<'a> PrimaryPort<'a> {
             panic!("Primary and replica ports have different write data bit widths ({} and {}, respectively).", self.bus_write_data.bit_width(), replica_port.bus_write_data.bit_width());
         }
         if self.bus_read_data.bit_width() != replica_port.bus_read_data.bit_width() {
-            panic!("Primary and replica ports have different read data bit widths ({} and {}, respectively).", self.bus_read_data.bit_width(), replica_port.bus_write_data.bit_width());
+            panic!("Primary and replica ports have different read data bit widths ({} and {}, respectively).", self.bus_read_data.bit_width(), replica_port.bus_read_data.bit_width());
         }
         replica_port.bus_enable.drive(self.bus_enable);
         replica_port.bus_addr.drive(self.bus_addr);
