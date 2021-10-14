@@ -42,7 +42,7 @@ dependencies = [
 name = "approx-reciprocal"
 version = "0.1.0"
 dependencies = [
- "kaze 0.1.19",
+ "kaze",
  "rtl",
 ]
 
@@ -68,7 +68,7 @@ checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 name = "buster"
 version = "0.1.0"
 dependencies = [
- "kaze 0.1.19",
+ "kaze",
  "rtl",
 ]
 
@@ -211,7 +211,7 @@ checksum = "cd56b59865bce947ac5958779cfa508f6c3b9497cc762b7e24a12d11ccde2c4f"
 name = "fifo"
 version = "0.1.0"
 dependencies = [
- "kaze 0.1.19",
+ "kaze",
  "rand 0.7.3",
  "rand_chacha 0.2.2",
  "rtl",
@@ -221,7 +221,7 @@ dependencies = [
 name = "flow-controlled-pipe"
 version = "0.1.0"
 dependencies = [
- "kaze 0.1.19",
+ "kaze",
  "rand 0.7.3",
  "rand_chacha 0.2.2",
  "rtl",
@@ -300,16 +300,6 @@ checksum = "cc797adac5f083b8ff0ca6f6294a999393d76e197c36488e2ef732c4715f6fa3"
 dependencies = [
  "byteorder",
  "rayon",
-]
-
-[[package]]
-name = "kaze"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef9f7ed9b11d18590787c454ce75bce4b7c955167a0521a00a79c92ea995e909"
-dependencies = [
- "typed-arena",
- "vcd",
 ]
 
 [[package]]
@@ -400,7 +390,7 @@ name = "marv"
 version = "0.1.0"
 dependencies = [
  "goblin",
- "kaze 0.1.19",
+ "kaze",
  "rtl",
 ]
 
@@ -563,7 +553,7 @@ dependencies = [
 name = "peek-buffer"
 version = "0.1.0"
 dependencies = [
- "kaze 0.1.19",
+ "kaze",
  "rand 0.7.3",
  "rand_chacha 0.2.2",
  "rtl",
@@ -820,7 +810,7 @@ dependencies = [
 name = "read-cache"
 version = "0.1.0"
 dependencies = [
- "kaze 0.1.19",
+ "kaze",
  "rand 0.7.3",
  "rand_chacha 0.2.2",
  "rtl",
@@ -863,7 +853,7 @@ dependencies = [
 name = "rtl"
 version = "0.1.0"
 dependencies = [
- "kaze 0.1.19",
+ "kaze",
 ]
 
 [[package]]
@@ -980,7 +970,7 @@ name = "strugl"
 version = "0.1.0"
 dependencies = [
  "image",
- "kaze 0.1.19",
+ "kaze",
  "minifb",
  "rand 0.7.3",
  "rand_pcg 0.2.1",
@@ -1233,7 +1223,7 @@ name = "xw-blaster"
 version = "0.1.0"
 dependencies = [
  "image",
- "kaze 0.1.18",
+ "kaze",
  "minifb",
  "rand 0.7.3",
  "rtl",

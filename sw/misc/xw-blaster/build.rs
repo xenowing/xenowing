@@ -1,5 +1,7 @@
 use kaze::*;
-use rtl::*;
+
+use rtl::uart::*;
+use rtl::xenowing::*;
 
 use std::env;
 use std::fs::File;
@@ -13,36 +15,25 @@ fn main() -> Result<()> {
 
     let c = Context::new();
 
-    sim::generate(generate_top(&c), sim::GenerationOptions::default(), file)
-}
+    let m = c.module("top", "Top");
 
-fn generate_top<'a>(c: &'a Context<'a>) -> &Module<'a> {
-    let m = c.module("Top");
+    let xenowing = Xenowing::new("xenowing", &c);
 
-    xenowing::generate(c);
-    let xenowing = m.instance("xenowing", "Xenowing");
+    m.output("leds", xenowing.leds);
 
-    m.output("leds", xenowing.output("leds"));
+    let clock_freq = 100000000;
+    let uart_baud_rate = 460800;
 
-    let uart_rx = m.instance("uart_rx", "UartRx");
-    uart_rx.drive_input("rx", xenowing.output("tx"));
-    m.output("uart_tx_data", uart_rx.output("data"));
-    m.output("uart_tx_data_valid", uart_rx.output("data_valid"));
+    let uart_rx = UartRx::new("uart_rx", clock_freq, uart_baud_rate, m);
+    uart_rx.rx.drive(xenowing.tx);
+    m.output("uart_tx_data", uart_rx.data);
+    m.output("uart_tx_data_valid", uart_rx.data_valid);
 
-    let uart_tx = m.instance("uart_tx", "UartTx");
-    xenowing.drive_input("rx", uart_tx.output("tx"));
-    m.output("uart_rx_ready", uart_tx.output("ready"));
-    uart_tx.drive_input("data", m.input("uart_rx_data", 8));
-    uart_tx.drive_input("enable", m.input("uart_rx_enable", 1));
+    let uart_tx = UartTx::new("uart_tx", clock_freq, uart_baud_rate, m);
+    xenowing.rx.drive(uart_tx.tx);
+    m.output("uart_rx_ready", uart_tx.ready);
+    uart_tx.data.drive(m.input("uart_rx_data", 8));
+    uart_tx.enable.drive(m.input("uart_rx_enable", 1));
 
-    /*m.output("ddr3_interface_bus_enable", xenowing.output("ddr3_interface_bus_enable"));
-    m.output("ddr3_interface_bus_addr", xenowing.output("ddr3_interface_bus_addr"));
-    m.output("ddr3_interface_bus_write", xenowing.output("ddr3_interface_bus_write"));
-    m.output("ddr3_interface_bus_write_data", xenowing.output("ddr3_interface_bus_write_data"));
-    m.output("ddr3_interface_bus_write_byte_enable", xenowing.output("ddr3_interface_bus_write_byte_enable"));
-    xenowing.drive_input("ddr3_interface_bus_ready", m.input("ddr3_interface_bus_ready", 1));
-    xenowing.drive_input("ddr3_interface_bus_read_data", m.input("ddr3_interface_bus_read_data", 128));
-    xenowing.drive_input("ddr3_interface_bus_read_data_valid", m.input("ddr3_interface_bus_read_data_valid", 1));*/
-
-    m
+    sim::generate(m, sim::GenerationOptions::default(), file)
 }
