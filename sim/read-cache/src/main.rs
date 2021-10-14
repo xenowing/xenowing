@@ -45,7 +45,7 @@ fn main() -> io::Result<()> {
 
     let trace = build_trace("ReadCache__fuzz")?;
 
-    let mut m = ReadCacheDelayedReturnPath::new("m", trace)?;
+    let mut m = ReadCacheDelayedReturnPath::new(trace)?;
     let mut time_stamp = 0;
 
     m.reset();
@@ -61,37 +61,37 @@ fn main() -> io::Result<()> {
 
         // Mem read return (to cache)
         if let Some(addr) = last_mem_addr {
-            m.replica_bus_read_data = mem_data[addr as usize];
-            m.replica_bus_read_data_valid = true;
+            m.system_bus_read_data = mem_data[addr as usize];
+            m.system_bus_read_data_valid = true;
         } else {
-            m.replica_bus_read_data_valid = false;
+            m.system_bus_read_data_valid = false;
         }
 
         m.prop();
 
         // Cache read issue (from user)
         if rng.gen() {
-            m.primary_bus_enable = true;
+            m.client_bus_enable = true;
             let addr = rng.gen::<u32>() % mem_num_elements;
-            m.primary_bus_addr = addr;
-            if m.primary_bus_ready {
+            m.client_bus_addr = addr;
+            if m.client_bus_ready {
                 issued_cache_addrs.push_back(addr);
             }
         } else {
-            m.primary_bus_enable = false;
+            m.client_bus_enable = false;
         }
 
         // Cache read return (to user)
-        if m.primary_bus_read_data_valid {
+        if m.client_bus_read_data_valid {
             let addr = issued_cache_addrs.pop_front().expect("Cache returned data but no corresponding read was issued");
-            assert_eq!(mem_data[addr as usize], m.primary_bus_read_data);
+            assert_eq!(mem_data[addr as usize], m.client_bus_read_data);
             successful_reads += 1;
         }
 
         // Mem read issue (from cache)
-        m.replica_bus_ready = rng.gen();
-        last_mem_addr = if m.replica_bus_enable && m.replica_bus_ready {
-            Some(m.replica_bus_addr)
+        m.system_bus_ready = rng.gen();
+        last_mem_addr = if m.system_bus_enable && m.system_bus_ready {
+            Some(m.system_bus_addr)
         } else {
             None
         };
