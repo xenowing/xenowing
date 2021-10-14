@@ -7,7 +7,7 @@ pub struct WordMem<'a> {
 }
 
 impl<'a> WordMem<'a> {
-    pub fn new(module: &'a Module<'a>, name: impl Into<String>, address_bit_width: u32, element_bit_width: u32, elements_per_word: u32) -> WordMem<'a> {
+    pub fn new(module: &'a Module<'a>, name: impl Into<String>, addr_bit_width: u32, element_bit_width: u32, elements_per_word: u32) -> WordMem<'a> {
         let name = name.into();
 
         WordMem {
@@ -16,7 +16,7 @@ impl<'a> WordMem<'a> {
             mems: (0..elements_per_word).map(|element_index| {
                 module.mem(
                     format!("{}_element_{}", name, element_index),
-                    address_bit_width,
+                    addr_bit_width,
                     element_bit_width)
             }).collect(),
         }
