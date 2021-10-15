@@ -888,7 +888,7 @@ fn main() {
 
             c.texture_filter = TextureFilter::Bilinear;
 
-            let transparent = rng.gen::<bool>();
+            let transparent = false;//rng.gen::<bool>();
             if transparent {
                 c.depth_write_mask_enable = false;
                 c.blend_src_factor = BlendSrcFactor::One;
