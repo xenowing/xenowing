@@ -604,7 +604,18 @@ fn main() {
     }
 
     // Upload texture
-    //  Interleave texels for different tex memories to allow single-cycle filtered texel reads
+    //  To support reading a filtered texel in one clock cycle, the texture storage organization is a little tricky.
+    //  The main idea is to conceptually group texels into 2x2 blocks. For a bilinear-filtered texel, we need to
+    //  perform 4 reads - one from each index in a 2x2 block. When a filtered texel straddles more than one 2x2 block,
+    //  we still perform reads from each of the the 4 respective 2x2 block indices, except that we read from 1, 2,
+    //  or 4 different blocks, instead of reading all 4 indices from the same block. Thus, we organize texel storage
+    //  in a "block-index-major" order, such that all of the texels for a given block index are chunked together. We
+    //  match this with our texture cache, which consist of 4 smaller caches; one for each chunk. This allows us to
+    //  read from all 4 at once each cycle, which satisfies our bandwidth requirement (when the data is in-cache(s)).
+    //  The final detail is that the system bus is 128 bits wide, which corresponds to 4 texels. This means that
+    //  when we have a chunk-cache miss, we'd be wasting precious system bus bandwidth if we weren't loading 4 texels
+    //  at once. So, each 128-bit word contains a 4x1 group of texels of its corresponding chunk (which, given the
+    //  above, corresponds to a span of 8x1 texels in "texture-space", where every 2nd texel is skipped).
     let mut addr = 0;
     for block_y in 0..2 {
         for block_x in 0..2 {

@@ -15,8 +15,9 @@ pub const TILE_PIXELS_BITS: u32 = TILE_DIM_BITS * 2;
 pub const TILE_PIXELS: u32 = 1 << TILE_PIXELS_BITS;
 pub const TILE_PIXELS_WORDS_BITS: u32 = TILE_PIXELS_BITS - 2;
 
-pub const TEX_PIXEL_ADDR_BITS: u32 = 17 - 2;
-pub const TEX_WORD_ADDR_BITS: u32 = TEX_PIXEL_ADDR_BITS - 2;
+// TODO: Move
+pub const SYSTEM_BUS_BITS: u32 = 24;
+pub const TEX_WORD_ADDR_BITS: u32 = SYSTEM_BUS_BITS;
 
 pub const EDGE_FRACT_BITS: u32 = 8;
 pub const COLOR_WHOLE_BITS: u32 = 9;
@@ -27,6 +28,7 @@ pub const ST_FRACT_BITS: u32 = 24;
 pub const ST_FILTER_FRACT_BITS: u32 = 4; // Must be less than ST_FRACT_BITS
 pub const RESTORED_W_FRACT_BITS: u32 = 8; // Must be less than W_INVERSE_FRACT_BITS and ST_FRACT_BITS
 
+const REG_BUS_BITS: u32 = 20;
 pub const REG_BUS_ADDR_BIT_WIDTH: u32 = 6;
 
 pub const REG_STATUS_ADDR: u32 = 0;
@@ -53,6 +55,8 @@ pub const REG_TEXTURE_SETTINGS_DIM_64: u32 = 2;
 pub const REG_TEXTURE_SETTINGS_DIM_128: u32 = 3;
 
 pub const REG_TEXTURE_BASE_ADDR: u32 = 4;
+// Subtract 6 bits for 2x2x2 texel coord swizzling dims
+pub const REG_TEXTURE_BASE_BITS: u32 = TEX_WORD_ADDR_BITS - 6;
 
 pub const REG_BLEND_SETTINGS_ADDR: u32 = 5;
 pub const REG_BLEND_SETTINGS_BITS: u32 = 4;
@@ -118,16 +122,17 @@ impl<'a> ColorThrust<'a> {
 
         let reg_bus_ready = m.output("reg_bus_ready", m.high());
         let reg_bus_enable = m.input("reg_bus_enable", 1);
-        let reg_bus_addr = m.input("reg_bus_addr", REG_BUS_ADDR_BIT_WIDTH);
+        let reg_bus_addr = m.input("reg_bus_addr", REG_BUS_BITS);
+        let truncated_reg_bus_addr = reg_bus_addr.bits(REG_BUS_ADDR_BIT_WIDTH - 1, 0);
         let reg_bus_write = m.input("reg_bus_write", 1);
-        let reg_bus_write_data = m.input("reg_bus_write_data", 32);
+        let reg_bus_write_data = m.input("reg_bus_write_data", 128);
 
         let reg_bus_write_enable = reg_bus_enable & reg_bus_write;
 
-        let tex_cache_invalidate = reg_bus_write_enable & reg_bus_addr.eq(m.lit(REG_TEX_CACHE_INVALIDATE_ADDR, REG_BUS_ADDR_BIT_WIDTH));
+        let tex_cache_invalidate = reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(REG_TEX_CACHE_INVALIDATE_ADDR, REG_BUS_ADDR_BIT_WIDTH));
 
         let reg_depth_settings = m.reg("depth_settings", REG_DEPTH_SETTINGS_BITS);
-        reg_depth_settings.drive_next(if_(reg_bus_write_enable & reg_bus_addr.eq(m.lit(REG_DEPTH_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
+        reg_depth_settings.drive_next(if_(reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(REG_DEPTH_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
             reg_bus_write_data.bits(REG_DEPTH_SETTINGS_BITS - 1, 0)
         }).else_({
             reg_depth_settings
@@ -136,7 +141,7 @@ impl<'a> ColorThrust<'a> {
         let depth_write_mask_enable = reg_depth_settings.bit(REG_DEPTH_WRITE_MASK_ENABLE_BIT);
 
         let reg_texture_settings = m.reg("texture_settings", REG_TEXTURE_SETTINGS_BITS);
-        reg_texture_settings.drive_next(if_(reg_bus_write_enable & reg_bus_addr.eq(m.lit(REG_TEXTURE_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
+        reg_texture_settings.drive_next(if_(reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(REG_TEXTURE_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
             reg_bus_write_data.bits(REG_TEXTURE_SETTINGS_BITS - 1, 0)
         }).else_({
             reg_texture_settings
@@ -144,16 +149,15 @@ impl<'a> ColorThrust<'a> {
         let tex_filter_select = reg_texture_settings.bit(REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT_OFFSET);
         let tex_dim = reg_texture_settings.bits(REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET + REG_TEXTURE_SETTINGS_DIM_BITS - 1, REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET);
 
-        let reg_texture_base = m.reg("texture_base", TEX_PIXEL_ADDR_BITS - 8);
-        reg_texture_base.drive_next(if_(reg_bus_write_enable & reg_bus_addr.eq(m.lit(REG_TEXTURE_BASE_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
-            // TODO: I don't think this bit range is correct!
-            reg_bus_write_data.bits(TEX_PIXEL_ADDR_BITS - 1, 8)
+        let reg_texture_base = m.reg("texture_base", REG_TEXTURE_BASE_BITS);
+        reg_texture_base.drive_next(if_(reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(REG_TEXTURE_BASE_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
+            reg_bus_write_data.bits(6 + 4 + REG_TEXTURE_BASE_BITS - 1, 6 + 4)
         }).else_({
             reg_texture_base
         }));
 
         let reg_blend_settings = m.reg("blend_settings", REG_BLEND_SETTINGS_BITS);
-        reg_blend_settings.drive_next(if_(reg_bus_write_enable & reg_bus_addr.eq(m.lit(REG_BLEND_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
+        reg_blend_settings.drive_next(if_(reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(REG_BLEND_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
             reg_bus_write_data.bits(REG_BLEND_SETTINGS_BITS - 1, 0)
         }).else_({
             reg_blend_settings
@@ -169,7 +173,7 @@ impl<'a> ColorThrust<'a> {
         let tile_x_last = tile_x.eq(m.lit(TILE_DIM - 1, TILE_DIM_BITS));
         let tile_y_last = tile_y.eq(m.lit(TILE_DIM - 1, TILE_DIM_BITS));
 
-        let start = reg_bus_write_enable & reg_bus_addr.eq(m.lit(REG_START_ADDR, REG_BUS_ADDR_BIT_WIDTH));
+        let start = reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(REG_START_ADDR, REG_BUS_ADDR_BIT_WIDTH));
 
         let pixel_pipe = PixelPipe::new("pixel_pipe", m);
 
@@ -227,13 +231,13 @@ impl<'a> ColorThrust<'a> {
 
         let interpolant = |name: &str, num_bits, min_addr: u32, dx_addr: u32, dy_addr: u32| {
             let min = m.reg(format!("{}_min", name), num_bits);
-            min.drive_next(if_(reg_bus_write_enable & reg_bus_addr.eq(m.lit(min_addr, REG_BUS_ADDR_BIT_WIDTH)), {
+            min.drive_next(if_(reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(min_addr, REG_BUS_ADDR_BIT_WIDTH)), {
                 reg_bus_write_data.bits(num_bits - 1, 0)
             }).else_({
                 min
             }));
             let dx = m.reg(format!("{}_dx", name), num_bits);
-            dx.drive_next(if_(reg_bus_write_enable & reg_bus_addr.eq(m.lit(dx_addr, REG_BUS_ADDR_BIT_WIDTH)), {
+            dx.drive_next(if_(reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(dx_addr, REG_BUS_ADDR_BIT_WIDTH)), {
                 reg_bus_write_data.bits(num_bits - 1, 0)
             }).else_({
                 dx
@@ -245,7 +249,7 @@ impl<'a> ColorThrust<'a> {
                 dx_mirror
             }));
             let dy = m.reg(format!("{}_dy", name), num_bits);
-            dy.drive_next(if_(reg_bus_write_enable & reg_bus_addr.eq(m.lit(dy_addr, REG_BUS_ADDR_BIT_WIDTH)), {
+            dy.drive_next(if_(reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(dy_addr, REG_BUS_ADDR_BIT_WIDTH)), {
                 reg_bus_write_data.bits(num_bits - 1, 0)
             }).else_({
                 dy
@@ -313,12 +317,12 @@ impl<'a> ColorThrust<'a> {
         pixel_pipe.in_s.drive(s);
         pixel_pipe.in_t.drive(t);
 
-        let reg_bus_read_data = m.output("reg_bus_read_data", m.lit(0u32, 31).concat(input_generator_active | pixel_pipe.active));
+        let reg_bus_read_data = m.output("reg_bus_read_data", m.lit(0u32, 127).concat(input_generator_active | pixel_pipe.active));
         let reg_bus_read_data_valid = m.output("reg_bus_read_data_valid", (reg_bus_enable & !reg_bus_write).reg_next_with_default("reg_bus_read_data_valid", false));
 
         let color_buffer_bus_ready = m.output("color_buffer_bus_ready", m.high());
         let color_buffer_bus_enable = m.input("color_buffer_bus_enable", 1);
-        let color_buffer_bus_addr = m.input("color_buffer_bus_addr", TILE_PIXELS_WORDS_BITS);
+        let color_buffer_bus_addr = m.input("color_buffer_bus_addr", 20);
         let color_buffer_bus_write = m.input("color_buffer_bus_write", 1);
         let color_buffer_bus_write_data = m.input("color_buffer_bus_write_data", 128);
         let color_buffer_bus_write_byte_enable = m.input("color_buffer_bus_write_byte_enable", 16);
@@ -335,7 +339,7 @@ impl<'a> ColorThrust<'a> {
         let color_buffer_bus_write_enable = color_buffer_bus_enable & color_buffer_bus_write;
         color_buffer.write_port(
             if_(color_buffer_bus_write_enable, {
-                color_buffer_bus_addr
+                color_buffer_bus_addr.bits(TILE_PIXELS_WORDS_BITS - 1, 0)
             }).else_({
                 pixel_pipe.color_buffer_write_port_addr
             }),
@@ -354,7 +358,7 @@ impl<'a> ColorThrust<'a> {
         let color_buffer_bus_read_enable = color_buffer_bus_enable & !color_buffer_bus_write;
         let color_buffer_read_port_value = color_buffer.read_port(
             if_(color_buffer_bus_read_enable, {
-                color_buffer_bus_addr
+                color_buffer_bus_addr.bits(TILE_PIXELS_WORDS_BITS - 1, 0)
             }).else_({
                 pixel_pipe.color_buffer_read_port_addr
             }),
@@ -367,7 +371,7 @@ impl<'a> ColorThrust<'a> {
 
         let depth_buffer_bus_ready = m.output("depth_buffer_bus_ready", m.high());
         let depth_buffer_bus_enable = m.input("depth_buffer_bus_enable", 1);
-        let depth_buffer_bus_addr = m.input("depth_buffer_bus_addr", TILE_PIXELS_WORDS_BITS - 1);
+        let depth_buffer_bus_addr = m.input("depth_buffer_bus_addr", 20);
         let depth_buffer_bus_write = m.input("depth_buffer_bus_write", 1);
         let depth_buffer_bus_write_data = m.input("depth_buffer_bus_write_data", 128);
         let depth_buffer_bus_write_byte_enable = m.input("depth_buffer_bus_write_byte_enable", 16);
@@ -384,7 +388,7 @@ impl<'a> ColorThrust<'a> {
         let depth_buffer_bus_write_enable = depth_buffer_bus_enable & depth_buffer_bus_write;
         depth_buffer.write_port(
             if_(depth_buffer_bus_write_enable, {
-                depth_buffer_bus_addr
+                depth_buffer_bus_addr.bits(TILE_PIXELS_WORDS_BITS - 1 - 1, 0)
             }).else_({
                 pixel_pipe.depth_buffer_write_port_addr
             }),
@@ -403,7 +407,7 @@ impl<'a> ColorThrust<'a> {
         let depth_buffer_bus_read_enable = depth_buffer_bus_enable & !depth_buffer_bus_write;
         let depth_buffer_read_port_value = depth_buffer.read_port(
             if_(depth_buffer_bus_read_enable, {
-                depth_buffer_bus_addr
+                depth_buffer_bus_addr.bits(TILE_PIXELS_WORDS_BITS - 1 - 1, 0)
             }).else_({
                 pixel_pipe.depth_buffer_read_port_addr
             }),
@@ -425,7 +429,7 @@ impl<'a> ColorThrust<'a> {
                 bus_addr: reg_bus_addr,
                 bus_write: reg_bus_write,
                 bus_write_data: reg_bus_write_data,
-                bus_write_byte_enable: m.input("reg_bus_write_byte_enable", 32 / 8),
+                bus_write_byte_enable: m.input("reg_bus_write_byte_enable", 128 / 8),
                 bus_ready: reg_bus_ready,
                 bus_read_data: reg_bus_read_data,
                 bus_read_data_valid: reg_bus_read_data_valid,
@@ -651,7 +655,7 @@ impl<'a> PixelPipe<'a> {
         front_pipe.aux_input("tex_filter_select", front_pipe_inner.tex_filter_select).drive(tex_filter_select);
         let tex_dim = m.input("tex_dim", 2);
         front_pipe.aux_input("tex_dim", front_pipe_inner.tex_dim).drive(tex_dim);
-        let tex_base = m.input("tex_base", TEX_PIXEL_ADDR_BITS - 8);
+        let tex_base = m.input("tex_base", REG_TEXTURE_BASE_BITS);
         front_pipe.aux_input("tex_base", front_pipe_inner.tex_base).drive(tex_base);
 
         //  Inputs
@@ -1173,7 +1177,7 @@ impl<'a> FrontPipe<'a> {
         // Aux inputs
         let tex_filter_select = m.input("tex_filter_select", 1);
         let tex_dim = m.input("tex_dim", 2);
-        let tex_base = m.input("tex_base", TEX_PIXEL_ADDR_BITS - 8);
+        let tex_base = m.input("tex_base", REG_TEXTURE_BASE_BITS);
 
         let mut valid: &dyn Signal<'a> = in_valid;
         let mut tile_addr: &dyn Signal<'a> = in_tile_addr;
@@ -1296,28 +1300,30 @@ impl<'a> FrontPipe<'a> {
         let buffer3_s = buffer1_s;
         let buffer3_t = buffer2_t;
         let read_addr = |s: &'a dyn Signal<'a>, t: &'a dyn Signal<'a>, buffer_index: u32| {
+            let buffer_index = m.lit(buffer_index, 2);
             if_(tex_dim.eq(m.lit(REG_TEXTURE_SETTINGS_DIM_16, REG_TEXTURE_SETTINGS_DIM_BITS)), {
                 tex_base
-                .concat(m.lit(buffer_index, 2))
+                .bits(REG_TEXTURE_BASE_BITS - 1, 0)
+                .concat(buffer_index)
                 .concat(t.bits(2, 0))
                 .concat(s.bits(2, 0))
             }).else_if(tex_dim.eq(m.lit(REG_TEXTURE_SETTINGS_DIM_32, REG_TEXTURE_SETTINGS_DIM_BITS)), {
                 tex_base
-                .bits(6, 2)
-                .concat(m.lit(buffer_index, 2))
+                .bits(REG_TEXTURE_BASE_BITS - 1, 2)
+                .concat(buffer_index)
                 .concat(t.bits(3, 0))
                 .concat(s.bits(3, 0))
             }).else_if(tex_dim.eq(m.lit(REG_TEXTURE_SETTINGS_DIM_64, REG_TEXTURE_SETTINGS_DIM_BITS)), {
                 tex_base
-                .bits(6, 4)
-                .concat(m.lit(buffer_index, 2))
+                .bits(REG_TEXTURE_BASE_BITS - 1, 4)
+                .concat(buffer_index)
                 .concat(t.bits(4, 0))
                 .concat(s.bits(4, 0))
             }).else_({
                 // REG_TEXTURE_SETTINGS_DIM_128
                 tex_base
-                .bit(6)
-                .concat(m.lit(buffer_index, 2))
+                .bits(REG_TEXTURE_BASE_BITS - 1, 6)
+                .concat(buffer_index)
                 .concat(t)
                 .concat(s)
             })

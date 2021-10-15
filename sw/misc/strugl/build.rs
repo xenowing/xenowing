@@ -21,14 +21,14 @@ fn main() -> Result<()> {
     let color_thrust = ColorThrust::new("color_thrust", m);
 
     let mem_addr_bit_width = 13;
-    let mem = ByteRam::new("mem", mem_addr_bit_width, m);
+    let mem = ByteRam::new("mem", mem_addr_bit_width, SYSTEM_BUS_BITS, m);
 
     // Interconnect
     color_thrust.reg_port.forward("reg", m);
     color_thrust.color_buffer_port.forward("color_buffer", m);
     color_thrust.depth_buffer_port.forward("depth_buffer", m);
 
-    let mem_crossbar = Crossbar::new("mem_crossbar", 2, 1, mem_addr_bit_width, 0, 128, 5, m);
+    let mem_crossbar = Crossbar::new("mem_crossbar", 2, 1, SYSTEM_BUS_BITS, 0, 128, 5, m);
 
     mem_crossbar.replica_ports[0].forward("mem", m);
     color_thrust.tex_cache_system_port.connect(&mem_crossbar.replica_ports[1]);

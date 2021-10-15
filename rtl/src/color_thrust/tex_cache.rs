@@ -34,7 +34,7 @@ impl<'a> TexCache<'a> {
         let issue_buffer_occupied = m.reg("issue_buffer_occupied", 1);
         issue_buffer_occupied.default_value(false);
 
-        let block_cache_crossbar = Crossbar::new("block_cache_crossbar", 4, 1, TEX_WORD_ADDR_BITS, 0, 128, 5, m);
+        let block_cache_crossbar = Crossbar::new("block_cache_crossbar", 4, 1, SYSTEM_BUS_BITS, 0, 128, 5, m);
         let system_port = block_cache_crossbar.primary_ports[0].forward("system", m);
 
         let mut in_tex_buffer_read_addrs = Vec::new();
@@ -43,7 +43,8 @@ impl<'a> TexCache<'a> {
         let block_caches = (0..4).map(|i| {
             let block_cache = BlockCache::new(format!("block_cache{}", i), m);
             block_cache.invalidate.drive(invalidate);
-            let addr = m.input(format!("in_tex_buffer{}_read_addr", i), TEX_PIXEL_ADDR_BITS);
+            // Inputs address individual texels, of which there are 4 per word, so we need two more bits than the system bus width (which is in words)
+            let addr = m.input(format!("in_tex_buffer{}_read_addr", i), SYSTEM_BUS_BITS + 2);
             block_cache.in_addr.drive(addr);
             let return_data = block_cache.return_data;
             let value = m.output(format!("out_tex_buffer{}_read_value", i), return_data);
@@ -155,8 +156,8 @@ impl<'a> BlockCache<'a> {
 
         let invalidate = m.input("invalidate", 1);
 
-        // TODO: Properly expose/check these parameters!
-        let read_cache = ReadCache::new("read_cache", 128, TEX_WORD_ADDR_BITS, TEX_WORD_ADDR_BITS - 3, m);
+        // A block cache will (via a read cache) read whole words from the system bus, but should be addressed with two additional bits, to select the correct texel (of 4) from the returned data word.
+        let read_cache = ReadCache::new("read_cache", 128, SYSTEM_BUS_BITS, 8, m);
         let system_port = read_cache.system_port.forward("system", m);
 
         read_cache.invalidate.drive(invalidate);
@@ -164,8 +165,8 @@ impl<'a> BlockCache<'a> {
         let issue = m.input("issue", 1);
         let in_ready = m.output("in_ready", read_cache.client_port.bus_ready);
         read_cache.client_port.bus_enable.drive(issue);
-        let in_addr = m.input("in_addr", TEX_PIXEL_ADDR_BITS);
-        read_cache.client_port.bus_addr.drive(in_addr.bits(TEX_PIXEL_ADDR_BITS - 1, 2));
+        let in_addr = m.input("in_addr", SYSTEM_BUS_BITS + 2);
+        read_cache.client_port.bus_addr.drive(in_addr.bits(in_addr.bit_width() - 1, 2));
 
         read_cache.client_port.bus_write.drive(m.low());
         read_cache.client_port.bus_write_data.drive(m.lit(0u32, 128));

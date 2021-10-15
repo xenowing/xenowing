@@ -27,7 +27,7 @@ impl<'a> Xenowing<'a> {
 
         let boot_rom = BootRom::new("boot_rom", m);
 
-        let program_ram = ByteRam::new("program_ram", 13, m);
+        let program_ram = ByteRam::new("program_ram", 13, 20, m);
 
         let led_interface = LedInterface::new("led_interface", m);
         let leds = m.output("leds", led_interface.leds);
@@ -51,14 +51,14 @@ impl<'a> Xenowing<'a> {
 
         let color_thrust = ColorThrust::new("color_thrust", m);
 
-        let ddr3_interface = ByteRam::new("ddr3_interface", 13, m);
+        let ddr3_interface = ByteRam::new("ddr3_interface", 13, 24, m);
 
         // Interconnect
         let cpu_crossbar = Crossbar::new("cpu_crossbar", 1, 2, 28, 4, 128, 5, m);
 
         marv_system_bridge.system_port.connect(&cpu_crossbar.replica_ports[0]);
 
-        let mem_crossbar = Crossbar::new("mem_crossbar", 2, 1, 13, 0, 128, 5, m);
+        let mem_crossbar = Crossbar::new("mem_crossbar", 2, 1, 24, 0, 128, 5, m);
         cpu_crossbar.primary_ports[1].connect(&mem_crossbar.replica_ports[0]);
         color_thrust.tex_cache_system_port.connect(&mem_crossbar.replica_ports[1]);
         mem_crossbar.primary_ports[0].connect(&ddr3_interface.client_port);

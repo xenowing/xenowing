@@ -26,7 +26,7 @@ impl Device for SimDevice {
         self.color_thrust.reg_bus_addr = addr;
         self.color_thrust.reg_bus_enable = true;
         self.color_thrust.reg_bus_write = true;
-        self.color_thrust.reg_bus_write_data = data;
+        self.color_thrust.reg_bus_write_data = data as _;
         self.color_thrust.prop();
         loop {
             let ready = self.color_thrust.reg_bus_ready;
@@ -57,7 +57,7 @@ impl Device for SimDevice {
             self.color_thrust.posedge_clk();
             self.color_thrust.prop();
         }
-        self.color_thrust.reg_bus_read_data
+        self.color_thrust.reg_bus_read_data as _
     }
 
     fn write_color_buffer_word(&mut self, addr: u32, data: u128) {

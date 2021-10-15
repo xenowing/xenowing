@@ -17,7 +17,7 @@ fn main() -> Result<()> {
 
     let m = c.module("top", "Top");
 
-    let xenowing = Xenowing::new("xenowing", &c);
+    let xenowing = Xenowing::new("xenowing", m);
 
     m.output("leds", xenowing.leds);
 
