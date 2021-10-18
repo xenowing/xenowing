@@ -11,10 +11,11 @@ impl<'a> BootRom<'a> {
     pub fn new(instance_name: impl Into<String>, p: &'a impl ModuleParent<'a>) -> BootRom<'a> {
         let m = p.module(instance_name, "BootRom");
 
-        const CONTENTS_SIZE_BITS: u32 = 12;
+        // TODO: Make this smaller :)
+        const CONTENTS_SIZE_BITS: u32 = 13;
         const CONTENTS_SIZE: u32 = 1 << CONTENTS_SIZE_BITS;
         let contents_bytes = {
-            let mut ret = include_bytes!("../../sw/boot_rom/boot_rom.bin").iter().cloned().collect::<Vec<u8>>();
+            let mut ret = include_bytes!("../../sw/boot-rom/target/boot-rom.bin").iter().cloned().collect::<Vec<u8>>();
             if ret.len() as u32 > CONTENTS_SIZE {
                 panic!("Boot ROM cannot be larger than {} bytes", CONTENTS_SIZE);
             }

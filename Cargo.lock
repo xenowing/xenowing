@@ -1219,6 +1219,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b07db065a5cf61a7e4ba64f29e67db906fb1787316516c4e6e5ff0fea1efcd8a"
 
 [[package]]
+name = "xw"
+version = "0.1.0"
+
+[[package]]
 name = "xw-blaster"
 version = "0.1.0"
 dependencies = [

@@ -1,16 +1,42 @@
+# TODO: Consider using cargo-binutils or similar
+TARGET_PREFIX=riscv64-unknown-elf-
+
 RM=rm
 RM_FLAGS=-rf
 
 .PHONY: all
-all: generated-rtl rtl sim
+all: boot-rom rtl generated-rtl sim
 
 .PHONY: clean
-clean: generated-rtl-clean rtl-clean sim-clean test-clean
+clean: boot-rom-clean rtl-clean generated-rtl-clean sim-clean test-clean
+
+BOOT_ROM_RUST_DIR=sw/boot-rom
+BOOT_ROM_TARGET_DIR=$(BOOT_ROM_RUST_DIR)/target
+BOOT_ROM_BIN=$(BOOT_ROM_TARGET_DIR)/boot-rom.bin
+BOOT_ROM_ELF=$(BOOT_ROM_TARGET_DIR)/riscv32i-unknown-none-elf/release/boot-rom
+
+.PHONY: boot-rom
+boot-rom: $(BOOT_ROM_BIN) boot-rom-rust
+
+.PHONY: boot-rom-clean
+boot-rom-clean: boot-rom-rust-clean
+	$(RM) $(RM_FLAGS) $(BOOT_ROM_BIN)
+
+$(BOOT_ROM_BIN): boot-rom-rust
+	$(TARGET_PREFIX)objcopy -O binary $(BOOT_ROM_ELF) $@
+
+.PHONY: boot-rom-rust
+boot-rom-rust:
+	cd $(BOOT_ROM_RUST_DIR) && cargo build --release
+
+.PHONY: boot-rom-rust-clean
+boot-rom-rust-clean:
+	cd $(BOOT_ROM_RUST_DIR) && cargo clean
 
 RTL_DIR=rtl
 
 .PHONY: rtl
-rtl:
+rtl: boot-rom
 	cd $(RTL_DIR) && cargo build --release
 
 .PHONY: rtl-clean

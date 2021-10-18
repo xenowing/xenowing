@@ -1,9 +1,4 @@
 TARGET_PREFIX=riscv64-unknown-elf-
-ifeq ($(OS),Windows_NT)
-	EXE_EXT=.exe
-else
-	EXE_EXT=
-endif
 
 ARCH=rv32i
 ABI=ilp32

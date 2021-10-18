@@ -1,5 +1,9 @@
 [workspace]
 
+exclude = [
+    "sw/boot-rom",
+]
+
 members = [
     "rtl",
     "sim/approx-reciprocal",
@@ -11,4 +15,5 @@ members = [
     "sim/read-cache",
     "sw/misc/strugl",
     "sw/misc/xw-blaster",
+    "sw/xw",
 ]
