@@ -1,29 +1,15 @@
+#![feature(const_fn_trait_bound)]
 #![feature(global_asm)]
 #![no_main]
 #![no_std]
 
-// TODO: Remove/refactor once we figure out how to actually alloc
-pub mod heap {
-    #[inline]
-    pub fn heap_start() -> *mut u32 {
-        extern "C" {
-            static mut _sheap: u32;
-        }
+extern crate alloc;
 
-        unsafe { &mut _sheap }
-    }
-
-    #[inline]
-    pub fn heap_end() -> *mut u32 {
-        extern "C" {
-            static mut _eheap: u32;
-        }
-
-        unsafe { &mut _eheap }
-    }
-}
+#[macro_use]
+extern crate static_assertions;
 
 pub mod leds;
+mod heap;
 pub mod marv;
 pub mod stdio;
 pub mod uart;
@@ -35,6 +21,21 @@ mod asm {
 
 use core::fmt::Write;
 use core::panic::PanicInfo;
+
+#[no_mangle]
+extern "C" fn _rust_entry() -> ! {
+    extern "Rust" {
+        fn main() -> !;
+    }
+
+    // Reset hw state for soft resets
+    leds::set(0x00);
+    heap::init();
+
+    unsafe {
+        main();
+    }
+}
 
 #[panic_handler]
 fn panic_handler(panic_info: &PanicInfo) -> ! {

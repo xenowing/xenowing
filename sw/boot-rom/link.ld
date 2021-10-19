@@ -1,10 +1,13 @@
 OUTPUT_ARCH("riscv")
 ENTRY(_start)
 
+PROVIDE(_max_program_size = 16m);
+
 MEMORY
 {
-    BOOT_ROM (rx) : ORIGIN = 0x00000000, LENGTH = 8k
-    RAM (!r) : ORIGIN = 0x10000000, LENGTH = 128k
+    BOOT_ROM    (rx) : ORIGIN = 0x00000000, LENGTH = 64k
+    PROGRAM_RAM (!r) : ORIGIN = 0x10000000, LENGTH = _max_program_size
+    RAM         (!r) : ORIGIN = 0x10000000 + _max_program_size, LENGTH = 256m - _max_program_size
 }
 
 REGION_ALIAS("REGION_TEXT", BOOT_ROM);
@@ -18,6 +21,9 @@ PROVIDE(_stext = ORIGIN(REGION_TEXT));
 PROVIDE(_stack_start = ORIGIN(REGION_STACK) + LENGTH(REGION_STACK));
 PROVIDE(_stack_size = 8k);
 PROVIDE(_heap_end = ORIGIN(REGION_HEAP) + LENGTH(REGION_HEAP) - _stack_size);
+
+PROVIDE(_sprogram = ORIGIN(PROGRAM_RAM));
+PROVIDE(_eprogram = ORIGIN(PROGRAM_RAM) + LENGTH(PROGRAM_RAM));
 
 SECTIONS
 {
@@ -48,7 +54,7 @@ SECTIONS
         _edata = .;
     } > REGION_DATA AT > REGION_RODATA
 
-    .bss (NOLOAD):
+    .bss (NOLOAD) :
     {
         _sbss = .;
         *(.sbss .sbss.* .bss .bss.*);

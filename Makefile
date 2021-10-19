@@ -5,10 +5,12 @@ RM=rm
 RM_FLAGS=-rf
 
 .PHONY: all
-all: boot-rom rtl generated-rtl sim
+all: boot-rom program rtl generated-rtl sim
 
 .PHONY: clean
-clean: boot-rom-clean rtl-clean generated-rtl-clean sim-clean test-clean
+clean: boot-rom-clean program-clean rtl-clean generated-rtl-clean sim-clean test-clean
+
+# Boot ROM
 
 BOOT_ROM_RUST_DIR=sw/boot-rom
 BOOT_ROM_TARGET_DIR=$(BOOT_ROM_RUST_DIR)/target
@@ -33,6 +35,33 @@ boot-rom-rust:
 boot-rom-rust-clean:
 	cd $(BOOT_ROM_RUST_DIR) && cargo clean
 
+# Program
+
+PROGRAM_RUST_DIR=sw/program
+PROGRAM_TARGET_DIR=$(PROGRAM_RUST_DIR)/target
+PROGRAM_BIN=$(PROGRAM_TARGET_DIR)/program.bin
+PROGRAM_ELF=$(PROGRAM_TARGET_DIR)/riscv32i-unknown-none-elf/release/program
+
+.PHONY: program
+program: $(PROGRAM_BIN) program-rust
+
+.PHONY: program-clean
+program-clean: program-rust-clean
+	$(RM) $(RM_FLAGS) $(PROGRAM_BIN)
+
+$(PROGRAM_BIN): program-rust
+	$(TARGET_PREFIX)objcopy -O binary $(PROGRAM_ELF) $@
+
+.PHONY: program-rust
+program-rust:
+	cd $(PROGRAM_RUST_DIR) && cargo build --release
+
+.PHONY: program-rust-clean
+program-rust-clean:
+	cd $(PROGRAM_RUST_DIR) && cargo clean
+
+# RTL
+
 RTL_DIR=rtl
 
 .PHONY: rtl
@@ -42,6 +71,8 @@ rtl: boot-rom
 .PHONY: rtl-clean
 rtl-clean:
 	cd $(RTL_DIR) && cargo clean
+
+# Generated RTL
 
 GENERATED_RTL_NAME=_generated.v
 GENERATED_RTL=$(RTL_DIR)/$(GENERATED_RTL_NAME)
@@ -55,6 +86,8 @@ $(GENERATED_RTL): rtl
 .PHONY: generated-rtl-clean
 generated-rtl-clean:
 	$(RM) $(RM_FLAGS) $(GENERATED_RTL)
+
+# Sim
 
 SIM_DIR=sim
 APPROX_RECIPROCAL_DIR=$(SIM_DIR)/approx-reciprocal
@@ -126,6 +159,8 @@ peek-buffer-clean:
 .PHONY: read-cache-clean
 read-cache-clean:
 	cd $(READ_CACHE_DIR) && cargo clean
+
+# Test
 
 TEST_DIR=test
 

@@ -290,7 +290,7 @@ fn main() -> Result<(), Error> {
                 }
 
                 fn write_reg(addr: u32, data: u32, device: &mut dyn Device) -> Result<(), Error> {
-                    write_word(0x04000000 + addr * 16, data, device)
+                    write_word(0x03000000 + addr * 16, data, device)
                 }
 
                 // Upload texture
@@ -536,6 +536,8 @@ fn main() -> Result<(), Error> {
                                         back_buffer[buffer_index] = device.read_u32()?;
                                     }
                                 }
+
+                                window.update_with_buffer(&back_buffer, WIDTH, HEIGHT).unwrap();
                             }
                         }
 

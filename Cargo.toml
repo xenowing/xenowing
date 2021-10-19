@@ -2,6 +2,7 @@
 
 exclude = [
     "sw/boot-rom",
+    "sw/program",
 ]
 
 members = [

@@ -1,8 +1,8 @@
-extern "C" {
-    fn _cycles() -> u64;
-}
-
 pub fn cycles() -> u64 {
+    extern "C" {
+        fn _cycles() -> u64;
+    }
+
     unsafe {
         _cycles()
     }

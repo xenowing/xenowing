@@ -6,9 +6,9 @@ use core::fmt::Write;
 const COMMAND_PUTC: u8 = 0x00;
 
 pub fn putc(c: char) {
-    write(COMMAND_PUTC);
+    write_u8(COMMAND_PUTC);
     // TODO: This shouldn't actually be safe... :)
-    write(c as _);
+    write_u8(c as _);
 }
 
 pub fn puts(s: &str) {

@@ -1,58 +1,81 @@
 OUTPUT_ARCH("riscv")
-ENTRY(_entry)
+ENTRY(_start)
+
+PROVIDE(_max_program_size = 16m);
 
 MEMORY
 {
-    program_ram (rx) : ORIGIN = 0x01000000, LENGTH = 16k
-    ram (!r) : ORIGIN = 0x10000000, LENGTH = 128k
+    BOOT_ROM    (rx) : ORIGIN = 0x00000000, LENGTH = 64k
+    PROGRAM_RAM (!r) : ORIGIN = 0x10000000, LENGTH = _max_program_size
+    RAM         (!r) : ORIGIN = 0x10000000 + _max_program_size, LENGTH = 256m - _max_program_size
 }
 
-__text_va = ORIGIN(program_ram);
-__data_va = ORIGIN(ram);
-__stack_va = ORIGIN(ram) + LENGTH(ram);
+REGION_ALIAS("REGION_TEXT", PROGRAM_RAM);
+REGION_ALIAS("REGION_RODATA", PROGRAM_RAM);
+REGION_ALIAS("REGION_DATA", RAM);
+REGION_ALIAS("REGION_BSS", RAM);
+REGION_ALIAS("REGION_HEAP", RAM);
+REGION_ALIAS("REGION_STACK", RAM);
+
+PROVIDE(_stext = ORIGIN(REGION_TEXT));
+PROVIDE(_stack_start = ORIGIN(REGION_STACK) + LENGTH(REGION_STACK));
+PROVIDE(_stack_size = 8k);
+PROVIDE(_heap_end = ORIGIN(REGION_HEAP) + LENGTH(REGION_HEAP) - _stack_size);
+
+PROVIDE(_sprogram = ORIGIN(PROGRAM_RAM));
+PROVIDE(_eprogram = ORIGIN(PROGRAM_RAM) + LENGTH(PROGRAM_RAM));
 
 SECTIONS
 {
-    .text __text_va :
+    .text _stext :
     {
-        PROVIDE (__tp = .);
-        *(.entry*) /* Ensure the entry point is at the beginning of program RAM */
-        *(.text*)
-    } >program_ram = 0xff
+        KEEP(*(.init));
+        *(.text .text.*);
+    } > REGION_TEXT
 
-    /* Pack .rodata in program RAM as well as .text as it's read-only */
-    .rodata :
+    /* Pack .rodata in boot ROM as well as .text as it's read-only */
+    .rodata : ALIGN(4)
     {
-        *(.rodata*)
-    } >program_ram = 0xff
+        *(.srodata .srodata.*);
+        *(.rodata .rodata.*);
+        . = ALIGN(4);
+    } > REGION_RODATA
 
-    __data_start = .;
-    .data __data_va : AT(__data_start)
+    .data : ALIGN(4)
     {
-        *(.data*)
-    } >ram = 0xff
+        _sidata = LOADADDR(.data);
+        _sdata = .;
+        /* TODO: What is this exactly? */
+        /* Must be called __global_pointer$ for linker relaxations to work */
+        PROVIDE(__global_pointer$ = . + 0x800);
+        *(.sdata .sdata.* .sdata2 .sdata2.*);
+        *(.data .data.*);
+        . = ALIGN(4);
+        _edata = .;
+    } > REGION_DATA AT > REGION_RODATA
 
-    .sdata :
+    .bss (NOLOAD) :
     {
-        PROVIDE (__gp = . + 0x800);
-        *(.sdata*)
-    } >ram = 0xff
-    /* Since the .data and .sdata sections are in RAM, not program RAM, using . is actually incorrect here,
-       as that would refer to the position after these sections in RAM, not in program RAM, so we must
-       calculate the program RAM position manually here. */
-    __data_end = __data_start + SIZEOF(.data) + SIZEOF(.sdata);
+        _sbss = .;
+        *(.sbss .sbss.* .bss .bss.*);
+        . = ALIGN(4);
+        _ebss = .;
+    } > REGION_BSS
 
-    __bss_start = .;
-    .sbss (NOLOAD):
+    .heap (NOLOAD) :
     {
-        *(.sbss*)
-        *(.scommon*)
-    } >ram = 0xff
+        _sheap = .;
+        . = ABSOLUTE(_heap_end);
+        _eheap = .;
+    } > REGION_HEAP
 
-    .bss (NOLOAD):
+    .stack (NOLOAD) :
     {
-        *(.bss*)
-        *(COMMON)
-    } >ram = 0xff
-    __bss_end = .;
+        _estack = .;
+        . = ABSOLUTE(_stack_start);
+        _sstack = .;
+    } > REGION_STACK
+
+    /* TODO: What is this exactly? */
+    .eh_frame (INFO) : { KEEP(*(.eh_frame)) }
 }

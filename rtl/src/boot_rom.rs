@@ -12,7 +12,7 @@ impl<'a> BootRom<'a> {
         let m = p.module(instance_name, "BootRom");
 
         // TODO: Make this smaller :)
-        const CONTENTS_SIZE_BITS: u32 = 13;
+        const CONTENTS_SIZE_BITS: u32 = 14;
         const CONTENTS_SIZE: u32 = 1 << CONTENTS_SIZE_BITS;
         let contents_bytes = {
             let mut ret = include_bytes!("../../sw/boot-rom/target/boot-rom.bin").iter().cloned().collect::<Vec<u8>>();

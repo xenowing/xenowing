@@ -1,3 +1,4 @@
+#![feature(default_alloc_error_handler)]
 #![no_main]
 #![no_std]
 
@@ -7,39 +8,42 @@ use core::fmt::Write;
 use core::mem;
 
 #[no_mangle]
-extern "C" fn main() -> ! {
-    writeln!(stdio::stdout(), "xw online - and now oxidized!").unwrap();
+fn main() -> ! {
+    writeln!(stdio::stdout(), "xw online").unwrap();
 
-    writeln!(stdio::stdout(), "heap start: 0x{:08x}", xw::heap::heap_start() as u32).unwrap();
-    writeln!(stdio::stdout(), "heap end:   0x{:08x}", xw::heap::heap_end() as u32).unwrap();
+    extern "C" {
+        static mut _sprogram: u8;
+        static _max_program_size: u8;
+    }
 
     // TODO: Proper command
-    uart::write(0x01);
+    uart::write_u8(0x01);
     // TODO: Proper filename
-    let filename = "../../program/program.bin";
+    let filename = "../../program/target/program.bin";
     for b in filename.bytes() {
-        uart::write(b);
+        uart::write_u8(b);
     }
-    uart::write(0);
-    let mut len = 0;
-    len |= (uart::read() as u32) << 0;
-    len |= (uart::read() as u32) << 8;
-    len |= (uart::read() as u32) << 16;
-    len |= (uart::read() as u32) << 24;
+    uart::write_u8(0);
+    let program_size = uart::read_u32_le();
+    // TODO: Is there a better way to get this symbol value?
+    let max_program_size = unsafe { &_max_program_size as *const _ as u32 };
+    if program_size > max_program_size {
+        panic!("program size ({} bytes) must not be larger than {} bytes", program_size, max_program_size);
+    }
 
-    let program_ram = 0x01000000 as *mut u8;
-    for i in 0..len {
-        let b = uart::read();
+    let program_ram = unsafe { &mut _sprogram } as *mut u8;
+    for i in 0..program_size {
+        let b = uart::read_u8();
         leds::set(b);
         unsafe {
             *program_ram.offset(i as _) = b;
         }
     }
 
-    writeln!(stdio::stdout(), "program RAM read successful").unwrap();
+    writeln!(stdio::stdout(), "program read successful").unwrap();
 
-    let program_ram_entry = unsafe {
+    let program_entry = unsafe {
         mem::transmute::<_, extern "C" fn() -> !>(program_ram)
     };
-    program_ram_entry()
+    program_entry()
 }

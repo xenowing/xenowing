@@ -1,6 +1,6 @@
     .section .init, "ax"
-    .global _start
-_start:
+    .global _entry
+_entry:
     /* Clear bss section */
     lui t0, %hi(_sbss)
     addi t0, t0, %lo(_sbss)
@@ -45,6 +45,6 @@ _copy_data_loop_end:
     add s0, sp, zero
 
     /* Let's gooooo!! */
-    lui t0, %hi(main)
-    addi t0, t0, %lo(main)
+    lui t0, %hi(_rust_entry)
+    addi t0, t0, %lo(_rust_entry)
     jalr zero, 0(t0)
