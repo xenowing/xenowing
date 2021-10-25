@@ -67,8 +67,8 @@ impl<'a> TexCache<'a> {
         let out_valid = issue_buffer_occupied & caches_return_data_valid;
 
         //  Note that we exploit implementation details of `ReadCache` - namely that we
-        //   know that its `system_bus_ready` output is independent of its
-        //   `client_bus_ready` input, so regardless of arbitration or whatever else we
+        //   know that its `client_bus_ready` output is independent of its
+        //   `system_bus_ready` input, so regardless of arbitration or whatever else we
         //   connect between the caches on the primary side (which may introduce some
         //   interdepencies), we know that they can be in a state where all of them can
         //   accept reads simultaneously. This simplifies issue logic in this cache.
