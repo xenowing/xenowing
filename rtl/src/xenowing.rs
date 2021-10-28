@@ -62,7 +62,7 @@ impl<'a> Xenowing<'a> {
         color_thrust.tex_cache_system_port.connect(&mem_crossbar.replica_ports[1]);
         mem_crossbar.primary_ports[0].connect(&ddr3_interface.client_port);
 
-        let sys_crossbar = Crossbar::new("buster_crossbar", 1, 6, 24, 4, 128, 5, m);
+        let sys_crossbar = Crossbar::new("sys_crossbar", 1, 6, 24, 4, 128, 5, m);
         cpu_crossbar.primary_ports[0].connect(&sys_crossbar.replica_ports[0]);
         sys_crossbar.primary_ports[0].connect(&boot_rom.client_port);
         sys_crossbar.primary_ports[1].connect(&led_interface.client_port);
