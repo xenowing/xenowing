@@ -438,6 +438,7 @@ impl<'a> Issue<'a> {
         let replica_bus_enable = issue_arb_bus_enable & buster_issue_ready;
 
         let mut replica_bus_ready = m.low();
+        // TODO: Revisit logic for the num_replicas == 1 case, especially wrt bus_ready; it's a bit fucky rn
         let replica_select = if num_replicas > 1 {
             Some(issue_arb_bus_addr.bits(addr_bit_width - 1, replica_addr_bit_width))
         } else {
@@ -450,7 +451,7 @@ impl<'a> Issue<'a> {
             let bus_ready = m.input(format!("{}_bus_ready", name), 1);
 
             let local_replica_select = replica_select.map(|x| x.eq(m.lit(i, replica_select_bit_width))).unwrap_or(m.high());
-            replica_bus_ready = replica_bus_ready | (if replica_select.is_some() { bus_ready } else { m.high() } & local_replica_select);
+            replica_bus_ready = replica_bus_ready | (bus_ready & local_replica_select);
 
             replica_issues.push(ReplicaIssue {
                 bus_enable: m.output(format!("{}_bus_enable", name), replica_bus_enable & local_replica_select),
