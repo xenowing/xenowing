@@ -1,8 +1,6 @@
+use linalg::*;
+
 use crate::device::*;
-use crate::matrix::*;
-use crate::vec2::*;
-use crate::vec3::*;
-use crate::vec4::*;
 
 use rtl::color_thrust::*;
 

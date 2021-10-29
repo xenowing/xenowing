@@ -1,4 +1,5 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, Sub};
+use core::intrinsics;
+use core::ops::{Add, AddAssign, Div, DivAssign, Mul, Sub};
 
 #[derive(Clone, Copy)]
 pub struct Vec2 {
@@ -37,7 +38,7 @@ impl Vec2 {
     }
 
     pub fn len(self) -> f32 {
-        self.dot(self).sqrt()
+        unsafe { intrinsics::sqrtf32(self.dot(self)) }
     }
 
     pub fn normalize(self) -> Vec2 {

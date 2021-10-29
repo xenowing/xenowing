@@ -1,21 +1,15 @@
 mod device;
-mod matrix;
 mod model_device;
 mod modules {
     include!(concat!(env!("OUT_DIR"), "/modules.rs"));
 }
 mod sim_device;
 mod strugl;
-mod vec2;
-mod vec3;
-mod vec4;
 
 use device::*;
-use matrix::*;
 use strugl::*;
-use vec2::*;
-use vec4::*;
 
+use linalg::*;
 use image::GenericImageView;
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 use rand::{Rng, SeedableRng};

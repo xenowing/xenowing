@@ -1,6 +1,7 @@
 use crate::vec4::*;
 
-use std::ops::Mul;
+use core::intrinsics;
+use core::ops::Mul;
 
 const NUM_ROWS: usize = 4;
 const NUM_COLS: usize = 4;
@@ -49,8 +50,8 @@ impl Matrix {
     }
 
     pub fn rotation_x(radians: f32) -> Matrix {
-        let s = radians.sin();
-        let c = radians.cos();
+        let s = unsafe { intrinsics::sinf32(radians) };
+        let c = unsafe { intrinsics::cosf32(radians) };
 
         Matrix {
             values: [
@@ -62,8 +63,8 @@ impl Matrix {
     }
 
     pub fn rotation_y(radians: f32) -> Matrix {
-        let s = radians.sin();
-        let c = radians.cos();
+        let s = unsafe { intrinsics::sinf32(radians) };
+        let c = unsafe { intrinsics::cosf32(radians) };
 
         Matrix {
             values: [
@@ -75,8 +76,8 @@ impl Matrix {
     }
 
     pub fn rotation_z(radians: f32) -> Matrix {
-        let s = radians.sin();
-        let c = radians.cos();
+        let s = unsafe { intrinsics::sinf32(radians) };
+        let c = unsafe { intrinsics::cosf32(radians) };
 
         Matrix {
             values: [
@@ -113,7 +114,8 @@ impl Matrix {
 
     pub fn perspective(fov_degrees: f32, aspect: f32, z_near: f32, z_far: f32) -> Matrix {
         let fov_radians = fov_degrees.to_radians();
-        let top = z_near * (fov_radians / 2.0).tan();
+        let tan = |x| unsafe { intrinsics::sinf32(x) / intrinsics::cosf32(x) };
+        let top = z_near * tan(fov_radians / 2.0);
         let right = top * aspect;
 
         let z_range = z_far - z_near;
@@ -156,6 +158,7 @@ impl<'a, 'b> Mul<&'a Matrix> for &'b Matrix {
     type Output = Matrix;
 
     fn mul(self, other: &'a Matrix) -> Matrix {
+        // TODO: Simplify as dot products with row/column vectors
         Matrix {
             values: [
                 (self.values[00] * other.values[00]) + (self.values[04] * other.values[01]) + (self.values[08] * other.values[02]) + (self.values[12] * other.values[03]),

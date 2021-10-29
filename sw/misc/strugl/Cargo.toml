@@ -12,6 +12,7 @@ rtl = { path = "../../../rtl" }
 
 [dependencies]
 image = "0.23"
+linalg = { path = "../../linalg" }
 minifb = "0.16"
 rand = "0.7"
 rand_pcg = "0.2.1"
