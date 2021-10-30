@@ -1,45 +1,48 @@
+use crate::fixed::*;
 use crate::iv4::*;
 
+use core::ops::Mul;
+
 #[derive(Clone, Copy)]
-pub struct Im4 {
-    pub columns: [Iv4; 4],
+pub struct Im4<const FRACT_BITS: u32> {
+    pub columns: [Iv4<FRACT_BITS>; 4],
 }
 
-impl Im4 {
-    pub fn identity(shift: u32) -> Im4 {
-        Im4 {
+impl<const FRACT_BITS: u32> Im4<FRACT_BITS> {
+    pub fn identity() -> Self {
+        Self {
             columns: [
-                Iv4::new(1 << shift, 0, 0, 0),
-                Iv4::new(0, 1 << shift, 0, 0),
-                Iv4::new(0, 0, 1 << shift, 0),
-                Iv4::new(0, 0, 0, 1 << shift),
+                Iv4::new(Fixed::one(), Fixed::zero(), Fixed::zero(), Fixed::zero()),
+                Iv4::new(Fixed::zero(), Fixed::one(), Fixed::zero(), Fixed::zero()),
+                Iv4::new(Fixed::zero(), Fixed::zero(), Fixed::one(), Fixed::zero()),
+                Iv4::new(Fixed::zero(), Fixed::zero(), Fixed::zero(), Fixed::one()),
             ],
         }
     }
 
-    pub fn translation(x: i32, y: i32, z: i32, shift: u32) -> Im4 {
-        Im4 {
+    pub fn translation(x: Fixed<FRACT_BITS>, y: Fixed<FRACT_BITS>, z: Fixed<FRACT_BITS>) -> Self {
+        Self {
             columns: [
-                Iv4::new(1 << shift, 0, 0, 0),
-                Iv4::new(0, 1 << shift, 0, 0),
-                Iv4::new(0, 0, 1 << shift, 0),
-                Iv4::new(x, y, z, 1 << shift),
+                Iv4::new(Fixed::one(), Fixed::zero(), Fixed::zero(), Fixed::zero()),
+                Iv4::new(Fixed::zero(), Fixed::one(), Fixed::zero(), Fixed::zero()),
+                Iv4::new(Fixed::zero(), Fixed::zero(), Fixed::one(), Fixed::zero()),
+                Iv4::new(x, y, z, Fixed::one()),
             ],
         }
     }
 
-    pub fn scale(x: i32, y: i32, z: i32, shift: u32) -> Im4 {
-        Im4 {
+    pub fn scale(x: Fixed<FRACT_BITS>, y: Fixed<FRACT_BITS>, z: Fixed<FRACT_BITS>) -> Self {
+        Self {
             columns: [
-                Iv4::new(x, 0, 0, 0),
-                Iv4::new(0, y, 0, 0),
-                Iv4::new(0, 0, z, 0),
-                Iv4::new(0, 0, 0, 1 << shift),
+                Iv4::new(x, Fixed::zero(), Fixed::zero(), Fixed::zero()),
+                Iv4::new(Fixed::zero(), y, Fixed::zero(), Fixed::zero()),
+                Iv4::new(Fixed::zero(), Fixed::zero(), z, Fixed::zero()),
+                Iv4::new(Fixed::zero(), Fixed::zero(), Fixed::zero(), Fixed::one()),
             ]
         }
     }
 
-    fn rows(&self) -> [Iv4; 4] {
+    fn rows(&self) -> [Iv4<FRACT_BITS>; 4] {
         [
             Iv4::new(self.columns[0].x, self.columns[1].x, self.columns[2].x, self.columns[3].x),
             Iv4::new(self.columns[0].y, self.columns[1].y, self.columns[2].y, self.columns[3].y),
@@ -47,57 +50,78 @@ impl Im4 {
             Iv4::new(self.columns[0].w, self.columns[1].w, self.columns[2].w, self.columns[3].w),
         ]
     }
+}
 
-    pub fn mul_im4(self, other: Im4, shift: u32) -> Im4 {
+impl<const FRACT_BITS: u32> Mul for Im4<FRACT_BITS> {
+    type Output = Self;
+
+    fn mul(self, other: Self) -> Self {
+        &self * &other
+    }
+}
+
+impl<'a, const FRACT_BITS: u32> Mul<&'a Self> for Im4<FRACT_BITS> {
+    type Output = Self;
+
+    fn mul(self, other: &'a Self) -> Self {
+        &self * other
+    }
+}
+
+impl<'a, const FRACT_BITS: u32> Mul<Im4<FRACT_BITS>> for &'a Im4<FRACT_BITS> {
+    type Output = Im4<FRACT_BITS>;
+
+    fn mul(self, other: Im4<FRACT_BITS>) -> Im4<FRACT_BITS> {
+        self * &other
+    }
+}
+
+impl<'a, 'b, const FRACT_BITS: u32> Mul<&'a Im4<FRACT_BITS>> for &'b Im4<FRACT_BITS> {
+    type Output = Im4<FRACT_BITS>;
+
+    fn mul(self, other: &'a Im4<FRACT_BITS>) -> Im4<FRACT_BITS> {
         let rows = self.rows();
         Im4 {
             columns: [
                 Iv4::new(
-                    rows[0].dot(other.columns[0], shift),
-                    rows[1].dot(other.columns[0], shift),
-                    rows[2].dot(other.columns[0], shift),
-                    rows[3].dot(other.columns[0], shift),
+                    rows[0].dot(other.columns[0]),
+                    rows[1].dot(other.columns[0]),
+                    rows[2].dot(other.columns[0]),
+                    rows[3].dot(other.columns[0]),
                 ),
                 Iv4::new(
-                    rows[0].dot(other.columns[1], shift),
-                    rows[1].dot(other.columns[1], shift),
-                    rows[2].dot(other.columns[1], shift),
-                    rows[3].dot(other.columns[1], shift),
+                    rows[0].dot(other.columns[1]),
+                    rows[1].dot(other.columns[1]),
+                    rows[2].dot(other.columns[1]),
+                    rows[3].dot(other.columns[1]),
                 ),
                 Iv4::new(
-                    rows[0].dot(other.columns[2], shift),
-                    rows[1].dot(other.columns[2], shift),
-                    rows[2].dot(other.columns[2], shift),
-                    rows[3].dot(other.columns[2], shift),
+                    rows[0].dot(other.columns[2]),
+                    rows[1].dot(other.columns[2]),
+                    rows[2].dot(other.columns[2]),
+                    rows[3].dot(other.columns[2]),
                 ),
                 Iv4::new(
-                    rows[0].dot(other.columns[3], shift),
-                    rows[1].dot(other.columns[3], shift),
-                    rows[2].dot(other.columns[3], shift),
-                    rows[3].dot(other.columns[3], shift),
+                    rows[0].dot(other.columns[3]),
+                    rows[1].dot(other.columns[3]),
+                    rows[2].dot(other.columns[3]),
+                    rows[3].dot(other.columns[3]),
                 ),
             ],
         }
     }
+}
 
-    pub fn mul_iv4(self, other: Iv4, shift: u32) -> Iv4 {
+impl<const FRACT_BITS: u32> Mul<Iv4<FRACT_BITS>> for Im4<FRACT_BITS> {
+    type Output = Iv4<FRACT_BITS>;
+
+    fn mul(self, other: Iv4<FRACT_BITS>) -> Iv4<FRACT_BITS> {
         let rows = self.rows();
         Iv4::new(
-            rows[0].dot(other, shift),
-            rows[1].dot(other, shift),
-            rows[2].dot(other, shift),
-            rows[3].dot(other, shift),
+            rows[0].dot(other),
+            rows[1].dot(other),
+            rows[2].dot(other),
+            rows[3].dot(other),
         )
-    }
-
-    pub fn mul_s(self, other: i32, shift: u32) -> Im4 {
-        Im4 {
-            columns: [
-                self.columns[0].mul_s(other, shift),
-                self.columns[1].mul_s(other, shift),
-                self.columns[2].mul_s(other, shift),
-                self.columns[3].mul_s(other, shift),
-            ],
-        }
     }
 }

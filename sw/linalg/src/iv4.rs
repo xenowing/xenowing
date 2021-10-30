@@ -1,18 +1,18 @@
-use crate::fixed;
+use crate::fixed::*;
 
-use core::ops::{Add, AddAssign, Sub};
+use core::ops::{Add, AddAssign, Mul, Sub};
 
 #[derive(Clone, Copy)]
-pub struct Iv4 {
-    pub x: i32,
-    pub y: i32,
-    pub z: i32,
-    pub w: i32,
+pub struct Iv4<const FRACT_BITS: u32> {
+    pub x: Fixed<FRACT_BITS>,
+    pub y: Fixed<FRACT_BITS>,
+    pub z: Fixed<FRACT_BITS>,
+    pub w: Fixed<FRACT_BITS>,
 }
 
-impl Iv4 {
-    pub fn new(x: i32, y: i32, z: i32, w: i32) -> Iv4 {
-        Iv4 {
+impl<const FRACT_BITS: u32> Iv4<FRACT_BITS> {
+    pub fn new(x: Fixed<FRACT_BITS>, y: Fixed<FRACT_BITS>, z: Fixed<FRACT_BITS>, w: Fixed<FRACT_BITS>) -> Self {
+        Self {
             x,
             y,
             z,
@@ -20,8 +20,8 @@ impl Iv4 {
         }
     }
 
-    pub fn splat(value: i32) -> Iv4 {
-        Iv4 {
+    pub fn splat(value: Fixed<FRACT_BITS>) -> Self {
+        Self {
             x: value,
             y: value,
             z: value,
@@ -29,24 +29,21 @@ impl Iv4 {
         }
     }
 
-    pub fn zero() -> Iv4 {
-        Iv4 {
-            x: 0,
-            y: 0,
-            z: 0,
-            w: 0,
+    pub fn zero() -> Self {
+        Self {
+            x: Fixed::zero(),
+            y: Fixed::zero(),
+            z: Fixed::zero(),
+            w: Fixed::zero(),
         }
     }
 
-    pub fn dot(self, other: Iv4, shift: u32) -> i32 {
-        fixed::mul(self.x, other.x, shift) +
-        fixed::mul(self.y, other.y, shift) +
-        fixed::mul(self.z, other.z, shift) +
-        fixed::mul(self.w, other.w, shift)
+    pub fn dot(self, other: Self) -> Fixed<FRACT_BITS> {
+        self.x * other.x + self.y * other.y + self.z * other.z + self.w * other.w
     }
 
-    pub fn min(self, other: Iv4) -> Iv4 {
-        Iv4 {
+    pub fn min(self, other: Self) -> Self {
+        Self {
             x: self.x.min(other.x),
             y: self.y.min(other.y),
             z: self.z.min(other.z),
@@ -54,39 +51,21 @@ impl Iv4 {
         }
     }
 
-    pub fn max(self, other: Iv4) -> Iv4 {
-        Iv4 {
+    pub fn max(self, other: Self) -> Self {
+        Self {
             x: self.x.max(other.x),
             y: self.y.max(other.y),
             z: self.z.max(other.z),
             w: self.w.max(other.w),
         }
     }
-
-    pub fn mul_iv4(self, other: Iv4, shift: u32) -> Iv4 {
-        Iv4 {
-            x: fixed::mul(self.x, other.x, shift),
-            y: fixed::mul(self.y, other.y, shift),
-            z: fixed::mul(self.z, other.z, shift),
-            w: fixed::mul(self.w, other.w, shift),
-        }
-    }
-
-    pub fn mul_s(self, other: i32, shift: u32) -> Iv4 {
-        Iv4 {
-            x: fixed::mul(self.x, other, shift),
-            y: fixed::mul(self.y, other, shift),
-            z: fixed::mul(self.z, other, shift),
-            w: fixed::mul(self.w, other, shift),
-        }
-    }
 }
 
-impl Add for Iv4 {
-    type Output = Iv4;
+impl<const FRACT_BITS: u32> Add for Iv4<FRACT_BITS> {
+    type Output = Self;
 
-    fn add(self, other: Iv4) -> Iv4 {
-        Iv4 {
+    fn add(self, other: Self) -> Self {
+        Self {
             x: self.x + other.x,
             y: self.y + other.y,
             z: self.z + other.z,
@@ -95,17 +74,43 @@ impl Add for Iv4 {
     }
 }
 
-impl AddAssign for Iv4 {
-    fn add_assign(&mut self, other: Iv4) {
+impl<const FRACT_BITS: u32> AddAssign for Iv4<FRACT_BITS> {
+    fn add_assign(&mut self, other: Self) {
         *self = *self + other
     }
 }
 
-impl Sub for Iv4 {
-    type Output = Iv4;
+impl<const FRACT_BITS: u32> Mul for Iv4<FRACT_BITS> {
+    type Output = Self;
 
-    fn sub(self, other: Iv4) -> Iv4 {
-        Iv4 {
+    fn mul(self, other: Self) -> Self {
+        Self {
+            x: self.x * other.x,
+            y: self.y * other.y,
+            z: self.z * other.z,
+            w: self.w * other.w,
+        }
+    }
+}
+
+impl<const FRACT_BITS: u32> Mul<Fixed<FRACT_BITS>> for Iv4<FRACT_BITS> {
+    type Output = Self;
+
+    fn mul(self, other: Fixed<FRACT_BITS>) -> Self {
+        Self {
+            x: self.x * other,
+            y: self.y * other,
+            z: self.z * other,
+            w: self.w * other,
+        }
+    }
+}
+
+impl<const FRACT_BITS: u32> Sub for Iv4<FRACT_BITS> {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        Self {
             x: self.x - other.x,
             y: self.y - other.y,
             z: self.z - other.z,

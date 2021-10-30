@@ -9,6 +9,7 @@ pub mod v2;
 pub mod v3;
 pub mod v4;
 
+pub use fixed::*;
 pub use im4::*;
 pub use iv4::*;
 pub use m4::*;
