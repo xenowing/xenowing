@@ -1,12 +1,12 @@
 #![feature(core_intrinsics)]
 #![no_std]
 
-pub mod matrix;
-pub mod vec2;
-pub mod vec3;
-pub mod vec4;
+pub mod m4;
+pub mod v2;
+pub mod v3;
+pub mod v4;
 
-pub use matrix::*;
-pub use vec2::*;
-pub use vec3::*;
-pub use vec4::*;
+pub use m4::*;
+pub use v2::*;
+pub use v3::*;
+pub use v4::*;

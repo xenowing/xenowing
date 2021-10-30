@@ -2,16 +2,16 @@ use core::intrinsics;
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, Sub};
 
 #[derive(Clone, Copy)]
-pub struct Vec4 {
+pub struct V4 {
     x: f32,
     y: f32,
     z: f32,
     w: f32,
 }
 
-impl Vec4 {
-    pub fn new(x: f32, y: f32, z: f32, w: f32) -> Vec4 {
-        Vec4 {
+impl V4 {
+    pub fn new(x: f32, y: f32, z: f32, w: f32) -> V4 {
+        V4 {
             x,
             y,
             z,
@@ -19,8 +19,8 @@ impl Vec4 {
         }
     }
 
-    pub fn splat(value: f32) -> Vec4 {
-        Vec4 {
+    pub fn splat(value: f32) -> V4 {
+        V4 {
             x: value,
             y: value,
             z: value,
@@ -28,8 +28,8 @@ impl Vec4 {
         }
     }
 
-    pub fn zero() -> Vec4 {
-        Vec4 {
+    pub fn zero() -> V4 {
+        V4 {
             x: 0.0,
             y: 0.0,
             z: 0.0,
@@ -57,17 +57,17 @@ impl Vec4 {
         unsafe { intrinsics::sqrtf32(self.dot(self)) }
     }
 
-    pub fn normalize(self) -> Vec4 {
+    pub fn normalize(self) -> V4 {
         let len = self.len();
         self / len
     }
 
-    pub fn dot(self, other: Vec4) -> f32 {
+    pub fn dot(self, other: V4) -> f32 {
         self.x * other.x + self.y * other.y + self.z * other.z + self.w * other.w
     }
 
-    pub fn min(self, other: Vec4) -> Vec4 {
-        Vec4 {
+    pub fn min(self, other: V4) -> V4 {
+        V4 {
             x: self.x.min(other.x),
             y: self.y.min(other.y),
             z: self.z.min(other.z),
@@ -75,8 +75,8 @@ impl Vec4 {
         }
     }
 
-    pub fn max(self, other: Vec4) -> Vec4 {
-        Vec4 {
+    pub fn max(self, other: V4) -> V4 {
+        V4 {
             x: self.x.max(other.x),
             y: self.y.max(other.y),
             z: self.z.max(other.z),
@@ -85,11 +85,11 @@ impl Vec4 {
     }
 }
 
-impl Add for Vec4 {
-    type Output = Vec4;
+impl Add for V4 {
+    type Output = V4;
 
-    fn add(self, other: Vec4) -> Vec4 {
-        Vec4 {
+    fn add(self, other: V4) -> V4 {
+        V4 {
             x: self.x + other.x,
             y: self.y + other.y,
             z: self.z + other.z,
@@ -98,17 +98,17 @@ impl Add for Vec4 {
     }
 }
 
-impl AddAssign for Vec4 {
-    fn add_assign(&mut self, other: Vec4) {
+impl AddAssign for V4 {
+    fn add_assign(&mut self, other: V4) {
         *self = *self + other
     }
 }
 
-impl Div for Vec4 {
-    type Output = Vec4;
+impl Div for V4 {
+    type Output = V4;
 
-    fn div(self, other: Vec4) -> Vec4 {
-        Vec4 {
+    fn div(self, other: V4) -> V4 {
+        V4 {
             x: self.x / other.x,
             y: self.y / other.y,
             z: self.z / other.z,
@@ -117,11 +117,11 @@ impl Div for Vec4 {
     }
 }
 
-impl Div<f32> for Vec4 {
-    type Output = Vec4;
+impl Div<f32> for V4 {
+    type Output = V4;
 
-    fn div(self, other: f32) -> Vec4 {
-        Vec4 {
+    fn div(self, other: f32) -> V4 {
+        V4 {
             x: self.x / other,
             y: self.y / other,
             z: self.z / other,
@@ -130,17 +130,17 @@ impl Div<f32> for Vec4 {
     }
 }
 
-impl DivAssign<f32> for Vec4 {
+impl DivAssign<f32> for V4 {
     fn div_assign(&mut self, other: f32) {
         *self = *self / other
     }
 }
 
-impl Mul for Vec4 {
-    type Output = Vec4;
+impl Mul for V4 {
+    type Output = V4;
 
-    fn mul(self, other: Vec4) -> Vec4 {
-        Vec4 {
+    fn mul(self, other: V4) -> V4 {
+        V4 {
             x: self.x * other.x,
             y: self.y * other.y,
             z: self.z * other.z,
@@ -149,11 +149,11 @@ impl Mul for Vec4 {
     }
 }
 
-impl Mul<f32> for Vec4 {
-    type Output = Vec4;
+impl Mul<f32> for V4 {
+    type Output = V4;
 
-    fn mul(self, other: f32) -> Vec4 {
-        Vec4 {
+    fn mul(self, other: f32) -> V4 {
+        V4 {
             x: self.x * other,
             y: self.y * other,
             z: self.z * other,
@@ -162,11 +162,11 @@ impl Mul<f32> for Vec4 {
     }
 }
 
-impl Sub for Vec4 {
-    type Output = Vec4;
+impl Sub for V4 {
+    type Output = V4;
 
-    fn sub(self, other: Vec4) -> Vec4 {
-        Vec4 {
+    fn sub(self, other: V4) -> V4 {
+        V4 {
             x: self.x - other.x,
             y: self.y - other.y,
             z: self.z - other.z,

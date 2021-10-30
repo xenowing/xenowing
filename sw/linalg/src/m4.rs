@@ -1,4 +1,4 @@
-use crate::vec4::*;
+use crate::v4::*;
 
 use core::intrinsics;
 use core::ops::Mul;
@@ -8,19 +8,19 @@ const NUM_COLS: usize = 4;
 const NUM_VALUES: usize = NUM_ROWS * NUM_COLS;
 
 #[derive(Clone, Copy)]
-pub struct Matrix {
+pub struct M4 {
     values: [f32; NUM_VALUES]
 }
 
-impl Matrix {
-    pub fn from_floats(values: &[f32; NUM_VALUES]) -> Matrix {
-        Matrix {
+impl M4 {
+    pub fn from_floats(values: &[f32; NUM_VALUES]) -> M4 {
+        M4 {
             values: values.clone(),
         }
     }
 
-    pub fn from_doubles(values: &[f64; NUM_VALUES]) -> Matrix {
-        let mut ret = Matrix {
+    pub fn from_doubles(values: &[f64; NUM_VALUES]) -> M4 {
+        let mut ret = M4 {
             values: [0.0; NUM_VALUES],
         };
         for (i, v) in values.iter().enumerate() {
@@ -29,8 +29,8 @@ impl Matrix {
         ret
     }
 
-    pub fn identity() -> Matrix {
-        Matrix {
+    pub fn identity() -> M4 {
+        M4 {
             values: [
                 1.0, 0.0, 0.0, 0.0,
                 0.0, 1.0, 0.0, 0.0,
@@ -39,8 +39,8 @@ impl Matrix {
         }
     }
 
-    pub fn translation(x: f32, y: f32, z: f32) -> Matrix {
-        Matrix {
+    pub fn translation(x: f32, y: f32, z: f32) -> M4 {
+        M4 {
             values: [
                 1.0, 0.0, 0.0, 0.0,
                 0.0, 1.0, 0.0, 0.0,
@@ -49,11 +49,11 @@ impl Matrix {
         }
     }
 
-    pub fn rotation_x(radians: f32) -> Matrix {
+    pub fn rotation_x(radians: f32) -> M4 {
         let s = unsafe { intrinsics::sinf32(radians) };
         let c = unsafe { intrinsics::cosf32(radians) };
 
-        Matrix {
+        M4 {
             values: [
                 1.0, 0.0, 0.0, 0.0,
                 0.0, c, s, 0.0,
@@ -62,11 +62,11 @@ impl Matrix {
         }
     }
 
-    pub fn rotation_y(radians: f32) -> Matrix {
+    pub fn rotation_y(radians: f32) -> M4 {
         let s = unsafe { intrinsics::sinf32(radians) };
         let c = unsafe { intrinsics::cosf32(radians) };
 
-        Matrix {
+        M4 {
             values: [
                 c, 0.0, -s, 0.0,
                 0.0, 1.0, 0.0, 0.0,
@@ -75,11 +75,11 @@ impl Matrix {
         }
     }
 
-    pub fn rotation_z(radians: f32) -> Matrix {
+    pub fn rotation_z(radians: f32) -> M4 {
         let s = unsafe { intrinsics::sinf32(radians) };
         let c = unsafe { intrinsics::cosf32(radians) };
 
-        Matrix {
+        M4 {
             values: [
                 c, s, 0.0, 0.0,
                 -s, c, 0.0, 0.0,
@@ -88,8 +88,8 @@ impl Matrix {
         }
     }
 
-    pub fn scale(x: f32, y: f32, z: f32) -> Matrix {
-        Matrix {
+    pub fn scale(x: f32, y: f32, z: f32) -> M4 {
+        M4 {
             values: [
                 x, 0.0, 0.0, 0.0,
                 0.0, y, 0.0, 0.0,
@@ -98,12 +98,12 @@ impl Matrix {
         }
     }
 
-    pub fn ortho(left: f32, right: f32, bottom: f32, top: f32, z_near: f32, z_far: f32) -> Matrix {
+    pub fn ortho(left: f32, right: f32, bottom: f32, top: f32, z_near: f32, z_far: f32) -> M4 {
         let tx = -(right + left) / (right - left);
         let ty = -(top + bottom) / (top - bottom);
         let tz = -(z_far + z_near) / (z_far - z_near);
 
-        Matrix {
+        M4 {
             values: [
                 2.0 / (right - left), 0.0, 0.0, 0.0,
                 0.0, 2.0 / (top - bottom), 0.0, 0.0,
@@ -112,7 +112,7 @@ impl Matrix {
         }
     }
 
-    pub fn perspective(fov_degrees: f32, aspect: f32, z_near: f32, z_far: f32) -> Matrix {
+    pub fn perspective(fov_degrees: f32, aspect: f32, z_near: f32, z_far: f32) -> M4 {
         let fov_radians = fov_degrees.to_radians();
         let tan = |x| unsafe { intrinsics::sinf32(x) / intrinsics::cosf32(x) };
         let top = z_near * tan(fov_radians / 2.0);
@@ -120,7 +120,7 @@ impl Matrix {
 
         let z_range = z_far - z_near;
 
-        Matrix {
+        M4 {
             values: [
                 z_near / right, 0.0, 0.0, 0.0,
                 0.0, z_near / top, 0.0, 0.0,
@@ -130,36 +130,36 @@ impl Matrix {
     }
 }
 
-impl Mul<Matrix> for Matrix {
-    type Output = Matrix;
+impl Mul<M4> for M4 {
+    type Output = M4;
 
-    fn mul(self, other: Matrix) -> Matrix {
+    fn mul(self, other: M4) -> M4 {
         &self * &other
     }
 }
 
-impl<'a> Mul<&'a Matrix> for Matrix {
-    type Output = Matrix;
+impl<'a> Mul<&'a M4> for M4 {
+    type Output = M4;
 
-    fn mul(self, other: &'a Matrix) -> Matrix {
+    fn mul(self, other: &'a M4) -> M4 {
         &self * other
     }
 }
 
-impl<'a> Mul<Matrix> for &'a Matrix {
-    type Output = Matrix;
+impl<'a> Mul<M4> for &'a M4 {
+    type Output = M4;
 
-    fn mul(self, other: Matrix) -> Matrix {
+    fn mul(self, other: M4) -> M4 {
         self * &other
     }
 }
 
-impl<'a, 'b> Mul<&'a Matrix> for &'b Matrix {
-    type Output = Matrix;
+impl<'a, 'b> Mul<&'a M4> for &'b M4 {
+    type Output = M4;
 
-    fn mul(self, other: &'a Matrix) -> Matrix {
+    fn mul(self, other: &'a M4) -> M4 {
         // TODO: Simplify as dot products with row/column vectors
-        Matrix {
+        M4 {
             values: [
                 (self.values[00] * other.values[00]) + (self.values[04] * other.values[01]) + (self.values[08] * other.values[02]) + (self.values[12] * other.values[03]),
                 (self.values[01] * other.values[00]) + (self.values[05] * other.values[01]) + (self.values[09] * other.values[02]) + (self.values[13] * other.values[03]),
@@ -181,12 +181,12 @@ impl<'a, 'b> Mul<&'a Matrix> for &'b Matrix {
     }
 }
 
-impl Mul<Vec4> for Matrix {
-    type Output = Vec4;
+impl Mul<V4> for M4 {
+    type Output = V4;
 
-    fn mul(self, other: Vec4) -> Vec4 {
+    fn mul(self, other: V4) -> V4 {
         // TODO: Simplify as dot products with row vectors
-        Vec4::new(
+        V4::new(
             self.values[00] * other.x() + self.values[04] * other.y() + self.values[08] * other.z() + self.values[12] * other.w(),
             self.values[01] * other.x() + self.values[05] * other.y() + self.values[09] * other.z() + self.values[13] * other.w(),
             self.values[02] * other.x() + self.values[06] * other.y() + self.values[10] * other.z() + self.values[14] * other.w(),

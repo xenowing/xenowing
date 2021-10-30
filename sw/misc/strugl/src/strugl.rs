@@ -15,9 +15,9 @@ pub const PIXELS: usize = WIDTH * HEIGHT;
 // TODO: Change this..
 #[derive(Clone, Copy)]
 pub struct Vertex {
-    pub position: Vec4,
-    pub color: Vec4,
-    pub tex_coord: Vec2,
+    pub position: V4,
+    pub color: V4,
+    pub tex_coord: V2,
 }
 
 pub enum TextureFilter {
@@ -122,8 +122,8 @@ pub struct Context<D: Device> {
     pub blend_src_factor: BlendSrcFactor,
     pub blend_dst_factor: BlendDstFactor,
 
-    pub model_view: Matrix,
-    pub projection: Matrix,
+    pub model_view: M4,
+    pub projection: M4,
 
     assembled_triangles: Vec<Vec<Triangle>>,
 
@@ -149,8 +149,8 @@ impl<D: Device> Context<D> {
             blend_src_factor: BlendSrcFactor::One,
             blend_dst_factor: BlendDstFactor::Zero,
 
-            model_view: Matrix::identity(),
-            projection: Matrix::identity(),
+            model_view: M4::identity(),
+            projection: M4::identity(),
 
             // TODO: Fixed capacity and splitting drawcalls on overflow
             assembled_triangles: vec![Vec::new(); PIXELS / TILE_PIXELS as usize],
@@ -427,25 +427,25 @@ impl<D: Device> Context<D> {
         }
 
         // Viewport transform
-        let mut window_verts = [Vec3::zero(); 3];
+        let mut window_verts = [V3::zero(); 3];
         for i in 0..3 {
             let clip = verts[i].position;
-            let ndc = Vec3::new(clip.x(), clip.y(), clip.z()) / clip.w();
+            let ndc = V3::new(clip.x(), clip.y(), clip.z()) / clip.w();
             let viewport_near = 0.0;
             let viewport_far = 1.0;
-            let viewport_scale = Vec3::new(viewport_width as f32 / 2.0, viewport_height as f32 / 2.0, (viewport_far - viewport_near) / 2.0);
-            let viewport_bias = Vec3::new(viewport_x as f32 + viewport_width as f32 / 2.0, viewport_y as f32 + viewport_height as f32 / 2.0, (viewport_far + viewport_near) / 2.0);
+            let viewport_scale = V3::new(viewport_width as f32 / 2.0, viewport_height as f32 / 2.0, (viewport_far - viewport_near) / 2.0);
+            let viewport_bias = V3::new(viewport_x as f32 + viewport_width as f32 / 2.0, viewport_y as f32 + viewport_height as f32 / 2.0, (viewport_far + viewport_near) / 2.0);
             window_verts[i] = ndc * viewport_scale + viewport_bias;
         }
 
-        fn orient2d(a: Vec2, b: Vec2, c: Vec2) -> f32 {
+        fn orient2d(a: V2, b: V2, c: V2) -> f32 {
             (b.x() - a.x()) * (c.y() - a.y()) - (b.y() - a.y()) * (c.x() - a.x())
         }
 
         let /*mut */scaled_area = orient2d(
-            Vec2::new(window_verts[0].x(), window_verts[0].y()),
-            Vec2::new(window_verts[1].x(), window_verts[1].y()),
-            Vec2::new(window_verts[2].x(), window_verts[2].y()));
+            V2::new(window_verts[0].x(), window_verts[0].y()),
+            V2::new(window_verts[1].x(), window_verts[1].y()),
+            V2::new(window_verts[2].x(), window_verts[2].y()));
 
         // Always cull zero-area triangles
         if scaled_area == 0.0 {
@@ -464,7 +464,7 @@ impl<D: Device> Context<D> {
             scaled_area = -scaled_area;*/
         }
 
-        let texture_dims = Vec2::splat(self.texture.as_ref().map(|texture| texture.data.dim.to_u32()).unwrap_or(0) as _);
+        let texture_dims = V2::splat(self.texture.as_ref().map(|texture| texture.data.dim.to_u32()).unwrap_or(0) as _);
         // Offset to sample texel centers
         let st_bias = self.texture.as_ref().map(|texture| match texture.filter {
             TextureFilter::Nearest => 0.0,
@@ -474,16 +474,16 @@ impl<D: Device> Context<D> {
             vert.tex_coord = (vert.tex_coord * texture_dims + st_bias) / vert.position.w();
         }
 
-        let mut bb_min = Vec2::new(window_verts[0].x(), window_verts[0].y());
+        let mut bb_min = V2::new(window_verts[0].x(), window_verts[0].y());
         let mut bb_max = bb_min;
         for i in 1..verts.len() {
-            bb_min = bb_min.min(Vec2::new(window_verts[i].x(), window_verts[i].y()));
-            bb_max = bb_max.max(Vec2::new(window_verts[i].x(), window_verts[i].y()));
+            bb_min = bb_min.min(V2::new(window_verts[i].x(), window_verts[i].y()));
+            bb_max = bb_max.max(V2::new(window_verts[i].x(), window_verts[i].y()));
         }
-        bb_min = bb_min.max(Vec2::new(viewport_x as f32, viewport_y as f32));
-        bb_max = bb_max.min(Vec2::new((viewport_x + viewport_width as i32 - 1) as f32, (viewport_y + viewport_height as i32 - 1) as f32));
-        bb_min = bb_min.max(Vec2::zero());
-        bb_max = bb_max.min(Vec2::new((WIDTH - 1) as f32, (HEIGHT - 1) as f32));
+        bb_min = bb_min.max(V2::new(viewport_x as f32, viewport_y as f32));
+        bb_max = bb_max.min(V2::new((viewport_x + viewport_width as i32 - 1) as f32, (viewport_y + viewport_height as i32 - 1) as f32));
+        bb_min = bb_min.max(V2::zero());
+        bb_max = bb_max.min(V2::new((WIDTH - 1) as f32, (HEIGHT - 1) as f32));
         let bb_min_x = bb_min.x().floor() as i32;
         let bb_min_y = bb_min.y().floor() as i32;
         let bb_max_x = bb_max.x().ceil() as i32;
@@ -587,12 +587,12 @@ impl<D: Device> Context<D> {
                     continue;
                 }
 
-                let p = Vec2::new(tile_min_x as f32, tile_min_y as f32) + 0.5; // Offset to sample pixel centers
+                let p = V2::new(tile_min_x as f32, tile_min_y as f32) + 0.5; // Offset to sample pixel centers
 
                 // TODO: Proper top/left fill rule
-                let w0_min = orient2d(Vec2::new(window_verts[1].x(), window_verts[1].y()), Vec2::new(window_verts[2].x(), window_verts[2].y()), p);
-                let w1_min = orient2d(Vec2::new(window_verts[2].x(), window_verts[2].y()), Vec2::new(window_verts[0].x(), window_verts[0].y()), p);
-                let w2_min = orient2d(Vec2::new(window_verts[0].x(), window_verts[0].y()), Vec2::new(window_verts[1].x(), window_verts[1].y()), p);
+                let w0_min = orient2d(V2::new(window_verts[1].x(), window_verts[1].y()), V2::new(window_verts[2].x(), window_verts[2].y()), p);
+                let w1_min = orient2d(V2::new(window_verts[2].x(), window_verts[2].y()), V2::new(window_verts[0].x(), window_verts[0].y()), p);
+                let w2_min = orient2d(V2::new(window_verts[0].x(), window_verts[0].y()), V2::new(window_verts[1].x(), window_verts[1].y()), p);
                 triangle.w0_min = to_fixed(w0_min, EDGE_FRACT_BITS) as _;
                 triangle.w1_min = to_fixed(w1_min, EDGE_FRACT_BITS) as _;
                 triangle.w2_min = to_fixed(w2_min, EDGE_FRACT_BITS) as _;
