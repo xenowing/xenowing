@@ -271,18 +271,18 @@ fn main() {
 
         let mut view = Im4::translation(/*-1.0*/0.0, 0.0, -3.0/*-4.0*/);
         let t = (frame_time * 0.1) as f32;
-        view = view * Im4::rotation_x(t * 1.1);
-        view = view * Im4::rotation_y(t * 0.47);
-        view = view * Im4::rotation_z(t * 0.73);
+        view *= Im4::rotation_x(t * 1.1);
+        view *= Im4::rotation_y(t * 0.47);
+        view *= Im4::rotation_z(t * 0.73);
 
         /*let mut v = Vec::new();
 
         let mut model = Im4::identity();
-        model = model * Im4::translation(-0.5, 0.0, 0.0);
+        model *= Im4::translation(-0.5, 0.0, 0.0);
         let t = (frame_time * 0.1) as f32;
-        model = model * Im4::rotation_x(t);
-        model = model * Im4::rotation_y(t * 0.67);
-        model = model * Im4::rotation_z(t * 0.133);
+        model *= Im4::rotation_x(t);
+        model *= Im4::rotation_y(t * 0.67);
+        model *= Im4::rotation_z(t * 0.133);
         c.model_view = view * model;
 
         c.texture_filter = TextureFilter::Nearest;
@@ -297,14 +297,14 @@ fn main() {
             let mut v = Vec::new();
 
             let mut model = Im4::identity();
-            //model = model * Im4::translation(0.5, 0.0, 0.0);
+            //model *= Im4::translation(0.5, 0.0, 0.0);
             /*let t = (frame_time * 0.2) as f32 + rng.gen::<f32>() * 30.0;
-            model = model * Im4::rotation_x(t * 1.1);
-            model = model * Im4::rotation_y(t * 0.47);
-            model = model * Im4::rotation_z(t * 0.73);
-            model = model * Im4::translation(0.0, -0.6 + rng.gen::<f32>() * 1.2, -0.6 + rng.gen::<f32>() * 1.2);
-            model = model * Im4::scale(1.0 + rng.gen::<f32>() * 0.5, 0.1 + rng.gen::<f32>() * 0.2, 0.04);
-            model = model * Im4::translation(0.5 + rng.gen::<f32>() * 0.5, 0.0, 0.0);*/
+            model *= Im4::rotation_x(t * 1.1);
+            model *= Im4::rotation_y(t * 0.47);
+            model *= Im4::rotation_z(t * 0.73);
+            model *= Im4::translation(0.0, -0.6 + rng.gen::<f32>() * 1.2, -0.6 + rng.gen::<f32>() * 1.2);
+            model *= Im4::scale(1.0 + rng.gen::<f32>() * 0.5, 0.1 + rng.gen::<f32>() * 0.2, 0.04);
+            model *= Im4::translation(0.5 + rng.gen::<f32>() * 0.5, 0.0, 0.0);*/
             c.model_view = view * model;
 
             let transparent = false;//rng.gen::<bool>();

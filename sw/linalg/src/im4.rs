@@ -2,7 +2,7 @@ use crate::fixed::*;
 use crate::iv4::*;
 
 use core::intrinsics;
-use core::ops::Mul;
+use core::ops::{Mul, MulAssign};
 
 #[derive(Clone, Copy)]
 pub struct Im4<const FRACT_BITS: u32> {
@@ -207,5 +207,11 @@ impl<const FRACT_BITS: u32> Mul<Iv4<FRACT_BITS>> for Im4<FRACT_BITS> {
             rows[2].dot(other),
             rows[3].dot(other),
         )
+    }
+}
+
+impl<const FRACT_BITS: u32> MulAssign for Im4<FRACT_BITS> {
+    fn mul_assign(&mut self, other: Self) {
+        *self = *self * other
     }
 }
