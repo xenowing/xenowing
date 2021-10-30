@@ -3,9 +3,9 @@ use core::ops::{Add, AddAssign, Div, DivAssign, Mul, Sub};
 
 #[derive(Clone, Copy)]
 pub struct V3 {
-    x: f32,
-    y: f32,
-    z: f32,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
 }
 
 impl V3 {
@@ -31,18 +31,6 @@ impl V3 {
             y: 0.0,
             z: 0.0,
         }
-    }
-
-    pub fn x(&self) -> f32 {
-        self.x
-    }
-
-    pub fn y(&self) -> f32 {
-        self.y
-    }
-
-    pub fn z(&self) -> f32 {
-        self.z
     }
 
     pub fn len(self) -> f32 {

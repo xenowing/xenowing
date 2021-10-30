@@ -421,7 +421,7 @@ impl<D: Device> Context<D> {
 
         // TODO: Clipping, culling, ...
         for vert in verts.iter() {
-            if vert.position.z() < -vert.position.w() || vert.position.z() > vert.position.w() {
+            if vert.position.z < -vert.position.w || vert.position.z > vert.position.w {
                 return;
             }
         }
@@ -430,7 +430,7 @@ impl<D: Device> Context<D> {
         let mut window_verts = [V3::zero(); 3];
         for i in 0..3 {
             let clip = verts[i].position;
-            let ndc = V3::new(clip.x(), clip.y(), clip.z()) / clip.w();
+            let ndc = V3::new(clip.x, clip.y, clip.z) / clip.w;
             let viewport_near = 0.0;
             let viewport_far = 1.0;
             let viewport_scale = V3::new(viewport_width as f32 / 2.0, viewport_height as f32 / 2.0, (viewport_far - viewport_near) / 2.0);
@@ -439,13 +439,13 @@ impl<D: Device> Context<D> {
         }
 
         fn orient2d(a: V2, b: V2, c: V2) -> f32 {
-            (b.x() - a.x()) * (c.y() - a.y()) - (b.y() - a.y()) * (c.x() - a.x())
+            (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
         }
 
         let /*mut */scaled_area = orient2d(
-            V2::new(window_verts[0].x(), window_verts[0].y()),
-            V2::new(window_verts[1].x(), window_verts[1].y()),
-            V2::new(window_verts[2].x(), window_verts[2].y()));
+            V2::new(window_verts[0].x, window_verts[0].y),
+            V2::new(window_verts[1].x, window_verts[1].y),
+            V2::new(window_verts[2].x, window_verts[2].y));
 
         // Always cull zero-area triangles
         if scaled_area == 0.0 {
@@ -471,23 +471,23 @@ impl<D: Device> Context<D> {
             TextureFilter::Bilinear => -0.5,
         }).unwrap_or(0.0);
         for vert in verts.iter_mut() {
-            vert.tex_coord = (vert.tex_coord * texture_dims + st_bias) / vert.position.w();
+            vert.tex_coord = (vert.tex_coord * texture_dims + st_bias) / vert.position.w;
         }
 
-        let mut bb_min = V2::new(window_verts[0].x(), window_verts[0].y());
+        let mut bb_min = V2::new(window_verts[0].x, window_verts[0].y);
         let mut bb_max = bb_min;
         for i in 1..verts.len() {
-            bb_min = bb_min.min(V2::new(window_verts[i].x(), window_verts[i].y()));
-            bb_max = bb_max.max(V2::new(window_verts[i].x(), window_verts[i].y()));
+            bb_min = bb_min.min(V2::new(window_verts[i].x, window_verts[i].y));
+            bb_max = bb_max.max(V2::new(window_verts[i].x, window_verts[i].y));
         }
         bb_min = bb_min.max(V2::new(viewport_x as f32, viewport_y as f32));
         bb_max = bb_max.min(V2::new((viewport_x + viewport_width as i32 - 1) as f32, (viewport_y + viewport_height as i32 - 1) as f32));
         bb_min = bb_min.max(V2::zero());
         bb_max = bb_max.min(V2::new((WIDTH - 1) as f32, (HEIGHT - 1) as f32));
-        let bb_min_x = bb_min.x().floor() as i32;
-        let bb_min_y = bb_min.y().floor() as i32;
-        let bb_max_x = bb_max.x().ceil() as i32;
-        let bb_max_y = bb_max.y().ceil() as i32;
+        let bb_min_x = bb_min.x.floor() as i32;
+        let bb_min_y = bb_min.y.floor() as i32;
+        let bb_max_x = bb_max.x.ceil() as i32;
+        let bb_max_y = bb_max.y.ceil() as i32;
 
         let mut triangle = Triangle::default();
 
@@ -514,12 +514,12 @@ impl<D: Device> Context<D> {
             result
         }
 
-        let w0_dx = window_verts[1].y() - window_verts[2].y();
-        let w1_dx = window_verts[2].y() - window_verts[0].y();
-        let w2_dx = window_verts[0].y() - window_verts[1].y();
-        let w0_dy = window_verts[2].x() - window_verts[1].x();
-        let w1_dy = window_verts[0].x() - window_verts[2].x();
-        let w2_dy = window_verts[1].x() - window_verts[0].x();
+        let w0_dx = window_verts[1].y - window_verts[2].y;
+        let w1_dx = window_verts[2].y - window_verts[0].y;
+        let w2_dx = window_verts[0].y - window_verts[1].y;
+        let w0_dy = window_verts[2].x - window_verts[1].x;
+        let w1_dy = window_verts[0].x - window_verts[2].x;
+        let w2_dy = window_verts[1].x - window_verts[0].x;
 
         triangle.w0_dx = to_fixed(w0_dx, EDGE_FRACT_BITS) as _;
         triangle.w1_dx = to_fixed(w1_dx, EDGE_FRACT_BITS) as _;
@@ -535,14 +535,14 @@ impl<D: Device> Context<D> {
         let w1_dy = w1_dy / scaled_area;
         let w2_dy = w2_dy / scaled_area;
 
-        let r_dx = verts[0].color.x() * w0_dx + verts[1].color.x() * w1_dx + verts[2].color.x() * w2_dx;
-        let g_dx = verts[0].color.y() * w0_dx + verts[1].color.y() * w1_dx + verts[2].color.y() * w2_dx;
-        let b_dx = verts[0].color.z() * w0_dx + verts[1].color.z() * w1_dx + verts[2].color.z() * w2_dx;
-        let a_dx = verts[0].color.w() * w0_dx + verts[1].color.w() * w1_dx + verts[2].color.w() * w2_dx;
-        let r_dy = verts[0].color.x() * w0_dy + verts[1].color.x() * w1_dy + verts[2].color.x() * w2_dy;
-        let g_dy = verts[0].color.y() * w0_dy + verts[1].color.y() * w1_dy + verts[2].color.y() * w2_dy;
-        let b_dy = verts[0].color.z() * w0_dy + verts[1].color.z() * w1_dy + verts[2].color.z() * w2_dy;
-        let a_dy = verts[0].color.w() * w0_dy + verts[1].color.w() * w1_dy + verts[2].color.w() * w2_dy;
+        let r_dx = verts[0].color.x * w0_dx + verts[1].color.x * w1_dx + verts[2].color.x * w2_dx;
+        let g_dx = verts[0].color.y * w0_dx + verts[1].color.y * w1_dx + verts[2].color.y * w2_dx;
+        let b_dx = verts[0].color.z * w0_dx + verts[1].color.z * w1_dx + verts[2].color.z * w2_dx;
+        let a_dx = verts[0].color.w * w0_dx + verts[1].color.w * w1_dx + verts[2].color.w * w2_dx;
+        let r_dy = verts[0].color.x * w0_dy + verts[1].color.x * w1_dy + verts[2].color.x * w2_dy;
+        let g_dy = verts[0].color.y * w0_dy + verts[1].color.y * w1_dy + verts[2].color.y * w2_dy;
+        let b_dy = verts[0].color.z * w0_dy + verts[1].color.z * w1_dy + verts[2].color.z * w2_dy;
+        let a_dy = verts[0].color.w * w0_dy + verts[1].color.w * w1_dy + verts[2].color.w * w2_dy;
         triangle.r_dx = to_fixed(r_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
         triangle.g_dx = to_fixed(g_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
         triangle.b_dx = to_fixed(b_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
@@ -552,20 +552,20 @@ impl<D: Device> Context<D> {
         triangle.b_dy = to_fixed(b_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
         triangle.a_dy = to_fixed(a_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
 
-        let w_inverse_dx = 1.0 / verts[0].position.w() * w0_dx + 1.0 / verts[1].position.w() * w1_dx + 1.0 / verts[2].position.w() * w2_dx;
-        let w_inverse_dy = 1.0 / verts[0].position.w() * w0_dy + 1.0 / verts[1].position.w() * w1_dy + 1.0 / verts[2].position.w() * w2_dy;
+        let w_inverse_dx = 1.0 / verts[0].position.w * w0_dx + 1.0 / verts[1].position.w * w1_dx + 1.0 / verts[2].position.w * w2_dx;
+        let w_inverse_dy = 1.0 / verts[0].position.w * w0_dy + 1.0 / verts[1].position.w * w1_dy + 1.0 / verts[2].position.w * w2_dy;
         triangle.w_inverse_dx = to_fixed(w_inverse_dx, W_INVERSE_FRACT_BITS) as _;
         triangle.w_inverse_dy = to_fixed(w_inverse_dy, W_INVERSE_FRACT_BITS) as _;
 
-        let z_dx = window_verts[0].z() * w0_dx + window_verts[1].z() * w1_dx + window_verts[2].z() * w2_dx;
-        let z_dy = window_verts[0].z() * w0_dy + window_verts[1].z() * w1_dy + window_verts[2].z() * w2_dy;
+        let z_dx = window_verts[0].z * w0_dx + window_verts[1].z * w1_dx + window_verts[2].z * w2_dx;
+        let z_dy = window_verts[0].z * w0_dy + window_verts[1].z * w1_dy + window_verts[2].z * w2_dy;
         triangle.z_dx = to_fixed(z_dx, Z_FRACT_BITS) as _;
         triangle.z_dy = to_fixed(z_dy, Z_FRACT_BITS) as _;
 
-        let s_dx = verts[0].tex_coord.x() * w0_dx + verts[1].tex_coord.x() * w1_dx + verts[2].tex_coord.x() * w2_dx;
-        let t_dx = verts[0].tex_coord.y() * w0_dx + verts[1].tex_coord.y() * w1_dx + verts[2].tex_coord.y() * w2_dx;
-        let s_dy = verts[0].tex_coord.x() * w0_dy + verts[1].tex_coord.x() * w1_dy + verts[2].tex_coord.x() * w2_dy;
-        let t_dy = verts[0].tex_coord.y() * w0_dy + verts[1].tex_coord.y() * w1_dy + verts[2].tex_coord.y() * w2_dy;
+        let s_dx = verts[0].tex_coord.x * w0_dx + verts[1].tex_coord.x * w1_dx + verts[2].tex_coord.x * w2_dx;
+        let t_dx = verts[0].tex_coord.y * w0_dx + verts[1].tex_coord.y * w1_dx + verts[2].tex_coord.y * w2_dx;
+        let s_dy = verts[0].tex_coord.x * w0_dy + verts[1].tex_coord.x * w1_dy + verts[2].tex_coord.x * w2_dy;
+        let t_dy = verts[0].tex_coord.y * w0_dy + verts[1].tex_coord.y * w1_dy + verts[2].tex_coord.y * w2_dy;
         triangle.s_dx = to_fixed(s_dx, ST_FRACT_BITS) as _;
         triangle.t_dx = to_fixed(t_dx, ST_FRACT_BITS) as _;
         triangle.s_dy = to_fixed(s_dy, ST_FRACT_BITS) as _;
@@ -590,9 +590,9 @@ impl<D: Device> Context<D> {
                 let p = V2::new(tile_min_x as f32, tile_min_y as f32) + 0.5; // Offset to sample pixel centers
 
                 // TODO: Proper top/left fill rule
-                let w0_min = orient2d(V2::new(window_verts[1].x(), window_verts[1].y()), V2::new(window_verts[2].x(), window_verts[2].y()), p);
-                let w1_min = orient2d(V2::new(window_verts[2].x(), window_verts[2].y()), V2::new(window_verts[0].x(), window_verts[0].y()), p);
-                let w2_min = orient2d(V2::new(window_verts[0].x(), window_verts[0].y()), V2::new(window_verts[1].x(), window_verts[1].y()), p);
+                let w0_min = orient2d(V2::new(window_verts[1].x, window_verts[1].y), V2::new(window_verts[2].x, window_verts[2].y), p);
+                let w1_min = orient2d(V2::new(window_verts[2].x, window_verts[2].y), V2::new(window_verts[0].x, window_verts[0].y), p);
+                let w2_min = orient2d(V2::new(window_verts[0].x, window_verts[0].y), V2::new(window_verts[1].x, window_verts[1].y), p);
                 triangle.w0_min = to_fixed(w0_min, EDGE_FRACT_BITS) as _;
                 triangle.w1_min = to_fixed(w1_min, EDGE_FRACT_BITS) as _;
                 triangle.w2_min = to_fixed(w2_min, EDGE_FRACT_BITS) as _;
@@ -601,23 +601,23 @@ impl<D: Device> Context<D> {
                 let w1_min = w1_min / scaled_area;
                 let w2_min = w2_min / scaled_area;
 
-                let r_min = verts[0].color.x() * w0_min + verts[1].color.x() * w1_min + verts[2].color.x() * w2_min;
-                let g_min = verts[0].color.y() * w0_min + verts[1].color.y() * w1_min + verts[2].color.y() * w2_min;
-                let b_min = verts[0].color.z() * w0_min + verts[1].color.z() * w1_min + verts[2].color.z() * w2_min;
-                let a_min = verts[0].color.w() * w0_min + verts[1].color.w() * w1_min + verts[2].color.w() * w2_min;
+                let r_min = verts[0].color.x * w0_min + verts[1].color.x * w1_min + verts[2].color.x * w2_min;
+                let g_min = verts[0].color.y * w0_min + verts[1].color.y * w1_min + verts[2].color.y * w2_min;
+                let b_min = verts[0].color.z * w0_min + verts[1].color.z * w1_min + verts[2].color.z * w2_min;
+                let a_min = verts[0].color.w * w0_min + verts[1].color.w * w1_min + verts[2].color.w * w2_min;
                 triangle.r_min = to_fixed(r_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
                 triangle.g_min = to_fixed(g_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
                 triangle.b_min = to_fixed(b_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
                 triangle.a_min = to_fixed(a_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
 
-                let w_inverse_min = 1.0 / verts[0].position.w() * w0_min + 1.0 / verts[1].position.w() * w1_min + 1.0 / verts[2].position.w() * w2_min;
+                let w_inverse_min = 1.0 / verts[0].position.w * w0_min + 1.0 / verts[1].position.w * w1_min + 1.0 / verts[2].position.w * w2_min;
                 triangle.w_inverse_min = to_fixed(w_inverse_min, W_INVERSE_FRACT_BITS) as _;
 
-                let z_min = window_verts[0].z() * w0_min + window_verts[1].z() * w1_min + window_verts[2].z() * w2_min;
+                let z_min = window_verts[0].z * w0_min + window_verts[1].z * w1_min + window_verts[2].z * w2_min;
                 triangle.z_min = to_fixed(z_min, Z_FRACT_BITS) as _;
 
-                let s_min = verts[0].tex_coord.x() * w0_min + verts[1].tex_coord.x() * w1_min + verts[2].tex_coord.x() * w2_min;
-                let t_min = verts[0].tex_coord.y() * w0_min + verts[1].tex_coord.y() * w1_min + verts[2].tex_coord.y() * w2_min;
+                let s_min = verts[0].tex_coord.x * w0_min + verts[1].tex_coord.x * w1_min + verts[2].tex_coord.x * w2_min;
+                let t_min = verts[0].tex_coord.y * w0_min + verts[1].tex_coord.y * w1_min + verts[2].tex_coord.y * w2_min;
                 triangle.s_min = to_fixed(s_min, ST_FRACT_BITS) as _;
                 triangle.t_min = to_fixed(t_min, ST_FRACT_BITS) as _;
 
