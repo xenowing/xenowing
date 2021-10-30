@@ -2,7 +2,7 @@ use crate::iv4::*;
 
 #[derive(Clone, Copy)]
 pub struct Im4 {
-    columns: [Iv4; 4],
+    pub columns: [Iv4; 4],
 }
 
 impl Im4 {

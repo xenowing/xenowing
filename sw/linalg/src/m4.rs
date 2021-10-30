@@ -5,7 +5,7 @@ use core::ops::Mul;
 
 #[derive(Clone, Copy)]
 pub struct M4 {
-    columns: [V4; 4],
+    pub columns: [V4; 4],
 }
 
 impl M4 {
