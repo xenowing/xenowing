@@ -1,3 +1,5 @@
+use crate::iv4::*;
+
 use core::intrinsics;
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, Sub};
 
@@ -10,16 +12,17 @@ pub struct V4 {
 }
 
 impl V4 {
-    pub fn new(x: f32, y: f32, z: f32, w: f32) -> V4 {
+    pub fn new(x: impl Into<f32>, y: impl Into<f32>, z: impl Into<f32>, w: impl Into<f32>) -> V4 {
         V4 {
-            x,
-            y,
-            z,
-            w,
+            x: x.into(),
+            y: y.into(),
+            z: z.into(),
+            w: w.into(),
         }
     }
 
-    pub fn splat(value: f32) -> V4 {
+    pub fn splat(value: impl Into<f32>) -> V4 {
+        let value = value.into();
         V4 {
             x: value,
             y: value,
@@ -117,6 +120,12 @@ impl Div<f32> for V4 {
 impl DivAssign<f32> for V4 {
     fn div_assign(&mut self, other: f32) {
         *self = *self / other
+    }
+}
+
+impl<const FRACT_BITS: u32> From<Iv4<FRACT_BITS>> for V4 {
+    fn from(v: Iv4<FRACT_BITS>) -> Self {
+        Self::new(v.x, v.y, v.z, v.w)
     }
 }
 

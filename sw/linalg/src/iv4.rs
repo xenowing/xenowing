@@ -11,16 +11,22 @@ pub struct Iv4<const FRACT_BITS: u32> {
 }
 
 impl<const FRACT_BITS: u32> Iv4<FRACT_BITS> {
-    pub fn new(x: Fixed<FRACT_BITS>, y: Fixed<FRACT_BITS>, z: Fixed<FRACT_BITS>, w: Fixed<FRACT_BITS>) -> Self {
+    pub fn new(
+        x: impl Into<Fixed<FRACT_BITS>>,
+        y: impl Into<Fixed<FRACT_BITS>>,
+        z: impl Into<Fixed<FRACT_BITS>>,
+        w: impl Into<Fixed<FRACT_BITS>>,
+    ) -> Self {
         Self {
-            x,
-            y,
-            z,
-            w,
+            x: x.into(),
+            y: y.into(),
+            z: z.into(),
+            w: w.into(),
         }
     }
 
-    pub fn splat(value: Fixed<FRACT_BITS>) -> Self {
+    pub fn splat(value: impl Into<Fixed<FRACT_BITS>>) -> Self {
+        let value = value.into();
         Self {
             x: value,
             y: value,
@@ -31,10 +37,10 @@ impl<const FRACT_BITS: u32> Iv4<FRACT_BITS> {
 
     pub fn zero() -> Self {
         Self {
-            x: Fixed::zero(),
-            y: Fixed::zero(),
-            z: Fixed::zero(),
-            w: Fixed::zero(),
+            x: 0.0.into(),
+            y: 0.0.into(),
+            z: 0.0.into(),
+            w: 0.0.into(),
         }
     }
 

@@ -67,192 +67,192 @@ fn main() {
         fn cube(v: &mut Vec<Vertex>) {
             // Front face
             v.push(Vertex {
-                position: V4::new(-1.0, -1.0, 1.0, 1.0),
+                position: Iv4::new(-1.0, -1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 0.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, -1.0, 1.0, 1.0),
+                position: Iv4::new(1.0, -1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 0.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, 1.0, 1.0, 1.0),
+                position: Iv4::new(1.0, 1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, 1.0, 1.0, 1.0),
+                position: Iv4::new(1.0, 1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(-1.0, 1.0, 1.0, 1.0),
+                position: Iv4::new(-1.0, 1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(-1.0, -1.0, 1.0, 1.0),
+                position: Iv4::new(-1.0, -1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 0.0),
             });
 
             // Back face
             v.push(Vertex {
-                position: V4::new(1.0, -1.0, -1.0, 1.0),
+                position: Iv4::new(1.0, -1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 0.0),
             });
             v.push(Vertex {
-                position: V4::new(-1.0, -1.0, -1.0, 1.0),
+                position: Iv4::new(-1.0, -1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 0.0),
             });
             v.push(Vertex {
-                position: V4::new(-1.0, 1.0, -1.0, 1.0),
+                position: Iv4::new(-1.0, 1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(-1.0, 1.0, -1.0, 1.0),
+                position: Iv4::new(-1.0, 1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, 1.0, -1.0, 1.0),
+                position: Iv4::new(1.0, 1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, -1.0, -1.0, 1.0),
+                position: Iv4::new(1.0, -1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 0.0),
             });
 
             // Left face
             v.push(Vertex {
-                position: V4::new(-1.0, -1.0, -1.0, 1.0),
+                position: Iv4::new(-1.0, -1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 0.0),
             });
             v.push(Vertex {
-                position: V4::new(-1.0, -1.0, 1.0, 1.0),
+                position: Iv4::new(-1.0, -1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 0.0),
             });
             v.push(Vertex {
-                position: V4::new(-1.0, 1.0, 1.0, 1.0),
+                position: Iv4::new(-1.0, 1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(-1.0, 1.0, 1.0, 1.0),
+                position: Iv4::new(-1.0, 1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(-1.0, 1.0, -1.0, 1.0),
+                position: Iv4::new(-1.0, 1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(-1.0, -1.0, -1.0, 1.0),
+                position: Iv4::new(-1.0, -1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 0.0),
             });
 
             // Right face
             v.push(Vertex {
-                position: V4::new(1.0, -1.0, 1.0, 1.0),
+                position: Iv4::new(1.0, -1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 0.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, -1.0, -1.0, 1.0),
+                position: Iv4::new(1.0, -1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 0.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, 1.0, -1.0, 1.0),
+                position: Iv4::new(1.0, 1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, 1.0, -1.0, 1.0),
+                position: Iv4::new(1.0, 1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, 1.0, 1.0, 1.0),
+                position: Iv4::new(1.0, 1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, -1.0, 1.0, 1.0),
+                position: Iv4::new(1.0, -1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 0.0),
             });
 
             // Top face
             v.push(Vertex {
-                position: V4::new(-1.0, 1.0, 1.0, 1.0),
+                position: Iv4::new(-1.0, 1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 0.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, 1.0, 1.0, 1.0),
+                position: Iv4::new(1.0, 1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 0.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, 1.0, -1.0, 1.0),
+                position: Iv4::new(1.0, 1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, 1.0, -1.0, 1.0),
+                position: Iv4::new(1.0, 1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(-1.0, 1.0, -1.0, 1.0),
+                position: Iv4::new(-1.0, 1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(-1.0, 1.0, 1.0, 1.0),
+                position: Iv4::new(-1.0, 1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 0.0),
             });
 
             // Bottom face
             v.push(Vertex {
-                position: V4::new(-1.0, -1.0, -1.0, 1.0),
+                position: Iv4::new(-1.0, -1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 0.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, -1.0, -1.0, 1.0),
+                position: Iv4::new(1.0, -1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 0.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, -1.0, 1.0, 1.0),
+                position: Iv4::new(1.0, -1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(1.0, -1.0, 1.0, 1.0),
+                position: Iv4::new(1.0, -1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(1.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(-1.0, -1.0, 1.0, 1.0),
+                position: Iv4::new(-1.0, -1.0, 1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 1.0),
             });
             v.push(Vertex {
-                position: V4::new(-1.0, -1.0, -1.0, 1.0),
+                position: Iv4::new(-1.0, -1.0, -1.0, 1.0),
                 color: V4::splat(1.0),
                 tex_coord: V2::new(0.0, 0.0),
             });
@@ -267,22 +267,22 @@ fn main() {
 
         c.texture = Some(texture.clone());
 
-        c.projection = M4::perspective(90.0, WIDTH as f32 / HEIGHT as f32, 1.0, 1000.0);
+        c.projection = Im4::perspective(90.0, WIDTH as f32 / HEIGHT as f32, 1.0, 1000.0);
 
-        let mut view = M4::translation(/*-1.0*/0.0, 0.0, -3.0/*-4.0*/);
+        let mut view = Im4::translation(/*-1.0*/0.0, 0.0, -3.0/*-4.0*/);
         let t = (frame_time * 0.1) as f32;
-        view = view * M4::rotation_x(t * 1.1);
-        view = view * M4::rotation_y(t * 0.47);
-        view = view * M4::rotation_z(t * 0.73);
+        view = view * Im4::rotation_x(t * 1.1);
+        view = view * Im4::rotation_y(t * 0.47);
+        view = view * Im4::rotation_z(t * 0.73);
 
         /*let mut v = Vec::new();
 
-        let mut model = Matrix::identity();
-        model = model * Matrix::translation(-0.5, 0.0, 0.0);
+        let mut model = Im4::identity();
+        model = model * Im4::translation(-0.5, 0.0, 0.0);
         let t = (frame_time * 0.1) as f32;
-        model = model * Matrix::rotation_x(t);
-        model = model * Matrix::rotation_y(t * 0.67);
-        model = model * Matrix::rotation_z(t * 0.133);
+        model = model * Im4::rotation_x(t);
+        model = model * Im4::rotation_y(t * 0.67);
+        model = model * Im4::rotation_z(t * 0.133);
         c.model_view = view * model;
 
         c.texture_filter = TextureFilter::Nearest;
@@ -296,15 +296,15 @@ fn main() {
         for _ in 0..1/*50*/ {
             let mut v = Vec::new();
 
-            let mut model = M4::identity();
-            //model = model * Matrix::translation(0.5, 0.0, 0.0);
+            let mut model = Im4::identity();
+            //model = model * Im4::translation(0.5, 0.0, 0.0);
             /*let t = (frame_time * 0.2) as f32 + rng.gen::<f32>() * 30.0;
-            model = model * Matrix::rotation_x(t * 1.1);
-            model = model * Matrix::rotation_y(t * 0.47);
-            model = model * Matrix::rotation_z(t * 0.73);
-            model = model * Matrix::translation(0.0, -0.6 + rng.gen::<f32>() * 1.2, -0.6 + rng.gen::<f32>() * 1.2);
-            model = model * Matrix::scale(1.0 + rng.gen::<f32>() * 0.5, 0.1 + rng.gen::<f32>() * 0.2, 0.04);
-            model = model * Matrix::translation(0.5 + rng.gen::<f32>() * 0.5, 0.0, 0.0);*/
+            model = model * Im4::rotation_x(t * 1.1);
+            model = model * Im4::rotation_y(t * 0.47);
+            model = model * Im4::rotation_z(t * 0.73);
+            model = model * Im4::translation(0.0, -0.6 + rng.gen::<f32>() * 1.2, -0.6 + rng.gen::<f32>() * 1.2);
+            model = model * Im4::scale(1.0 + rng.gen::<f32>() * 0.5, 0.1 + rng.gen::<f32>() * 0.2, 0.04);
+            model = model * Im4::translation(0.5 + rng.gen::<f32>() * 0.5, 0.0, 0.0);*/
             c.model_view = view * model;
 
             let transparent = false;//rng.gen::<bool>();

@@ -12,12 +12,21 @@ pub const WIDTH: usize = 16 * 8;//320;
 pub const HEIGHT: usize = 16 * 8;//240;
 pub const PIXELS: usize = WIDTH * HEIGHT;
 
+pub const FRACT_BITS: u32 = 16;
+
 // TODO: Change this..
 #[derive(Clone, Copy)]
 pub struct Vertex {
-    pub position: V4,
+    pub position: Iv4<FRACT_BITS>,
     pub color: V4,
     pub tex_coord: V2,
+}
+
+#[derive(Clone, Copy)]
+struct TransformedVertex {
+    position: V4,
+    color: V4,
+    tex_coord: V2,
 }
 
 pub enum TextureFilter {
@@ -122,8 +131,8 @@ pub struct Context<D: Device> {
     pub blend_src_factor: BlendSrcFactor,
     pub blend_dst_factor: BlendDstFactor,
 
-    pub model_view: M4,
-    pub projection: M4,
+    pub model_view: Im4<FRACT_BITS>,
+    pub projection: Im4<FRACT_BITS>,
 
     assembled_triangles: Vec<Vec<Triangle>>,
 
@@ -149,8 +158,8 @@ impl<D: Device> Context<D> {
             blend_src_factor: BlendSrcFactor::One,
             blend_dst_factor: BlendDstFactor::Zero,
 
-            model_view: M4::identity(),
-            projection: M4::identity(),
+            model_view: Im4::identity(),
+            projection: Im4::identity(),
 
             // TODO: Fixed capacity and splitting drawcalls on overflow
             assembled_triangles: vec![Vec::new(); PIXELS / TILE_PIXELS as usize],
@@ -224,14 +233,18 @@ impl<D: Device> Context<D> {
         self.estimated_frame_rasterization_cycles = 0;
     }
 
-    pub fn render(&mut self, verts: &mut Vec<Vertex>) {
+    pub fn render(&mut self, verts: &[Vertex]) {
         // Transformation
-        for vert in verts.iter_mut() {
+        let verts = verts.iter().map(|vert| {
             let object = vert.position;
             let eye = self.model_view * object;
             let clip = self.projection * eye;
-            vert.position = clip;
-        }
+            TransformedVertex {
+                position: clip.into(),
+                color: vert.color,
+                tex_coord: vert.tex_coord,
+            }
+        }).collect::<Vec<_>>();
 
         // Primitive assembly
         for i in (0..verts.len()).step_by(3) {
@@ -412,7 +425,7 @@ impl<D: Device> Context<D> {
         }
     }
 
-    fn assemble_triangle(&mut self, mut verts: [Vertex; 3]) {
+    fn assemble_triangle(&mut self, mut verts: [TransformedVertex; 3]) {
         // TODO: Proper viewport
         let viewport_x = 0;
         let viewport_y = 0;

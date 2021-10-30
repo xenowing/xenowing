@@ -1,6 +1,7 @@
 use crate::fixed::*;
 use crate::iv4::*;
 
+use core::intrinsics;
 use core::ops::Mul;
 
 #[derive(Clone, Copy)]
@@ -12,32 +13,115 @@ impl<const FRACT_BITS: u32> Im4<FRACT_BITS> {
     pub fn identity() -> Self {
         Self {
             columns: [
-                Iv4::new(Fixed::one(), Fixed::zero(), Fixed::zero(), Fixed::zero()),
-                Iv4::new(Fixed::zero(), Fixed::one(), Fixed::zero(), Fixed::zero()),
-                Iv4::new(Fixed::zero(), Fixed::zero(), Fixed::one(), Fixed::zero()),
-                Iv4::new(Fixed::zero(), Fixed::zero(), Fixed::zero(), Fixed::one()),
+                Iv4::new(1.0, 0.0, 0.0, 0.0),
+                Iv4::new(0.0, 1.0, 0.0, 0.0),
+                Iv4::new(0.0, 0.0, 1.0, 0.0),
+                Iv4::new(0.0, 0.0, 0.0, 1.0),
             ],
         }
     }
 
-    pub fn translation(x: Fixed<FRACT_BITS>, y: Fixed<FRACT_BITS>, z: Fixed<FRACT_BITS>) -> Self {
+    pub fn translation(
+        x: impl Into<Fixed<FRACT_BITS>>,
+        y: impl Into<Fixed<FRACT_BITS>>,
+        z: impl Into<Fixed<FRACT_BITS>>,
+    ) -> Self {
         Self {
             columns: [
-                Iv4::new(Fixed::one(), Fixed::zero(), Fixed::zero(), Fixed::zero()),
-                Iv4::new(Fixed::zero(), Fixed::one(), Fixed::zero(), Fixed::zero()),
-                Iv4::new(Fixed::zero(), Fixed::zero(), Fixed::one(), Fixed::zero()),
-                Iv4::new(x, y, z, Fixed::one()),
+                Iv4::new(1.0, 0.0, 0.0, 0.0),
+                Iv4::new(0.0, 1.0, 0.0, 0.0),
+                Iv4::new(0.0, 0.0, 1.0, 0.0),
+                Iv4::new(x, y, z, 1.0),
             ],
         }
     }
 
-    pub fn scale(x: Fixed<FRACT_BITS>, y: Fixed<FRACT_BITS>, z: Fixed<FRACT_BITS>) -> Self {
+    pub fn rotation_x(radians: f32) -> Self {
+        let s = unsafe { intrinsics::sinf32(radians) };
+        let c = unsafe { intrinsics::cosf32(radians) };
+
         Self {
             columns: [
-                Iv4::new(x, Fixed::zero(), Fixed::zero(), Fixed::zero()),
-                Iv4::new(Fixed::zero(), y, Fixed::zero(), Fixed::zero()),
-                Iv4::new(Fixed::zero(), Fixed::zero(), z, Fixed::zero()),
-                Iv4::new(Fixed::zero(), Fixed::zero(), Fixed::zero(), Fixed::one()),
+                Iv4::new(1.0, 0.0, 0.0, 0.0),
+                Iv4::new(0.0, c, s, 0.0),
+                Iv4::new(0.0, -s, c, 0.0),
+                Iv4::new(0.0, 0.0, 0.0, 1.0),
+            ]
+        }
+    }
+
+    pub fn rotation_y(radians: f32) -> Self {
+        let s = unsafe { intrinsics::sinf32(radians) };
+        let c = unsafe { intrinsics::cosf32(radians) };
+
+        Self {
+            columns: [
+                Iv4::new(c, 0.0, -s, 0.0),
+                Iv4::new(0.0, 1.0, 0.0, 0.0),
+                Iv4::new(s, 0.0, c, 0.0),
+                Iv4::new(0.0, 0.0, 0.0, 1.0),
+            ]
+        }
+    }
+
+    pub fn rotation_z(radians: f32) -> Self {
+        let s = unsafe { intrinsics::sinf32(radians) };
+        let c = unsafe { intrinsics::cosf32(radians) };
+
+        Self {
+            columns: [
+                Iv4::new(c, s, 0.0, 0.0),
+                Iv4::new(-s, c, 0.0, 0.0),
+                Iv4::new(0.0, 0.0, 1.0, 0.0),
+                Iv4::new(0.0, 0.0, 0.0, 1.0),
+            ]
+        }
+    }
+
+    pub fn scale(
+        x: impl Into<Fixed<FRACT_BITS>>,
+        y: impl Into<Fixed<FRACT_BITS>>,
+        z: impl Into<Fixed<FRACT_BITS>>,
+    ) -> Self {
+        Self {
+            columns: [
+                Iv4::new(x, 0.0, 0.0, 0.0),
+                Iv4::new(0.0, y, 0.0, 0.0),
+                Iv4::new(0.0, 0.0, z, 0.0),
+                Iv4::new(0.0, 0.0, 0.0, 1.0),
+            ]
+        }
+    }
+
+    pub fn ortho(left: f32, right: f32, bottom: f32, top: f32, z_near: f32, z_far: f32) -> Self {
+        let tx = -(right + left) / (right - left);
+        let ty = -(top + bottom) / (top - bottom);
+        let tz = -(z_far + z_near) / (z_far - z_near);
+
+        Self {
+            columns: [
+                Iv4::new(2.0 / (right - left), 0.0, 0.0, 0.0),
+                Iv4::new(0.0, 2.0 / (top - bottom), 0.0, 0.0),
+                Iv4::new(0.0, 0.0, -2.0 / (z_far - z_near), 0.0),
+                Iv4::new(tx, ty, tz, 1.0),
+            ]
+        }
+    }
+
+    pub fn perspective(fov_degrees: f32, aspect: f32, z_near: f32, z_far: f32) -> Self {
+        let fov_radians = fov_degrees.to_radians();
+        let tan = |x| unsafe { intrinsics::sinf32(x) / intrinsics::cosf32(x) };
+        let top = z_near * tan(fov_radians / 2.0);
+        let right = top * aspect;
+
+        let z_range = z_far - z_near;
+
+        Self {
+            columns: [
+                Iv4::new(z_near / right, 0.0, 0.0, 0.0),
+                Iv4::new(0.0, z_near / top, 0.0, 0.0),
+                Iv4::new(0.0, 0.0, -(z_near + z_far) / z_range, -1.0),
+                Iv4::new(0.0, 0.0, -2.0 * z_near * z_far / z_range, 0.0),
             ]
         }
     }
