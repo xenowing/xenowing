@@ -16,19 +16,19 @@ pub const TILE_PIXELS: u32 = 1 << TILE_PIXELS_BITS;
 pub const TILE_PIXELS_WORDS_BITS: u32 = TILE_PIXELS_BITS - 2;
 
 // TODO: Move
-pub const SYSTEM_BUS_BITS: u32 = 24;
-pub const TEX_WORD_ADDR_BITS: u32 = SYSTEM_BUS_BITS;
+pub const SYSTEM_BUS_ADDR_BITS: u32 = 24;
+pub const TEX_WORD_ADDR_BITS: u32 = SYSTEM_BUS_ADDR_BITS;
 
 pub const EDGE_FRACT_BITS: u32 = 8;
 pub const COLOR_WHOLE_BITS: u32 = 9;
 pub const COLOR_FRACT_BITS: u32 = 12;
 pub const W_INVERSE_FRACT_BITS: u32 = 30;
 pub const Z_FRACT_BITS: u32 = 30; // Must be greater than 16
-pub const ST_FRACT_BITS: u32 = 24;
+pub const ST_FRACT_BITS: u32 = 16;
 pub const ST_FILTER_FRACT_BITS: u32 = 4; // Must be less than ST_FRACT_BITS
 pub const RESTORED_W_FRACT_BITS: u32 = 8; // Must be less than W_INVERSE_FRACT_BITS and ST_FRACT_BITS
 
-const REG_BUS_BITS: u32 = 20;
+const REG_BUS_ADDR_BITS: u32 = 20;
 pub const REG_BUS_ADDR_BIT_WIDTH: u32 = 6;
 
 pub const REG_STATUS_ADDR: u32 = 0;
@@ -122,7 +122,7 @@ impl<'a> ColorThrust<'a> {
 
         let reg_bus_ready = m.output("reg_bus_ready", m.high());
         let reg_bus_enable = m.input("reg_bus_enable", 1);
-        let reg_bus_addr = m.input("reg_bus_addr", REG_BUS_BITS);
+        let reg_bus_addr = m.input("reg_bus_addr", REG_BUS_ADDR_BITS);
         let truncated_reg_bus_addr = reg_bus_addr.bits(REG_BUS_ADDR_BIT_WIDTH - 1, 0);
         let reg_bus_write = m.input("reg_bus_write", 1);
         let reg_bus_write_data = m.input("reg_bus_write_data", 128);
