@@ -370,7 +370,7 @@ impl<D: Device> Context<D> {
                     self.device.write_reg(REG_T_DY_ADDR, triangle.t_dy);
                     self.estimated_frame_reg_cycles += 33;
 
-                    self.estimated_frame_bin_cycles += mem::size_of::<Triangle>() as u64;
+                    self.estimated_frame_bin_cycles += (mem::size_of::<Triangle>() / mem::size_of::<u32>()) as u64;
 
                     // Ensure last primitive is complete
                     while self.device.read_reg(REG_STATUS_ADDR) != 0 {
@@ -639,7 +639,7 @@ impl<D: Device> Context<D> {
                 let tile_index = tile_index_y * (WIDTH / (TILE_DIM as usize)) + tile_index_x;
                 self.assembled_triangles[tile_index].push(triangle.clone());
 
-                self.estimated_frame_bin_cycles += mem::size_of::<Triangle>() as u64;
+                self.estimated_frame_bin_cycles += (mem::size_of::<Triangle>() / mem::size_of::<u32>()) as u64;
             }
         }
     }
