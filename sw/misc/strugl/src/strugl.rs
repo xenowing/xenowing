@@ -541,21 +541,21 @@ impl<D: Device> Context<D> {
         triangle.w1_dy = to_fixed(w1_dy, EDGE_FRACT_BITS) as _;
         triangle.w2_dy = to_fixed(w2_dy, EDGE_FRACT_BITS) as _;
 
-        let w0_dx = w0_dx / scaled_area;
-        let w1_dx = w1_dx / scaled_area;
-        let w2_dx = w2_dx / scaled_area;
-        let w0_dy = w0_dy / scaled_area;
-        let w1_dy = w1_dy / scaled_area;
-        let w2_dy = w2_dy / scaled_area;
+        let w_dx = V3::new(w0_dx, w1_dx, w2_dx) / scaled_area;
+        let w_dy = V3::new(w0_dy, w1_dy, w2_dy) / scaled_area;
 
-        let r_dx = verts[0].color.x * w0_dx + verts[1].color.x * w1_dx + verts[2].color.x * w2_dx;
-        let g_dx = verts[0].color.y * w0_dx + verts[1].color.y * w1_dx + verts[2].color.y * w2_dx;
-        let b_dx = verts[0].color.z * w0_dx + verts[1].color.z * w1_dx + verts[2].color.z * w2_dx;
-        let a_dx = verts[0].color.w * w0_dx + verts[1].color.w * w1_dx + verts[2].color.w * w2_dx;
-        let r_dy = verts[0].color.x * w0_dy + verts[1].color.x * w1_dy + verts[2].color.x * w2_dy;
-        let g_dy = verts[0].color.y * w0_dy + verts[1].color.y * w1_dy + verts[2].color.y * w2_dy;
-        let b_dy = verts[0].color.z * w0_dy + verts[1].color.z * w1_dy + verts[2].color.z * w2_dy;
-        let a_dy = verts[0].color.w * w0_dy + verts[1].color.w * w1_dy + verts[2].color.w * w2_dy;
+        let r = V3::new(verts[0].color.x, verts[1].color.x, verts[2].color.x);
+        let g = V3::new(verts[0].color.y, verts[1].color.y, verts[2].color.y);
+        let b = V3::new(verts[0].color.z, verts[1].color.z, verts[2].color.z);
+        let a = V3::new(verts[0].color.w, verts[1].color.w, verts[2].color.w);
+        let r_dx = r.dot(w_dx);
+        let g_dx = g.dot(w_dx);
+        let b_dx = b.dot(w_dx);
+        let a_dx = a.dot(w_dx);
+        let r_dy = r.dot(w_dy);
+        let g_dy = g.dot(w_dy);
+        let b_dy = b.dot(w_dy);
+        let a_dy = a.dot(w_dy);
         triangle.r_dx = to_fixed(r_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
         triangle.g_dx = to_fixed(g_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
         triangle.b_dx = to_fixed(b_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
@@ -565,20 +565,24 @@ impl<D: Device> Context<D> {
         triangle.b_dy = to_fixed(b_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
         triangle.a_dy = to_fixed(a_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
 
-        let w_inverse_dx = 1.0 / verts[0].position.w * w0_dx + 1.0 / verts[1].position.w * w1_dx + 1.0 / verts[2].position.w * w2_dx;
-        let w_inverse_dy = 1.0 / verts[0].position.w * w0_dy + 1.0 / verts[1].position.w * w1_dy + 1.0 / verts[2].position.w * w2_dy;
+        let w_inverse = V3::new(1.0 / verts[0].position.w, 1.0 / verts[1].position.w, 1.0 / verts[2].position.w);
+        let w_inverse_dx = w_inverse.dot(w_dx);
+        let w_inverse_dy = w_inverse.dot(w_dy);
         triangle.w_inverse_dx = to_fixed(w_inverse_dx, W_INVERSE_FRACT_BITS) as _;
         triangle.w_inverse_dy = to_fixed(w_inverse_dy, W_INVERSE_FRACT_BITS) as _;
 
-        let z_dx = window_verts[0].z * w0_dx + window_verts[1].z * w1_dx + window_verts[2].z * w2_dx;
-        let z_dy = window_verts[0].z * w0_dy + window_verts[1].z * w1_dy + window_verts[2].z * w2_dy;
+        let z = V3::new(window_verts[0].z, window_verts[1].z, window_verts[2].z);
+        let z_dx = z.dot(w_dx);
+        let z_dy = z.dot(w_dy);
         triangle.z_dx = to_fixed(z_dx, Z_FRACT_BITS) as _;
         triangle.z_dy = to_fixed(z_dy, Z_FRACT_BITS) as _;
 
-        let s_dx = verts[0].tex_coord.x * w0_dx + verts[1].tex_coord.x * w1_dx + verts[2].tex_coord.x * w2_dx;
-        let t_dx = verts[0].tex_coord.y * w0_dx + verts[1].tex_coord.y * w1_dx + verts[2].tex_coord.y * w2_dx;
-        let s_dy = verts[0].tex_coord.x * w0_dy + verts[1].tex_coord.x * w1_dy + verts[2].tex_coord.x * w2_dy;
-        let t_dy = verts[0].tex_coord.y * w0_dy + verts[1].tex_coord.y * w1_dy + verts[2].tex_coord.y * w2_dy;
+        let s = V3::new(verts[0].tex_coord.x, verts[1].tex_coord.x, verts[2].tex_coord.x);
+        let t = V3::new(verts[0].tex_coord.y, verts[1].tex_coord.y, verts[2].tex_coord.y);
+        let s_dx = s.dot(w_dx);
+        let t_dx = t.dot(w_dx);
+        let s_dy = s.dot(w_dy);
+        let t_dy = t.dot(w_dy);
         triangle.s_dx = to_fixed(s_dx, ST_FRACT_BITS) as _;
         triangle.t_dx = to_fixed(t_dx, ST_FRACT_BITS) as _;
         triangle.s_dy = to_fixed(s_dy, ST_FRACT_BITS) as _;
@@ -613,11 +617,12 @@ impl<D: Device> Context<D> {
                 let w0_min = w0_min / scaled_area;
                 let w1_min = w1_min / scaled_area;
                 let w2_min = w2_min / scaled_area;
+                let w_min = V3::new(w0_min, w1_min, w2_min);
 
-                let r_min = verts[0].color.x * w0_min + verts[1].color.x * w1_min + verts[2].color.x * w2_min;
-                let g_min = verts[0].color.y * w0_min + verts[1].color.y * w1_min + verts[2].color.y * w2_min;
-                let b_min = verts[0].color.z * w0_min + verts[1].color.z * w1_min + verts[2].color.z * w2_min;
-                let a_min = verts[0].color.w * w0_min + verts[1].color.w * w1_min + verts[2].color.w * w2_min;
+                let r_min = r.dot(w_min);
+                let g_min = g.dot(w_min);
+                let b_min = b.dot(w_min);
+                let a_min = a.dot(w_min);
                 triangle.r_min = to_fixed(r_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
                 triangle.g_min = to_fixed(g_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
                 triangle.b_min = to_fixed(b_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
