@@ -614,10 +614,7 @@ impl<D: Device> Context<D> {
                 triangle.w1_min = to_fixed(w1_min, EDGE_FRACT_BITS) as _;
                 triangle.w2_min = to_fixed(w2_min, EDGE_FRACT_BITS) as _;
 
-                let w0_min = w0_min / scaled_area;
-                let w1_min = w1_min / scaled_area;
-                let w2_min = w2_min / scaled_area;
-                let w_min = V3::new(w0_min, w1_min, w2_min);
+                let w_min = V3::new(w0_min, w1_min, w2_min) / scaled_area;
 
                 let r_min = r.dot(w_min);
                 let g_min = g.dot(w_min);
@@ -628,14 +625,14 @@ impl<D: Device> Context<D> {
                 triangle.b_min = to_fixed(b_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
                 triangle.a_min = to_fixed(a_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
 
-                let w_inverse_min = 1.0 / verts[0].position.w * w0_min + 1.0 / verts[1].position.w * w1_min + 1.0 / verts[2].position.w * w2_min;
+                let w_inverse_min = w_inverse.dot(w_min);
                 triangle.w_inverse_min = to_fixed(w_inverse_min, W_INVERSE_FRACT_BITS) as _;
 
-                let z_min = window_verts[0].z * w0_min + window_verts[1].z * w1_min + window_verts[2].z * w2_min;
+                let z_min = z.dot(w_min);
                 triangle.z_min = to_fixed(z_min, Z_FRACT_BITS) as _;
 
-                let s_min = verts[0].tex_coord.x * w0_min + verts[1].tex_coord.x * w1_min + verts[2].tex_coord.x * w2_min;
-                let t_min = verts[0].tex_coord.y * w0_min + verts[1].tex_coord.y * w1_min + verts[2].tex_coord.y * w2_min;
+                let s_min = s.dot(w_min);
+                let t_min = t.dot(w_min);
                 triangle.s_min = to_fixed(s_min, ST_FRACT_BITS) as _;
                 triangle.t_min = to_fixed(t_min, ST_FRACT_BITS) as _;
 
