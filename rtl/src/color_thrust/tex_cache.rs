@@ -94,10 +94,10 @@ impl<'a> TexCache<'a> {
         for &(name, bit_width) in [
             ("tile_addr", TILE_PIXELS_BITS),
 
-            ("r", 9),
-            ("g", 9),
-            ("b", 9),
-            ("a", 9),
+            ("r", COLOR_WHOLE_BITS - 1),
+            ("g", COLOR_WHOLE_BITS - 1),
+            ("b", COLOR_WHOLE_BITS - 1),
+            ("a", COLOR_WHOLE_BITS - 1),
 
             ("z", 16),
 

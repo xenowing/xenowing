@@ -556,14 +556,14 @@ impl<D: Device> Context<D> {
         let g_dy = g.dot(w_dy);
         let b_dy = b.dot(w_dy);
         let a_dy = a.dot(w_dy);
-        triangle.r_dx = to_fixed(r_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
-        triangle.g_dx = to_fixed(g_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
-        triangle.b_dx = to_fixed(b_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
-        triangle.a_dx = to_fixed(a_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
-        triangle.r_dy = to_fixed(r_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
-        triangle.g_dy = to_fixed(g_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
-        triangle.b_dy = to_fixed(b_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
-        triangle.a_dy = to_fixed(a_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
+        triangle.r_dx = to_fixed(r_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 2) as _;
+        triangle.g_dx = to_fixed(g_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 2) as _;
+        triangle.b_dx = to_fixed(b_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 2) as _;
+        triangle.a_dx = to_fixed(a_dx, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 2) as _;
+        triangle.r_dy = to_fixed(r_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 2) as _;
+        triangle.g_dy = to_fixed(g_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 2) as _;
+        triangle.b_dy = to_fixed(b_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 2) as _;
+        triangle.a_dy = to_fixed(a_dy, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 2) as _;
 
         let w_inverse = V3::new(1.0 / verts[0].position.w, 1.0 / verts[1].position.w, 1.0 / verts[2].position.w);
         let w_inverse_dx = w_inverse.dot(w_dx);
@@ -620,10 +620,10 @@ impl<D: Device> Context<D> {
                 let g_min = g.dot(w_min);
                 let b_min = b.dot(w_min);
                 let a_min = a.dot(w_min);
-                triangle.r_min = to_fixed(r_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
-                triangle.g_min = to_fixed(g_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
-                triangle.b_min = to_fixed(b_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
-                triangle.a_min = to_fixed(a_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1) as _;
+                triangle.r_min = to_fixed(r_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 2) as _;
+                triangle.g_min = to_fixed(g_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 2) as _;
+                triangle.b_min = to_fixed(b_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 2) as _;
+                triangle.a_min = to_fixed(a_min, COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 2) as _;
 
                 let w_inverse_min = w_inverse.dot(w_min);
                 triangle.w_inverse_min = to_fixed(w_inverse_min, W_INVERSE_FRACT_BITS) as _;

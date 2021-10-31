@@ -20,7 +20,8 @@ pub const SYSTEM_BUS_ADDR_BITS: u32 = 24;
 pub const TEX_WORD_ADDR_BITS: u32 = SYSTEM_BUS_ADDR_BITS;
 
 pub const EDGE_FRACT_BITS: u32 = 8;
-pub const COLOR_WHOLE_BITS: u32 = 9;
+// 8 bit component + 1 guard bit for clamping on overflow + 1 sign bit for clamping on underflow
+pub const COLOR_WHOLE_BITS: u32 = 8 + 1 + 1;
 pub const COLOR_FRACT_BITS: u32 = 12;
 pub const W_INVERSE_FRACT_BITS: u32 = 30;
 pub const Z_FRACT_BITS: u32 = 30; // Must be greater than 16
@@ -567,10 +568,18 @@ impl<'a> PixelPipe<'a> {
         let edge_test_reject = valid & !edge_test;
         let valid = valid & edge_test;
 
-        let r = in_r;
-        let g = in_g;
-        let b = in_b;
-        let a = in_a;
+        // Clamp negative color values early so the pipeline only has to deal with unsigned values
+        let clamp_comp = |comp: &'a dyn Signal<'a>| -> &'a dyn Signal<'a> {
+            if_(comp.bit(COLOR_WHOLE_BITS - 1), {
+                m.lit(0u32, COLOR_WHOLE_BITS - 1)
+            }).else_({
+                comp.bits(COLOR_WHOLE_BITS - 2, 0)
+            })
+        };
+        let r = clamp_comp(in_r);
+        let g = clamp_comp(in_g);
+        let b = clamp_comp(in_b);
+        let a = clamp_comp(in_a);
 
         let w_inverse = in_w_inverse;
 
@@ -954,10 +963,10 @@ impl<'a> DepthTestPipe<'a> {
         let in_valid = m.input("in_valid", 1);
         let in_tile_addr = m.input("in_tile_addr", TILE_PIXELS_BITS);
 
-        let in_r = m.input("in_r", COLOR_WHOLE_BITS);
-        let in_g = m.input("in_g", COLOR_WHOLE_BITS);
-        let in_b = m.input("in_b", COLOR_WHOLE_BITS);
-        let in_a = m.input("in_a", COLOR_WHOLE_BITS);
+        let in_r = m.input("in_r", COLOR_WHOLE_BITS - 1);
+        let in_g = m.input("in_g", COLOR_WHOLE_BITS - 1);
+        let in_b = m.input("in_b", COLOR_WHOLE_BITS - 1);
+        let in_a = m.input("in_a", COLOR_WHOLE_BITS - 1);
 
         let in_w_inverse = m.input("in_w_inverse", 32);
 
@@ -1162,10 +1171,10 @@ impl<'a> FrontPipe<'a> {
         let in_valid = m.input("in_valid", 1);
         let in_tile_addr = m.input("in_tile_addr", TILE_PIXELS_BITS);
 
-        let in_r = m.input("in_r", COLOR_WHOLE_BITS);
-        let in_g = m.input("in_g", COLOR_WHOLE_BITS);
-        let in_b = m.input("in_b", COLOR_WHOLE_BITS);
-        let in_a = m.input("in_a", COLOR_WHOLE_BITS);
+        let in_r = m.input("in_r", COLOR_WHOLE_BITS - 1);
+        let in_g = m.input("in_g", COLOR_WHOLE_BITS - 1);
+        let in_b = m.input("in_b", COLOR_WHOLE_BITS - 1);
+        let in_a = m.input("in_a", COLOR_WHOLE_BITS - 1);
 
         let in_w_inverse = m.input("in_w_inverse", 32);
 
@@ -1435,10 +1444,10 @@ impl<'a> BackPipe<'a> {
         let in_valid = m.input("in_valid", 1);
         let in_tile_addr = m.input("in_tile_addr", TILE_PIXELS_BITS);
 
-        let in_r = m.input("in_r", 9);
-        let in_g = m.input("in_g", 9);
-        let in_b = m.input("in_b", 9);
-        let in_a = m.input("in_a", 9);
+        let in_r = m.input("in_r", COLOR_WHOLE_BITS - 1);
+        let in_g = m.input("in_g", COLOR_WHOLE_BITS - 1);
+        let in_b = m.input("in_b", COLOR_WHOLE_BITS - 1);
+        let in_a = m.input("in_a", COLOR_WHOLE_BITS - 1);
 
         let in_z = m.input("in_z", 16);
 
