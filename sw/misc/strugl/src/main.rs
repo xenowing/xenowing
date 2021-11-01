@@ -65,201 +65,201 @@ fn main() {
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
         fn cube(v: &mut Vec<Vertex>) {
-            let red = V4::new(1.0, 0.0, 0.0, 1.0);
-            let green = V4::new(0.0, 1.0, 0.0, 1.0);
-            let blue = V4::new(0.0, 0.0, 1.0, 1.0);
-            let white = V4::splat(1.0);
+            let red = Iv4::new(1.0, 0.0, 0.0, 1.0);
+            let green = Iv4::new(0.0, 1.0, 0.0, 1.0);
+            let blue = Iv4::new(0.0, 0.0, 1.0, 1.0);
+            let white = Iv4::splat(1.0);
 
             // Front face
             v.push(Vertex {
                 position: Iv4::new(-1.0, -1.0, 1.0, 1.0),
                 color: red,
-                tex_coord: V2::new(0.0, 0.0),
+                tex_coord: Iv2::new(0.0, 0.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, -1.0, 1.0, 1.0),
                 color: green,
-                tex_coord: V2::new(1.0, 0.0),
+                tex_coord: Iv2::new(1.0, 0.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, 1.0, 1.0, 1.0),
                 color: white,
-                tex_coord: V2::new(1.0, 1.0),
+                tex_coord: Iv2::new(1.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, 1.0, 1.0, 1.0),
                 color: white,
-                tex_coord: V2::new(1.0, 1.0),
+                tex_coord: Iv2::new(1.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(-1.0, 1.0, 1.0, 1.0),
                 color: blue,
-                tex_coord: V2::new(0.0, 1.0),
+                tex_coord: Iv2::new(0.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(-1.0, -1.0, 1.0, 1.0),
                 color: red,
-                tex_coord: V2::new(0.0, 0.0),
+                tex_coord: Iv2::new(0.0, 0.0),
             });
 
             // Back face
             v.push(Vertex {
                 position: Iv4::new(1.0, -1.0, -1.0, 1.0),
                 color: red,
-                tex_coord: V2::new(0.0, 0.0),
+                tex_coord: Iv2::new(0.0, 0.0),
             });
             v.push(Vertex {
                 position: Iv4::new(-1.0, -1.0, -1.0, 1.0),
                 color: green,
-                tex_coord: V2::new(1.0, 0.0),
+                tex_coord: Iv2::new(1.0, 0.0),
             });
             v.push(Vertex {
                 position: Iv4::new(-1.0, 1.0, -1.0, 1.0),
                 color: white,
-                tex_coord: V2::new(1.0, 1.0),
+                tex_coord: Iv2::new(1.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(-1.0, 1.0, -1.0, 1.0),
                 color: white,
-                tex_coord: V2::new(1.0, 1.0),
+                tex_coord: Iv2::new(1.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, 1.0, -1.0, 1.0),
                 color: blue,
-                tex_coord: V2::new(0.0, 1.0),
+                tex_coord: Iv2::new(0.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, -1.0, -1.0, 1.0),
                 color: red,
-                tex_coord: V2::new(0.0, 0.0),
+                tex_coord: Iv2::new(0.0, 0.0),
             });
 
             // Left face
             v.push(Vertex {
                 position: Iv4::new(-1.0, -1.0, -1.0, 1.0),
                 color: red,
-                tex_coord: V2::new(0.0, 0.0),
+                tex_coord: Iv2::new(0.0, 0.0),
             });
             v.push(Vertex {
                 position: Iv4::new(-1.0, -1.0, 1.0, 1.0),
                 color: green,
-                tex_coord: V2::new(1.0, 0.0),
+                tex_coord: Iv2::new(1.0, 0.0),
             });
             v.push(Vertex {
                 position: Iv4::new(-1.0, 1.0, 1.0, 1.0),
                 color: white,
-                tex_coord: V2::new(1.0, 1.0),
+                tex_coord: Iv2::new(1.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(-1.0, 1.0, 1.0, 1.0),
                 color: white,
-                tex_coord: V2::new(1.0, 1.0),
+                tex_coord: Iv2::new(1.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(-1.0, 1.0, -1.0, 1.0),
                 color: blue,
-                tex_coord: V2::new(0.0, 1.0),
+                tex_coord: Iv2::new(0.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(-1.0, -1.0, -1.0, 1.0),
                 color: red,
-                tex_coord: V2::new(0.0, 0.0),
+                tex_coord: Iv2::new(0.0, 0.0),
             });
 
             // Right face
             v.push(Vertex {
                 position: Iv4::new(1.0, -1.0, 1.0, 1.0),
                 color: red,
-                tex_coord: V2::new(0.0, 0.0),
+                tex_coord: Iv2::new(0.0, 0.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, -1.0, -1.0, 1.0),
                 color: green,
-                tex_coord: V2::new(1.0, 0.0),
+                tex_coord: Iv2::new(1.0, 0.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, 1.0, -1.0, 1.0),
                 color: white,
-                tex_coord: V2::new(1.0, 1.0),
+                tex_coord: Iv2::new(1.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, 1.0, -1.0, 1.0),
                 color: white,
-                tex_coord: V2::new(1.0, 1.0),
+                tex_coord: Iv2::new(1.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, 1.0, 1.0, 1.0),
                 color: blue,
-                tex_coord: V2::new(0.0, 1.0),
+                tex_coord: Iv2::new(0.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, -1.0, 1.0, 1.0),
                 color: red,
-                tex_coord: V2::new(0.0, 0.0),
+                tex_coord: Iv2::new(0.0, 0.0),
             });
 
             // Top face
             v.push(Vertex {
                 position: Iv4::new(-1.0, 1.0, 1.0, 1.0),
                 color: red,
-                tex_coord: V2::new(0.0, 0.0),
+                tex_coord: Iv2::new(0.0, 0.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, 1.0, 1.0, 1.0),
                 color: green,
-                tex_coord: V2::new(1.0, 0.0),
+                tex_coord: Iv2::new(1.0, 0.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, 1.0, -1.0, 1.0),
                 color: white,
-                tex_coord: V2::new(1.0, 1.0),
+                tex_coord: Iv2::new(1.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, 1.0, -1.0, 1.0),
                 color: white,
-                tex_coord: V2::new(1.0, 1.0),
+                tex_coord: Iv2::new(1.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(-1.0, 1.0, -1.0, 1.0),
                 color: blue,
-                tex_coord: V2::new(0.0, 1.0),
+                tex_coord: Iv2::new(0.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(-1.0, 1.0, 1.0, 1.0),
                 color: red,
-                tex_coord: V2::new(0.0, 0.0),
+                tex_coord: Iv2::new(0.0, 0.0),
             });
 
             // Bottom face
             v.push(Vertex {
                 position: Iv4::new(-1.0, -1.0, -1.0, 1.0),
                 color: red,
-                tex_coord: V2::new(0.0, 0.0),
+                tex_coord: Iv2::new(0.0, 0.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, -1.0, -1.0, 1.0),
                 color: green,
-                tex_coord: V2::new(1.0, 0.0),
+                tex_coord: Iv2::new(1.0, 0.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, -1.0, 1.0, 1.0),
                 color: white,
-                tex_coord: V2::new(1.0, 1.0),
+                tex_coord: Iv2::new(1.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(1.0, -1.0, 1.0, 1.0),
                 color: white,
-                tex_coord: V2::new(1.0, 1.0),
+                tex_coord: Iv2::new(1.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(-1.0, -1.0, 1.0, 1.0),
                 color: blue,
-                tex_coord: V2::new(0.0, 1.0),
+                tex_coord: Iv2::new(0.0, 1.0),
             });
             v.push(Vertex {
                 position: Iv4::new(-1.0, -1.0, -1.0, 1.0),
                 color: red,
-                tex_coord: V2::new(0.0, 0.0),
+                tex_coord: Iv2::new(0.0, 0.0),
             });
         }
 

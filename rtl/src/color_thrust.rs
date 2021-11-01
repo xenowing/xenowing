@@ -19,12 +19,17 @@ pub const TILE_PIXELS_WORDS_BITS: u32 = TILE_PIXELS_BITS - 2;
 pub const SYSTEM_BUS_ADDR_BITS: u32 = 24;
 pub const TEX_WORD_ADDR_BITS: u32 = SYSTEM_BUS_ADDR_BITS;
 
-pub const EDGE_FRACT_BITS: u32 = 8;
+pub const EDGE_FRACT_BITS: u32 = 16;
 // 8 bit component + 1 guard bit for clamping on overflow + 1 sign bit for clamping on underflow
 pub const COLOR_WHOLE_BITS: u32 = 8 + 1 + 1;
-pub const COLOR_FRACT_BITS: u32 = 12;
+// 8 whole bits (minus guard/sign bits) + 8 fractional bits
+//  Equivalent to 16 fractional color bits (interpreting components as [0, 1) instead of [0, 256),
+//  and ignoring guard/sign bits, which end up in the whole part of the component input)
+pub const COLOR_FRACT_BITS: u32 = 8;
 pub const W_INVERSE_FRACT_BITS: u32 = 30;
-pub const Z_FRACT_BITS: u32 = 30; // Must be greater than 16
+// Must be 16
+//  TODO: Recall and document why
+pub const Z_FRACT_BITS: u32 = 16;
 pub const ST_FRACT_BITS: u32 = 16;
 pub const ST_FILTER_FRACT_BITS: u32 = 4; // Must be less than ST_FRACT_BITS
 pub const RESTORED_W_FRACT_BITS: u32 = 8; // Must be less than W_INVERSE_FRACT_BITS and ST_FRACT_BITS
