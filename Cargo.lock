@@ -355,6 +355,9 @@ dependencies = [
 [[package]]
 name = "linalg"
 version = "0.1.0"
+dependencies = [
+ "trig",
+]
 
 [[package]]
 name = "log"
@@ -1052,6 +1055,10 @@ dependencies = [
  "wasi 0.10.0+wasi-snapshot-preview1",
  "winapi",
 ]
+
+[[package]]
+name = "trig"
+version = "0.1.0"
 
 [[package]]
 name = "typed-arena"

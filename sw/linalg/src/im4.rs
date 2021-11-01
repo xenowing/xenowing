@@ -1,7 +1,8 @@
 use crate::fixed::*;
 use crate::iv4::*;
 
-use core::intrinsics;
+use trig::*;
+
 use core::ops::{Mul, MulAssign};
 
 #[derive(Clone, Copy)]
@@ -37,8 +38,8 @@ impl<const FRACT_BITS: u32> Im4<FRACT_BITS> {
     }
 
     pub fn rotation_x(radians: f32) -> Self {
-        let s = unsafe { intrinsics::sinf32(radians) };
-        let c = unsafe { intrinsics::cosf32(radians) };
+        let s = sin(radians);
+        let c = cos(radians);
 
         Self {
             columns: [
@@ -51,8 +52,8 @@ impl<const FRACT_BITS: u32> Im4<FRACT_BITS> {
     }
 
     pub fn rotation_y(radians: f32) -> Self {
-        let s = unsafe { intrinsics::sinf32(radians) };
-        let c = unsafe { intrinsics::cosf32(radians) };
+        let s = sin(radians);
+        let c = cos(radians);
 
         Self {
             columns: [
@@ -65,8 +66,8 @@ impl<const FRACT_BITS: u32> Im4<FRACT_BITS> {
     }
 
     pub fn rotation_z(radians: f32) -> Self {
-        let s = unsafe { intrinsics::sinf32(radians) };
-        let c = unsafe { intrinsics::cosf32(radians) };
+        let s = sin(radians);
+        let c = cos(radians);
 
         Self {
             columns: [
@@ -110,7 +111,6 @@ impl<const FRACT_BITS: u32> Im4<FRACT_BITS> {
 
     pub fn perspective(fov_degrees: f32, aspect: f32, z_near: f32, z_far: f32) -> Self {
         let fov_radians = fov_degrees.to_radians();
-        let tan = |x| unsafe { intrinsics::sinf32(x) / intrinsics::cosf32(x) };
         let top = z_near * tan(fov_radians / 2.0);
         let right = top * aspect;
 
