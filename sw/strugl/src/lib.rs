@@ -1,3 +1,10 @@
+pub mod device;
+pub mod model_device;
+mod modules {
+    include!(concat!(env!("OUT_DIR"), "/modules.rs"));
+}
+pub mod sim_device;
+
 use linalg::*;
 
 use crate::device::*;

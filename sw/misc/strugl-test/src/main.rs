@@ -1,13 +1,8 @@
-mod device;
-mod model_device;
-mod modules {
-    include!(concat!(env!("OUT_DIR"), "/modules.rs"));
-}
-mod sim_device;
-mod strugl;
+#![feature(box_syntax)]
 
-use device::*;
 use strugl::*;
+use strugl::device::*;
+use strugl::{model_device, sim_device};
 
 use linalg::*;
 use image::GenericImageView;
@@ -22,8 +17,8 @@ fn main() {
     let device_type = env::args().skip(1).nth(0).expect("No device type argument provided");
 
     let mut device: Box<dyn Device> = match device_type.as_str() {
-        "model" => Box::new(model_device::ModelDevice::new()),
-        "sim" => Box::new(sim_device::SimDevice::new()),
+        "model" => box model_device::ModelDevice::new(),
+        "sim" => box sim_device::SimDevice::new(),
         _ => panic!("Invalid device type argument")
     };
 

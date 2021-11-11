@@ -17,6 +17,7 @@ members = [
     "sw/linalg",
     "sw/misc/strugl-test",
     "sw/misc/xw-blaster",
+    "sw/strugl",
     "sw/trig",
     "sw/xw",
 ]

@@ -979,16 +979,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "strugl"
+version = "0.1.0"
+dependencies = [
+ "kaze",
+ "linalg",
+ "rtl",
+]
+
+[[package]]
 name = "strugl-test"
 version = "0.1.0"
 dependencies = [
  "image",
- "kaze",
  "linalg",
  "minifb",
  "rand 0.7.3",
  "rand_pcg 0.2.1",
- "rtl",
+ "strugl",
 ]
 
 [[package]]
