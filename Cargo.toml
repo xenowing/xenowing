@@ -15,7 +15,7 @@ members = [
     "sim/peek-buffer",
     "sim/read-cache",
     "sw/linalg",
-    "sw/misc/strugl",
+    "sw/misc/strugl-test",
     "sw/misc/xw-blaster",
     "sw/trig",
     "sw/xw",
