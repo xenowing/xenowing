@@ -23,11 +23,11 @@ pub mod sim_device;
 use alloc::rc::Rc;
 use alloc::vec::Vec;
 
+use color_thrust_interface::params_and_regs::*;
+
 use linalg::*;
 
 use crate::device::*;
-
-use rtl::color_thrust::*;
 
 use core::mem;
 

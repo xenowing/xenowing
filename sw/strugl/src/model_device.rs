@@ -1,6 +1,6 @@
 use crate::device::*;
 
-use rtl::color_thrust::*;
+use color_thrust_interface::params_and_regs::*;
 
 enum TextureFilter {
     Nearest,

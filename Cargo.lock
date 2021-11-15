@@ -115,6 +115,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "color-thrust-interface"
+version = "0.1.0"
+
+[[package]]
 name = "color_quant"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -860,6 +864,7 @@ dependencies = [
 name = "rtl"
 version = "0.1.0"
 dependencies = [
+ "color-thrust-interface",
  "kaze",
 ]
 
@@ -982,6 +987,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 name = "strugl"
 version = "0.1.0"
 dependencies = [
+ "color-thrust-interface",
  "kaze",
  "linalg",
  "rtl",

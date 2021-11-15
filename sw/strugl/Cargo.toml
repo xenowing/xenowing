@@ -6,9 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
+color-thrust-interface = { path = "../../color-thrust/color-thrust-interface" }
 kaze = { path = "../../../kaze/kaze" } #kaze = "0.1"
 rtl = { path = "../../rtl" }
 
 [dependencies]
+color-thrust-interface = { path = "../../color-thrust/color-thrust-interface" }
 linalg = { path = "../linalg" }
-rtl = { path = "../../rtl" }
