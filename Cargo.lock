@@ -1270,6 +1270,7 @@ dependencies = [
 name = "xw-blaster"
 version = "0.1.0"
 dependencies = [
+ "color-thrust-interface",
  "image",
  "kaze",
  "minifb",

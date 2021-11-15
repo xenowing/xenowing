@@ -10,9 +10,8 @@ use modules::*;
 use vec2::*;
 use vec4::*;
 
-use image::GenericImageView;
+use color_thrust_interface::params_and_regs::*;
 use minifb::{Scale, ScaleMode, Window, WindowOptions};
-use rtl::color_thrust::*;
 use serialport::prelude::*;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
