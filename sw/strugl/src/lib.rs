@@ -3,7 +3,6 @@
 #[macro_use]
 extern crate alloc;
 
-pub mod device;
 pub mod model_device;
 mod modules {
     // TODO: Proper no_std support for generated module code instead of these shims
@@ -23,11 +22,10 @@ pub mod sim_device;
 use alloc::rc::Rc;
 use alloc::vec::Vec;
 
+use color_thrust_interface::device::*;
 use color_thrust_interface::params_and_regs::*;
 
 use linalg::*;
-
-use crate::device::*;
 
 use core::mem;
 

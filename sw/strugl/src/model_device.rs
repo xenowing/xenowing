@@ -1,5 +1,4 @@
-use crate::device::*;
-
+use color_thrust_interface::device::*;
 use color_thrust_interface::params_and_regs::*;
 
 enum TextureFilter {

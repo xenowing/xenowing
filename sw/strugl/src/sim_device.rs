@@ -1,5 +1,6 @@
-use crate::device::*;
 use crate::modules::*;
+
+use color_thrust_interface::device::*;
 
 pub struct SimDevice {
     color_thrust: Top,
