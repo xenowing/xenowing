@@ -10,4 +10,5 @@ lto = true
 codegen-units = 1
 
 [dependencies]
+strugl = { path = "../strugl" }
 xw = { path = "../xw" }
