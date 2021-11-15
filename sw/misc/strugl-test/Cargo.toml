@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 color-thrust-interface = { path = "../../../color-thrust/color-thrust-interface" }
+color-thrust-test-devices = { path = "../../../color-thrust/color-thrust-test-devices" }
 image = "0.23"
 linalg = { path = "../../linalg" }
 minifb = "0.16"

@@ -3,22 +3,6 @@
 #[macro_use]
 extern crate alloc;
 
-pub mod model_device;
-mod modules {
-    // TODO: Proper no_std support for generated module code instead of these shims
-    use alloc::boxed::Box;
-    mod std {
-        pub mod cmp {
-            pub fn min<T>(v1: T, v2: T) -> T where T: Ord {
-                core::cmp::min(v1, v2)
-            }
-        }
-    }
-
-    include!(concat!(env!("OUT_DIR"), "/modules.rs"));
-}
-pub mod sim_device;
-
 use alloc::rc::Rc;
 use alloc::vec::Vec;
 

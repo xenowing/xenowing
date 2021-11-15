@@ -119,6 +119,15 @@ name = "color-thrust-interface"
 version = "0.1.0"
 
 [[package]]
+name = "color-thrust-test-devices"
+version = "0.1.0"
+dependencies = [
+ "color-thrust-interface",
+ "kaze",
+ "rtl",
+]
+
+[[package]]
 name = "color_quant"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -988,9 +997,7 @@ name = "strugl"
 version = "0.1.0"
 dependencies = [
  "color-thrust-interface",
- "kaze",
  "linalg",
- "rtl",
 ]
 
 [[package]]
@@ -998,6 +1005,7 @@ name = "strugl-test"
 version = "0.1.0"
 dependencies = [
  "color-thrust-interface",
+ "color-thrust-test-devices",
  "image",
  "linalg",
  "minifb",

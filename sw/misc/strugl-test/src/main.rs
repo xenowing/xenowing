@@ -1,9 +1,9 @@
 #![feature(box_syntax)]
 
 use color_thrust_interface::device::*;
+use color_thrust_test_devices::{model_device, sim_device};
 
 use strugl::*;
-use strugl::{model_device, sim_device};
 
 use linalg::*;
 use image::GenericImageView;
