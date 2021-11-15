@@ -4,6 +4,12 @@
 
 extern crate alloc;
 
+mod native_device;
+
+use native_device::*;
+
+use color_thrust_interface::device::*;
+
 use xw::{marv, stdio, uart};
 
 use alloc::boxed::Box;
@@ -14,6 +20,8 @@ use core::ptr;
 
 #[no_mangle]
 fn main() -> ! {
+    let mut device = NativeDevice::new();
+
     /*writeln!(stdio::stdout(), "Hello from the program!").unwrap();
 
     {
@@ -76,14 +84,14 @@ fn main() -> ! {
                     // Write word
                     let addr = uart::read_u32_le();
                     let data = uart::read_u32_le();
-                    unsafe {
-                        ptr::write_volatile(addr as _, data);
-                    }
+                    let base_addr = 0x03000000; // TODO: Proper constant
+                    device.write_reg(addr.wrapping_sub(base_addr), data);
                 }
                 0x01 => {
                     // Read word
                     let addr = uart::read_u32_le();
-                    let data = unsafe { ptr::read_volatile(addr as *const u32) };
+                    let base_addr = 0x03000000; // TODO: Proper constant
+                    let data = device.read_reg(addr.wrapping_sub(base_addr));
                     uart::write_u32_le(data);
                 }
                 0x02 => {
