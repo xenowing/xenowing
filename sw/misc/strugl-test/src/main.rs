@@ -259,7 +259,7 @@ fn main() {
             });
         }
 
-        let frame_time = start_time.elapsed().as_secs_f64();
+        let frame_time = 6.0;//start_time.elapsed().as_secs_f64();
 
         c.clear();
 

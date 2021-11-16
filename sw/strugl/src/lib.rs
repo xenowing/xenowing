@@ -14,8 +14,8 @@ use linalg::*;
 use core::mem;
 
 // TODO: Don't specify this here?
-pub const WIDTH: usize = 16 * 8;//320;
-pub const HEIGHT: usize = 16 * 8;//240;
+pub const WIDTH: usize = 16 * 2;//8;//320;
+pub const HEIGHT: usize = 16 * 2;//8;//240;
 pub const PIXELS: usize = WIDTH * HEIGHT;
 
 pub const FRACT_BITS: u32 = 16;
@@ -227,7 +227,7 @@ impl<D: Device> Context<D> {
 
     pub fn clear(&mut self) {
         for pixel in &mut self.back_buffer {
-            *pixel = 0;
+            *pixel = 0x00ff00; // TODO: Change back to 0
         }
         for depth in &mut self.depth_buffer {
             *depth = 0xffff;
@@ -379,7 +379,7 @@ impl<D: Device> Context<D> {
 
                     self.estimated_frame_bin_cycles += (mem::size_of::<Triangle>() / mem::size_of::<u32>()) as u64;
 
-                    // Ensure last primitive is complete
+                    // Ensure previous primitive is complete, if any
                     while self.device.read_reg(REG_STATUS_ADDR) != 0 {
                         self.estimated_frame_rasterization_cycles += 1;
                     }

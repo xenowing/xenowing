@@ -22,8 +22,8 @@ use std::str;
 use std::sync::mpsc::{self, channel, Receiver, Sender};
 use std::thread;
 
-const WIDTH: usize = 16 * 8;//320;
-const HEIGHT: usize = 16 * 8;//240;
+const WIDTH: usize = 16 * 2;//8;//320;
+const HEIGHT: usize = 16 * 2;//8;//240;
 const PIXELS: usize = WIDTH * HEIGHT;
 
 #[derive(Clone, Copy)]
@@ -277,7 +277,7 @@ fn main() -> Result<(), Error> {
                 let mut stdout = StandardStream::stdout(ColorChoice::Always);
                 stdout.set_color(ColorSpec::new().set_fg(Some(Color::White)).set_intense(true))?;
 
-                writeln!(&mut stdout, "commands requested, starting frame")?;
+                /*writeln!(&mut stdout, "commands requested, starting frame")?;
 
                 fn write_word(addr: u32, data: u32, device: &mut dyn Device) -> Result<(), Error> {
                     println!("    write_word: addr: {:08x}, data: {:08x}", addr, data);
@@ -289,7 +289,7 @@ fn main() -> Result<(), Error> {
                 }
 
                 fn write_reg(addr: u32, data: u32, device: &mut dyn Device) -> Result<(), Error> {
-                    write_word(0x03000000 + addr * 16, data, device)
+                    write_word(0x03000000 + addr, data, device)
                 }
 
                 // Upload texture
@@ -600,7 +600,38 @@ fn main() -> Result<(), Error> {
                 window.update_with_buffer(&back_buffer, WIDTH, HEIGHT).unwrap();
 
                 writeln!(&mut stdout, "frame complete")?;
-                device.write_byte(0x05)?;
+                device.write_byte(0x05)?;*/
+
+                writeln!(&mut stdout, "commands requested, rendering entire frame")?;
+
+                device.write_byte(0x06)?;
+
+                stdout.reset()?;
+            }
+            0x03 => {
+                let mut stdout = StandardStream::stdout(ColorChoice::Always);
+                stdout.set_color(ColorSpec::new().set_fg(Some(Color::White)).set_intense(true))?;
+
+                let mut elapsed_cycles = 0;
+                elapsed_cycles |= (device.read_byte()? as u64) << 0;
+                elapsed_cycles |= (device.read_byte()? as u64) << 8;
+                elapsed_cycles |= (device.read_byte()? as u64) << 16;
+                elapsed_cycles |= (device.read_byte()? as u64) << 24;
+                elapsed_cycles |= (device.read_byte()? as u64) << 32;
+                elapsed_cycles |= (device.read_byte()? as u64) << 40;
+                elapsed_cycles |= (device.read_byte()? as u64) << 48;
+                elapsed_cycles |= (device.read_byte()? as u64) << 56;
+                writeln!(&mut stdout, "  elapsed cycles: {}", elapsed_cycles)?;
+
+                for y in 0..HEIGHT {
+                    for x in 0..WIDTH {
+                        back_buffer[(HEIGHT - 1 - y) * WIDTH + x] = device.read_u32()?;
+                    }
+                }
+
+                window.update_with_buffer(&back_buffer, WIDTH, HEIGHT).unwrap();
+
+                writeln!(&mut stdout, "frame complete")?;
 
                 stdout.reset()?;
             }

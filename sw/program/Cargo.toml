@@ -11,5 +11,6 @@ codegen-units = 1
 
 [dependencies]
 color-thrust-interface = { path = "../../color-thrust/color-thrust-interface" }
+linalg = { path = "../linalg" }
 strugl = { path = "../strugl" }
 xw = { path = "../xw" }
