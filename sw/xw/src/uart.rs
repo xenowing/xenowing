@@ -30,6 +30,20 @@ pub fn read_u32_le() -> u32 {
     ret
 }
 
+pub fn read_u64_le() -> u64 {
+    let mut ret = 0;
+    ret |= (read_u32_le() as u64) << 0;
+    ret |= (read_u32_le() as u64) << 32;
+    ret
+}
+
+pub fn read_u128_le() -> u128 {
+    let mut ret = 0;
+    ret |= (read_u64_le() as u128) << 0;
+    ret |= (read_u64_le() as u128) << 64;
+    ret
+}
+
 pub fn write_u8(x: u8) {
     unsafe {
         while (ptr::read_volatile(&(*REGS).tx_status) & 1) == 0 {
@@ -50,4 +64,9 @@ pub fn write_u32_le(x: u32) {
 pub fn write_u64_le(x: u64) {
     write_u32_le((x >> 0) as _);
     write_u32_le((x >> 32) as _);
+}
+
+pub fn write_u128_le(x: u128) {
+    write_u64_le((x >> 0) as _);
+    write_u64_le((x >> 64) as _);
 }
