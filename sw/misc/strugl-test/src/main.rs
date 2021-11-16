@@ -324,13 +324,13 @@ fn main() {
             c.render(&mut v);
         }
 
-        let estimated_frame_cycles = c.estimated_frame_bin_cycles + c.estimated_frame_reg_cycles + c.estimated_frame_xfer_cycles + c.estimated_frame_rasterization_cycles;
+        /*let estimated_frame_cycles = c.estimated_frame_bin_cycles + c.estimated_frame_reg_cycles + c.estimated_frame_xfer_cycles + c.estimated_frame_rasterization_cycles;
         let frame_budget_cycles = 100000000 / 60;
         println!("Est. frame cycles: {} / {} ({:.*}%)", estimated_frame_cycles, frame_budget_cycles, 2, estimated_frame_cycles as f64 / frame_budget_cycles as f64 * 100.0);
         println!("  bin r/w:         {} ({:.*}%)", c.estimated_frame_bin_cycles, 2, c.estimated_frame_bin_cycles as f64 / estimated_frame_cycles as f64 * 100.0);
         println!("  regs:            {} ({:.*}%)", c.estimated_frame_reg_cycles, 2, c.estimated_frame_reg_cycles as f64 / estimated_frame_cycles as f64 * 100.0);
         println!("  xfer:            {} ({:.*}%)", c.estimated_frame_xfer_cycles, 2, c.estimated_frame_xfer_cycles as f64 / estimated_frame_cycles as f64 * 100.0);
-        println!("  rasterization:   {} ({:.*}%)", c.estimated_frame_rasterization_cycles, 2, c.estimated_frame_rasterization_cycles as f64 / estimated_frame_cycles as f64 * 100.0);
+        println!("  rasterization:   {} ({:.*}%)", c.estimated_frame_rasterization_cycles, 2, c.estimated_frame_rasterization_cycles as f64 / estimated_frame_cycles as f64 * 100.0);*/
 
         let mut flipped_buffer: Vec<u32> = Vec::with_capacity(c.back_buffer.len());
         for y in (0..HEIGHT).rev() {

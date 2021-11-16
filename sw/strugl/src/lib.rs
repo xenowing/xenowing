@@ -11,8 +11,6 @@ use color_thrust_interface::params_and_regs::*;
 
 use linalg::*;
 
-use core::mem;
-
 // TODO: Don't specify this here?
 pub const WIDTH: usize = 16 * 2;//8;//320;
 pub const HEIGHT: usize = 16 * 2;//8;//240;
@@ -143,10 +141,10 @@ pub struct Context<D: Device> {
 
     assembled_triangles: Vec<Vec<Triangle>>,
 
-    pub estimated_frame_bin_cycles: u64,
+    /*pub estimated_frame_bin_cycles: u64,
     pub estimated_frame_reg_cycles: u64,
     pub estimated_frame_xfer_cycles: u64,
-    pub estimated_frame_rasterization_cycles: u64,
+    pub estimated_frame_rasterization_cycles: u64,*/
 }
 
 impl<D: Device> Context<D> {
@@ -171,10 +169,10 @@ impl<D: Device> Context<D> {
             // TODO: Fixed capacity and splitting drawcalls on overflow
             assembled_triangles: vec![Vec::new(); PIXELS / TILE_PIXELS as usize],
 
-            estimated_frame_bin_cycles: 0,
+            /*estimated_frame_bin_cycles: 0,
             estimated_frame_reg_cycles: 0,
             estimated_frame_xfer_cycles: 0,
-            estimated_frame_rasterization_cycles: 0,
+            estimated_frame_rasterization_cycles: 0,*/
         }
     }
 
@@ -234,10 +232,10 @@ impl<D: Device> Context<D> {
         }
 
         // TODO: Move?
-        self.estimated_frame_bin_cycles = 0;
+        /*self.estimated_frame_bin_cycles = 0;
         self.estimated_frame_reg_cycles = 0;
         self.estimated_frame_xfer_cycles = 0;
-        self.estimated_frame_rasterization_cycles = 0;
+        self.estimated_frame_rasterization_cycles = 0;*/
     }
 
     pub fn render(&mut self, verts: &[Vertex]) {
@@ -263,7 +261,7 @@ impl<D: Device> Context<D> {
             REG_DEPTH_SETTINGS_ADDR,
             (if self.depth_test_enable { 1 } else { 0 } << REG_DEPTH_TEST_ENABLE_BIT) |
             (if self.depth_write_mask_enable { 1 } else { 0 } << REG_DEPTH_WRITE_MASK_ENABLE_BIT));
-        self.estimated_frame_reg_cycles += 1;
+        //self.estimated_frame_reg_cycles += 1;
 
         if let Some(texture) = self.texture.as_ref() {
             self.device.write_reg(
@@ -278,10 +276,10 @@ impl<D: Device> Context<D> {
                     TextureDim::X64 => REG_TEXTURE_SETTINGS_DIM_64,
                     TextureDim::X128 => REG_TEXTURE_SETTINGS_DIM_128,
                 } << REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET));
-            self.estimated_frame_reg_cycles += 1;
+            //self.estimated_frame_reg_cycles += 1;
             // TODO: Proper addr where texture data is loaded
             self.device.write_reg(REG_TEXTURE_BASE_ADDR, 0x00000000);
-            self.estimated_frame_reg_cycles += 1;
+            //self.estimated_frame_reg_cycles += 1;
         }
 
         self.device.write_reg(
@@ -298,7 +296,7 @@ impl<D: Device> Context<D> {
                 BlendDstFactor::SrcAlpha => REG_BLEND_SETTINGS_DST_FACTOR_SRC_ALPHA,
                 BlendDstFactor::OneMinusSrcAlpha => REG_BLEND_SETTINGS_DST_FACTOR_ONE_MINUS_SRC_ALPHA,
             } << REG_BLEND_SETTINGS_DST_FACTOR_BIT_OFFSET));
-        self.estimated_frame_reg_cycles += 1;
+        //self.estimated_frame_reg_cycles += 1;
 
         // Primitive rendering
         for tile_index_y in 0..HEIGHT / (TILE_DIM as usize) {
@@ -323,7 +321,7 @@ impl<D: Device> Context<D> {
                         }
                         self.device.write_color_buffer_word(y as u32 * TILE_DIM / 4 + x as u32, word);
 
-                        self.estimated_frame_xfer_cycles += 1;
+                        //self.estimated_frame_xfer_cycles += 1;
                     }
                 }
                 if self.depth_test_enable || self.depth_write_mask_enable {
@@ -336,7 +334,7 @@ impl<D: Device> Context<D> {
                             }
                             self.device.write_depth_buffer_word(y as u32 * TILE_DIM / 8 + x as u32, word);
 
-                            self.estimated_frame_xfer_cycles += 1;
+                            //self.estimated_frame_xfer_cycles += 1;
                         }
                     }
                 }
@@ -375,13 +373,13 @@ impl<D: Device> Context<D> {
                     self.device.write_reg(REG_T_MIN_ADDR, triangle.t_min);
                     self.device.write_reg(REG_T_DX_ADDR, triangle.t_dx);
                     self.device.write_reg(REG_T_DY_ADDR, triangle.t_dy);
-                    self.estimated_frame_reg_cycles += 33;
+                    //self.estimated_frame_reg_cycles += 33;
 
-                    self.estimated_frame_bin_cycles += (mem::size_of::<Triangle>() / mem::size_of::<u32>()) as u64;
+                    //self.estimated_frame_bin_cycles += (mem::size_of::<Triangle>() / mem::size_of::<u32>()) as u64;
 
                     // Ensure previous primitive is complete, if any
                     while self.device.read_reg(REG_STATUS_ADDR) != 0 {
-                        self.estimated_frame_rasterization_cycles += 1;
+                        //self.estimated_frame_rasterization_cycles += 1;
                     }
                     // Dispatch next primitive
                     self.device.write_reg(REG_START_ADDR, 1);
@@ -389,7 +387,7 @@ impl<D: Device> Context<D> {
 
                 // Ensure last primitive is complete
                 while self.device.read_reg(REG_STATUS_ADDR) != 0 {
-                    self.estimated_frame_rasterization_cycles += 1;
+                    //self.estimated_frame_rasterization_cycles += 1;
                 }
 
                 // Copy rasterizer memory back to tile
@@ -410,7 +408,7 @@ impl<D: Device> Context<D> {
                             self.back_buffer[buffer_index + i] = (a << 24) | (r << 16) | (g << 8) | b;
                         }
 
-                        self.estimated_frame_xfer_cycles += 1;
+                        //self.estimated_frame_xfer_cycles += 1;
                     }
                 }
                 if self.depth_write_mask_enable {
@@ -422,7 +420,7 @@ impl<D: Device> Context<D> {
                                 self.depth_buffer[buffer_index + i] = (word >> (16 * i)) as _;
                             }
 
-                            self.estimated_frame_xfer_cycles += 1;
+                            //self.estimated_frame_xfer_cycles += 1;
                         }
                     }
                 }
@@ -666,7 +664,7 @@ impl<D: Device> Context<D> {
                 let tile_index = tile_index_y * (WIDTH / (TILE_DIM as usize)) + tile_index_x;
                 self.assembled_triangles[tile_index].push(triangle.clone());
 
-                self.estimated_frame_bin_cycles += (mem::size_of::<Triangle>() / mem::size_of::<u32>()) as u64;
+                //self.estimated_frame_bin_cycles += (mem::size_of::<Triangle>() / mem::size_of::<u32>()) as u64;
             }
         }
     }
