@@ -281,6 +281,9 @@ fn main() -> ! {
                         });
                     }
 
+                    let mut v = Vec::new();
+                    cube(&mut v);
+
                     let frame_time = 6.0;//start_time.elapsed().as_secs_f64();
 
                     c.clear();
@@ -318,8 +321,6 @@ fn main() -> ! {
 
                     //let mut rng: Pcg32 = SeedableRng::seed_from_u64(0xfadebabedeadbeef);
 
-                    let mut v = Vec::new();
-
                     let mut model = Im4::identity();
                     //model *= Im4::translation(0.5, 0.0, 0.0);
                     /*let t = (frame_time * 0.2) as f32 + rng.gen::<f32>() * 30.0;
@@ -341,8 +342,6 @@ fn main() -> ! {
                         c.blend_src_factor = BlendSrcFactor::One;
                         c.blend_dst_factor = BlendDstFactor::Zero;
                     }
-
-                    cube(&mut v);
 
                     c.render(&mut v);
 
