@@ -157,6 +157,81 @@ impl Device for SimDevice {
     }
 }
 
+// TODO: De-dupe this code (via a trait or something, perhaps?)
+struct SimInnerDevice {
+    host_command_rx: Receiver<u8>,
+    host_response_tx: Sender<u8>,
+}
+
+impl SimInnerDevice {
+    fn new() -> SimInnerDevice {
+        let (host_command_tx, host_command_rx) = channel();
+        let (host_response_tx, host_response_rx) = channel();
+
+        // TODO: This is leaky, but I guess it doesn't matter :)
+        thread::spawn(move|| {
+            let mut leds = 0b000;
+
+            let mut is_sending_byte = false;
+
+            let mut top = TopInner::new();
+
+            let mut is_first_cycle = true;
+            loop {
+                if is_first_cycle {
+                    top.reset();
+
+                    is_first_cycle = false;
+                } else {
+                    top.posedge_clk();
+
+                    let new_leds = top.leds;
+                    if new_leds != leds {
+                        println!("LEDs updated: 0b{:08b} -> 0b{:08b}", leds, new_leds);
+                        leds = new_leds;
+                    }
+
+                    if top.uart_tx_enable {
+                        host_command_tx.send(top.uart_tx_data as _).unwrap();
+                    }
+
+                    // TODO: This isn't necessarily the best way to use this interface, but it should work :)
+                    if is_sending_byte && top.uart_rx_ready {
+                        is_sending_byte = false;
+                        top.uart_rx_data_valid = false;
+                    }
+                    if !is_sending_byte {
+                        if let Ok(value) = host_response_rx.try_recv() {
+                            is_sending_byte = true;
+                            top.uart_rx_data = value as u32;
+                            top.uart_rx_data_valid = true;
+                        }
+                    }
+                }
+
+                top.prop();
+            }
+        });
+
+        SimInnerDevice {
+            host_command_rx,
+            host_response_tx,
+        }
+    }
+}
+
+impl Device for SimInnerDevice {
+    fn read_byte(&mut self) -> Result<u8, Error> {
+        Ok(self.host_command_rx.recv()?)
+    }
+
+    fn write_byte(&mut self, value: u8) -> Result<(), Error> {
+        self.host_response_tx.send(value)?;
+
+        Ok(())
+    }
+}
+
 struct SerialDevice {
     port: Box<dyn SerialPort>,
 }
@@ -206,12 +281,23 @@ impl Device for SerialDevice {
 }
 
 fn main() -> Result<(), Error> {
-    let mut device: Box<dyn Device> = if let Some(port_name) = env::args().nth(1) {
-        println!("Creating serial device on port {}", port_name);
-        Box::new(SerialDevice::new(port_name)?)
-    } else {
-        println!("Creating sim device");
-        Box::new(SimDevice::new())
+    let device_type = env::args().nth(1).expect("Missing device type arg");
+
+    let mut device: Box<dyn Device> = match device_type.as_str() {
+        "serial" => {
+            let port_name = env::args().nth(2).expect("Missing port name arg");
+            println!("Creating serial device on port {}", port_name);
+            Box::new(SerialDevice::new(port_name)?)
+        }
+        "sim" => {
+            println!("Creating sim device");
+            Box::new(SimDevice::new())
+        }
+        "sim-inner" => {
+            println!("Creating sim inner device");
+            Box::new(SimInnerDevice::new())
+        }
+        _ => panic!("Invalid device type argument")
     };
     println!();
 

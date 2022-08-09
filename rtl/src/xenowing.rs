@@ -21,14 +21,9 @@ impl<'a> Xenowing<'a> {
     pub fn new(instance_name: impl Into<String>, p: &'a impl ModuleParent<'a>) -> Xenowing<'a> {
         let m = p.module(instance_name, "Xenowing");
 
-        let marv = Marv::new("marv", m);
-        let marv_system_bridge = MarvSystemBridge::new("marv_system_bridge", m);
-        marv.system_port.connect(&marv_system_bridge.marv_port);
+        let inner = XenowingInner::new("inner", m);
 
-        let boot_rom = BootRom::new("boot_rom", m);
-
-        let led_interface = LedInterface::new("led_interface", m);
-        let leds = m.output("leds", led_interface.leds);
+        let leds = m.output("leds", inner.leds);
 
         let clock_freq = 100000000;
         let uart_baud_rate = 460800;
@@ -40,12 +35,56 @@ impl<'a> Xenowing<'a> {
         let rx = m.input("rx", 1);
         uart_rx.rx.drive(rx);
 
+        uart_tx.data.drive(inner.uart_tx_data);
+        uart_tx.enable.drive(inner.uart_tx_enable);
+        inner.uart_tx_ready.drive(uart_tx.ready);
+        inner.uart_rx_data.drive(uart_rx.data);
+        inner.uart_rx_data_valid.drive(uart_rx.data_valid);
+
+        Xenowing {
+            m,
+            leds,
+            tx,
+            rx,
+        }
+    }
+}
+
+// TODO: Better name?
+pub struct XenowingInner<'a> {
+    pub m: &'a Module<'a>,
+    pub leds: &'a Output<'a>,
+    pub uart_tx_data: &'a Output<'a>,
+    pub uart_tx_enable: &'a Output<'a>,
+    pub uart_tx_ready: &'a Input<'a>,
+    pub uart_rx_data: &'a Input<'a>,
+    pub uart_rx_data_valid: &'a Input<'a>,
+    pub uart_rx_ready: &'a Output<'a>,
+}
+
+impl<'a> XenowingInner<'a> {
+    pub fn new(instance_name: impl Into<String>, p: &'a impl ModuleParent<'a>) -> XenowingInner<'a> {
+        let m = p.module(instance_name, "XenowingInner");
+
+        let marv = Marv::new("marv", m);
+        let marv_system_bridge = MarvSystemBridge::new("marv_system_bridge", m);
+        marv.system_port.connect(&marv_system_bridge.marv_port);
+
+        let boot_rom = BootRom::new("boot_rom", m);
+
+        let led_interface = LedInterface::new("led_interface", m);
+        let leds = m.output("leds", led_interface.leds);
+
         let uart_interface = UartInterface::new("uart_interface", m);
-        uart_tx.data.drive(uart_interface.tx_data);
-        uart_tx.enable.drive(uart_interface.tx_enable);
-        uart_interface.tx_ready.drive(uart_tx.ready);
-        uart_interface.rx_data.drive(uart_rx.data);
-        uart_interface.rx_data_valid.drive(uart_rx.data_valid);
+        let uart_tx_data = m.output("uart_tx_data", uart_interface.tx_data);
+        let uart_tx_enable = m.output("uart_tx_enable", uart_interface.tx_enable);
+        let uart_tx_ready = m.input("uart_tx_ready", 1);
+        uart_interface.tx_ready.drive(uart_tx_ready);
+        let uart_rx_data = m.input("uart_rx_data", 8);
+        uart_interface.rx_data.drive(uart_rx_data);
+        let uart_rx_data_valid = m.input("uart_rx_data_valid", 1);
+        uart_interface.rx_data_valid.drive(uart_rx_data_valid);
+        let uart_rx_ready = m.output("uart_rx_ready", uart_interface.rx_ready);
 
         let color_thrust = ColorThrust::new("color_thrust", m);
 
@@ -71,11 +110,15 @@ impl<'a> Xenowing<'a> {
         sys_crossbar.primary_ports[4].connect(&color_thrust.color_buffer_port);
         sys_crossbar.primary_ports[5].connect(&color_thrust.depth_buffer_port);
 
-        Xenowing {
+        XenowingInner {
             m,
             leds,
-            tx,
-            rx,
+            uart_tx_data,
+            uart_tx_enable,
+            uart_tx_ready,
+            uart_rx_data,
+            uart_rx_data_valid,
+            uart_rx_ready,
         }
     }
 }

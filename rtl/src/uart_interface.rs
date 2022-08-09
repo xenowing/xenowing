@@ -6,6 +6,7 @@ use kaze::*;
 pub struct UartInterface<'a> {
     pub m: &'a Module<'a>,
     pub client_port: ReplicaPort<'a>,
+    pub rx_ready: &'a Output<'a>,
     pub rx_data: &'a Input<'a>,
     pub rx_data_valid: &'a Input<'a>,
     pub tx_ready: &'a Input<'a>,
@@ -17,10 +18,10 @@ impl<'a> UartInterface<'a> {
     pub fn new(instance_name: impl Into<String>, p: &'a impl ModuleParent<'a>) -> UartInterface<'a> {
         let m = p.module(instance_name, "UartInterface");
 
+        let rx_fifo = Fifo::new("rx_fifo", 8, 8, m);
+        let rx_ready = m.output("rx_ready", !rx_fifo.full);
         let rx_data = m.input("rx_data", 8);
         let rx_data_valid = m.input("rx_data_valid", 1);
-
-        let rx_fifo = Fifo::new("rx_fifo", 8, 8, m);
         rx_fifo.write_enable.drive(rx_data_valid);
         rx_fifo.write_data.drive(rx_data);
 
@@ -62,6 +63,7 @@ impl<'a> UartInterface<'a> {
                 bus_read_data,
                 bus_read_data_valid,
             },
+            rx_ready,
             rx_data,
             rx_data_valid,
             tx_ready,

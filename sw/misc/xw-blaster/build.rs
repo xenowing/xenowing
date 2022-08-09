@@ -11,7 +11,7 @@ use std::path::Path;
 fn main() -> Result<()> {
     let out_dir = env::var("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("modules.rs");
-    let file = File::create(&dest_path).unwrap();
+    let mut file = File::create(&dest_path).unwrap();
 
     let c = Context::new();
 
@@ -34,6 +34,21 @@ fn main() -> Result<()> {
     m.output("uart_rx_ready", uart_tx.ready);
     uart_tx.data.drive(m.input("uart_rx_data", 8));
     uart_tx.enable.drive(m.input("uart_rx_enable", 1));
+
+    sim::generate(m, sim::GenerationOptions::default(), &mut file)?;
+
+    let m = c.module("top", "TopInner");
+
+    let inner = XenowingInner::new("inner", m);
+
+    m.output("leds", inner.leds);
+
+    m.output("uart_tx_data", inner.uart_tx_data);
+    m.output("uart_tx_enable", inner.uart_tx_enable);
+    inner.uart_tx_ready.drive(m.high());
+    inner.uart_rx_data.drive(m.input("uart_rx_data", 8));
+    inner.uart_rx_data_valid.drive(m.input("uart_rx_data_valid", 1));
+    m.output("uart_rx_ready", inner.uart_rx_ready);
 
     sim::generate(m, sim::GenerationOptions::default(), file)
 }
