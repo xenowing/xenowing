@@ -16,4 +16,5 @@ minifb = "0.16"
 rand = "0.7"
 rtl = { path = "../../../rtl" }
 serialport = "3.3.0"
+strugl = { path = "../../strugl" }
 termcolor = "1"

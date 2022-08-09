@@ -1276,5 +1276,6 @@ dependencies = [
  "rand 0.7.3",
  "rtl",
  "serialport",
+ "strugl",
  "termcolor",
 ]

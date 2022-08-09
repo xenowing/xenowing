@@ -8,6 +8,7 @@ use modules::*;
 
 use minifb::{Scale, ScaleMode, Window, WindowOptions};
 use serialport::prelude::*;
+use strugl::{WIDTH, HEIGHT};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 use std::env;
@@ -17,8 +18,6 @@ use std::str;
 use std::sync::mpsc::{self, channel, Receiver, Sender};
 use std::thread;
 
-const WIDTH: usize = 16 * 2;//8;//320;
-const HEIGHT: usize = 16 * 2;//8;//240;
 const PIXELS: usize = WIDTH * HEIGHT;
 
 #[derive(Debug)]
