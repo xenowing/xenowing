@@ -2,7 +2,7 @@
 #![no_main]
 #![no_std]
 
-use xw::{leds, uart, stdio};
+use xw::{uart, stdio};
 
 use core::fmt::Write;
 use core::mem;
@@ -34,7 +34,6 @@ fn main() -> ! {
     let program_ram = unsafe { &mut _sprogram } as *mut u8;
     for i in 0..program_size {
         let b = uart::read_u8();
-        leds::set(b);
         unsafe {
             *program_ram.offset(i as _) = b;
         }
