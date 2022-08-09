@@ -23,24 +23,25 @@ pub fn read_u8() -> u8 {
 
 pub fn read_u32_le() -> u32 {
     let mut ret = 0;
-    ret |= (read_u8() as u32) << 0;
-    ret |= (read_u8() as u32) << 8;
-    ret |= (read_u8() as u32) << 16;
-    ret |= (read_u8() as u32) << 24;
+    for i in 0..4 {
+        ret |= (read_u8() as u32) << i * 8;
+    }
     ret
 }
 
 pub fn read_u64_le() -> u64 {
     let mut ret = 0;
-    ret |= (read_u32_le() as u64) << 0;
-    ret |= (read_u32_le() as u64) << 32;
+    for i in 0..2 {
+        ret |= (read_u32_le() as u64) << i * 32;
+    }
     ret
 }
 
 pub fn read_u128_le() -> u128 {
     let mut ret = 0;
-    ret |= (read_u64_le() as u128) << 0;
-    ret |= (read_u64_le() as u128) << 64;
+    for i in 0..2 {
+        ret |= (read_u64_le() as u128) << i * 64;
+    }
     ret
 }
 
@@ -55,18 +56,19 @@ pub fn write_u8(x: u8) {
 }
 
 pub fn write_u32_le(x: u32) {
-    write_u8((x >> 0) as _);
-    write_u8((x >> 8) as _);
-    write_u8((x >> 16) as _);
-    write_u8((x >> 24) as _);
+    for i in 0..4 {
+        write_u8((x >> (i * 8)) as _);
+    }
 }
 
 pub fn write_u64_le(x: u64) {
-    write_u32_le((x >> 0) as _);
-    write_u32_le((x >> 32) as _);
+    for i in 0..2 {
+        write_u32_le((x >> (i * 32)) as _);
+    }
 }
 
 pub fn write_u128_le(x: u128) {
-    write_u64_le((x >> 0) as _);
-    write_u64_le((x >> 64) as _);
+    for i in 0..2 {
+        write_u64_le((x >> (i * 64)) as _);
+    }
 }
