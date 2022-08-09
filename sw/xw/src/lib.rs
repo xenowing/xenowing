@@ -1,5 +1,3 @@
-#![feature(const_fn_trait_bound)]
-#![feature(global_asm)]
 #![no_main]
 #![no_std]
 
@@ -15,6 +13,8 @@ pub mod stdio;
 pub mod uart;
 
 mod asm {
+    use core::arch::global_asm;
+
     global_asm!(include_str!("_cycles.s"));
     global_asm!(include_str!("entry.s"));
 }
