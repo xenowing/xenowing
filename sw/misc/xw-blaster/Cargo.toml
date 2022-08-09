@@ -11,7 +11,6 @@ kaze = { path = "../../../../kaze/kaze" } #kaze = "0.1"
 rtl = { path = "../../../rtl" }
 
 [dependencies]
-color-thrust-interface = { path = "../../../color-thrust/color-thrust-interface" }
 image = "0.23"
 minifb = "0.16"
 rand = "0.7"
