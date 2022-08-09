@@ -66,10 +66,9 @@ trait Device {
 
     fn read_u32(&mut self) -> Result<u32, Error> {
         let mut ret = 0x00;
-        ret |= (self.read_byte()? as u32) << 0;
-        ret |= (self.read_byte()? as u32) << 8;
-        ret |= (self.read_byte()? as u32) << 16;
-        ret |= (self.read_byte()? as u32) << 24;
+        for i in 0..4 {
+            ret |= (self.read_byte()? as u32) << i * 8;
+        }
 
         Ok(ret)
     }
@@ -276,14 +275,9 @@ fn main() -> Result<(), Error> {
                 stdout.set_color(ColorSpec::new().set_fg(Some(Color::White)).set_intense(true))?;
 
                 let mut elapsed_cycles = 0;
-                elapsed_cycles |= (device.read_byte()? as u64) << 0;
-                elapsed_cycles |= (device.read_byte()? as u64) << 8;
-                elapsed_cycles |= (device.read_byte()? as u64) << 16;
-                elapsed_cycles |= (device.read_byte()? as u64) << 24;
-                elapsed_cycles |= (device.read_byte()? as u64) << 32;
-                elapsed_cycles |= (device.read_byte()? as u64) << 40;
-                elapsed_cycles |= (device.read_byte()? as u64) << 48;
-                elapsed_cycles |= (device.read_byte()? as u64) << 56;
+                for i in 0..8 {
+                    elapsed_cycles |= (device.read_byte()? as u64) << i * 8;
+                }
                 writeln!(&mut stdout, "  elapsed cycles: {}", elapsed_cycles)?;
 
                 for y in 0..HEIGHT {
