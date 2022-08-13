@@ -23,16 +23,18 @@ use xenowing::*;
 
 use kaze::*;
 
-use std::io::Result;
+use std::io::{Result, stdout};
 
 fn main() -> Result<()> {
     let c = Context::new();
 
-    let _xenowing = Xenowing::new("xenowing", &c);
-    let _lfsr = Lfsr::new("lfsr", &c);
-    let _uart = Uart::new("uart", &c);
+    let xenowing = Xenowing::new("xenowing", &c);
+    let lfsr = Lfsr::new("lfsr", &c);
+    let uart = Uart::new("uart", &c);
 
-    // TODO: Generate verilog for above modules
+    verilog::generate(xenowing.m, stdout())?;
+    verilog::generate(lfsr.m, stdout())?;
+    verilog::generate(uart.m, stdout())?;
 
     Ok(())
 }

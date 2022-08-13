@@ -19,21 +19,24 @@ impl<'a> Uart<'a> {
 
         let write_enable = !has_errored;
 
-        let uart_tx = UartTx::new("uart_tx", 100000000, 460800, p);
+        let clock_freq = 100000000;
+        let uart_baud_rate = 460800;
+
+        let uart_tx = UartTx::new("uart_tx", clock_freq, uart_baud_rate, m);
         uart_tx.enable.drive(write_enable);
         let tx = m.output("tx", uart_tx.tx);
 
-        let tx_lfsr = Lfsr::new("tx_lfsr", p);
+        let tx_lfsr = Lfsr::new("tx_lfsr", m);
         tx_lfsr.shift_enable.drive(write_enable & uart_tx.ready);
         uart_tx.data.drive(tx_lfsr.value);
 
         let rx = m.input("rx", 1);
-        let uart_rx = UartRx::new("uart_rx", 100000000, 460800, p);
+        let uart_rx = UartRx::new("uart_rx", clock_freq, uart_baud_rate, m);
         uart_rx.rx.drive(rx);
         let read_data = uart_rx.data;
         let read_data_valid = uart_rx.data_valid;
 
-        let rx_lfsr = Lfsr::new("rx_lfsr", p);
+        let rx_lfsr = Lfsr::new("rx_lfsr", m);
         rx_lfsr.shift_enable.drive(read_data_valid);
 
         has_errored.drive_next(if_(read_data_valid, {
