@@ -8,6 +8,7 @@ exclude = [
 members = [
     "color-thrust/color-thrust-interface",
     "color-thrust/color-thrust-test-devices",
+    "mimas_a7/test/ddr3/misc/ddr3-check",
     "mimas_a7/test/uart/misc/uart-check",
     "rtl",
     "sim/approx-reciprocal",

@@ -32,12 +32,14 @@ module ddr3(
         .locked(clocking_locked),
         .clk_in1(input_clk_100));
 
-    // TODO: Do we need this? Is this sufficient?
     logic sys_reset_n;
-    reset_synchronizer reset_synchronizer0(
-        .reset_n(~reset & clocking_locked),
+    SyncChain #(.DEFAULT(1'b0)) reset_sync_chain(
+        .reset_n(~reset),
         .clk(sys_clk_200),
-        .reset_n_sync(sys_reset_n));
+
+        .x(1'b1),
+
+        .x_sync(sys_reset_n));
 
     logic ddr3_controller_calib_done;
     logic [27:0] app_addr;
@@ -94,16 +96,16 @@ module ddr3(
 
     logic reset_n = ~ddr3_controller_ui_clk_sync_rst & ddr3_controller_calib_done;
 
-    logic [7:0] uart_write_data;
-    logic uart_write_req;
-    logic uart_ready;
-    uart_transmitter uart_transmitter0(
+    logic [7:0] uart_tx_data;
+    logic uart_tx_enable;
+    logic uart_tx_ready;
+    UartTx uart_tx(
         .reset_n(reset_n),
         .clk(clk_100),
 
-        .write_data(uart_write_data),
-        .write_req(uart_write_req),
-        .ready(uart_ready),
+        .data(uart_tx_data),
+        .enable(uart_tx_enable),
+        .ready(uart_tx_ready),
 
         .tx(uart_tx));
 
@@ -133,7 +135,7 @@ module ddr3(
     logic [63:0] uart_write_word;
     logic [2:0] uart_write_byte_index;
 
-    assign uart_write_data = uart_write_word[7:0];
+    assign uart_tx_data = uart_write_word[7:0];
 
     logic led_reg;
     assign led = led_reg;
@@ -145,7 +147,7 @@ module ddr3(
             app_wdf_wren <= 0;
             app_wdf_mask <= 0;
 
-            uart_write_req <= 0;
+            uart_tx_enable <= 0;
 
             state <= STATE_IDLE;
 
@@ -184,7 +186,7 @@ module ddr3(
                             app_wdf_wren <= 0;
 
                             if (word_counter == NUM_WORDS - 1) begin
-                                uart_write_req <= 1;
+                                uart_tx_enable <= 1;
 
                                 uart_write_word <= write_cycles;
 
@@ -206,7 +208,7 @@ module ddr3(
                             app_en <= 0;
 
                             if (word_counter == NUM_WORDS - 1) begin
-                                uart_write_req <= 1;
+                                uart_tx_enable <= 1;
 
                                 uart_write_word <= write_cycles;
 
@@ -225,7 +227,7 @@ module ddr3(
                 end
 
                 STATE_TRANSMIT_WRITE_CYCLES: begin
-                    if (uart_ready) begin
+                    if (uart_tx_ready) begin
                         if (uart_write_byte_index != 3'h7) begin
                             uart_write_word <= {8'h0, uart_write_word[63:8]};
                             uart_write_byte_index <= uart_write_byte_index + 3'h1;
@@ -234,7 +236,7 @@ module ddr3(
                             app_cmd <= CMD_READ;
                             app_en <= 1;
 
-                            uart_write_req <= 0;
+                            uart_tx_enable <= 0;
 
                             state <= STATE_READ;
 
@@ -261,7 +263,7 @@ module ddr3(
                 STATE_READ_WAIT: begin
                     if (read_check_done) begin
                         if (read_check_valid) begin
-                            uart_write_req <= 1;
+                            uart_tx_enable <= 1;
 
                             uart_write_word <= read_cycles;
                             uart_write_byte_index <= 0;
@@ -277,13 +279,13 @@ module ddr3(
                 end
 
                 STATE_TRANSMIT_READ_CYCLES: begin
-                    if (uart_ready) begin
+                    if (uart_tx_ready) begin
                         if (uart_write_byte_index != 3'h7) begin
                             uart_write_word <= {8'h0, uart_write_word[63:8]};
                             uart_write_byte_index <= uart_write_byte_index + 3'h1;
                         end
                         else begin
-                            uart_write_req <= 0;
+                            uart_tx_enable <= 0;
 
                             state <= STATE_PARK;
                         end

@@ -1,10 +1,10 @@
-// Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+// Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 // --------------------------------------------------------------------------------
-// Tool Version: Vivado v.2019.1 (win64) Build 2552052 Fri May 24 14:49:42 MDT 2019
-// Date        : Mon Nov 18 20:43:53 2019
+// Tool Version: Vivado v.2022.1 (win64) Build 3526262 Mon Apr 18 15:48:16 MDT 2022
+// Date        : Sat Aug 13 20:18:03 2022
 // Host        : the-executive running 64-bit major release  (build 9200)
 // Command     : write_verilog -force -mode funcsim
-//               C:/msys64/home/ferris/dev/projects/xenowing/mimas_a7/test/ddr3/ip/clk_mmcm/clk_mmcm_sim_netlist.v
+//               c:/msys64/home/ferris/dev/projects/xenowing/mimas_a7/test/ddr3/ip/clk_mmcm/clk_mmcm_sim_netlist.v
 // Design      : clk_mmcm
 // Purpose     : This verilog netlist is a functional simulation representation of the design and should not be modified
 //               or synthesized. This netlist cannot be used for SDF annotated simulation.
@@ -28,15 +28,14 @@ module clk_mmcm
   wire locked;
   wire reset;
 
-  clk_mmcm_clk_mmcm_clk_wiz inst
+  clk_mmcm_clk_wiz inst
        (.clk_200(clk_200),
         .clk_in1(clk_in1),
         .locked(locked),
         .reset(reset));
 endmodule
 
-(* ORIG_REF_NAME = "clk_mmcm_clk_wiz" *) 
-module clk_mmcm_clk_mmcm_clk_wiz
+module clk_mmcm_clk_wiz
    (clk_200,
     reset,
     locked,
@@ -181,12 +180,15 @@ module glbl ();
 
     parameter ROC_WIDTH = 100000;
     parameter TOC_WIDTH = 0;
+    parameter GRES_WIDTH = 10000;
+    parameter GRES_START = 10000;
 
 //--------   STARTUP Globals --------------
     wire GSR;
     wire GTS;
     wire GWE;
     wire PRLD;
+    wire GRESTORE;
     tri1 p_up_tmp;
     tri (weak1, strong0) PLL_LOCKG = p_up_tmp;
 
@@ -199,6 +201,7 @@ module glbl ();
     reg GSR_int;
     reg GTS_int;
     reg PRLD_int;
+    reg GRESTORE_int;
 
 //--------   JTAG Globals --------------
     wire JTAG_TDO_GLBL;
@@ -226,6 +229,7 @@ module glbl ();
     assign (strong1, weak0) GSR = GSR_int;
     assign (strong1, weak0) GTS = GTS_int;
     assign (weak1, weak0) PRLD = PRLD_int;
+    assign (strong1, weak0) GRESTORE = GRESTORE_int;
 
     initial begin
 	GSR_int = 1'b1;
@@ -239,6 +243,14 @@ module glbl ();
 	GTS_int = 1'b1;
 	#(TOC_WIDTH)
 	GTS_int = 1'b0;
+    end
+
+    initial begin 
+	GRESTORE_int = 1'b0;
+	#(GRES_START);
+	GRESTORE_int = 1'b1;
+	#(GRES_WIDTH);
+	GRESTORE_int = 1'b0;
     end
 
 endmodule

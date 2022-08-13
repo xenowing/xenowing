@@ -190,6 +190,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ddr3-check"
+version = "0.1.0"
+dependencies = [
+ "serialport",
+]
+
+[[package]]
 name = "deflate"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"

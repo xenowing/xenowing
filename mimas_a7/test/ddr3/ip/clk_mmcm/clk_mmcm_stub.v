@@ -1,10 +1,10 @@
-// Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+// Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 // --------------------------------------------------------------------------------
-// Tool Version: Vivado v.2019.1 (win64) Build 2552052 Fri May 24 14:49:42 MDT 2019
-// Date        : Mon Nov 18 20:43:53 2019
+// Tool Version: Vivado v.2022.1 (win64) Build 3526262 Mon Apr 18 15:48:16 MDT 2022
+// Date        : Sat Aug 13 20:18:03 2022
 // Host        : the-executive running 64-bit major release  (build 9200)
 // Command     : write_verilog -force -mode synth_stub
-//               C:/msys64/home/ferris/dev/projects/xenowing/mimas_a7/test/ddr3/ip/clk_mmcm/clk_mmcm_stub.v
+//               c:/msys64/home/ferris/dev/projects/xenowing/mimas_a7/test/ddr3/ip/clk_mmcm/clk_mmcm_stub.v
 // Design      : clk_mmcm
 // Purpose     : Stub declaration of top-level module interface
 // Device      : xc7a50tfgg484-1

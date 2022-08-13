@@ -1,10 +1,10 @@
--- Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+-- Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 -- --------------------------------------------------------------------------------
--- Tool Version: Vivado v.2019.1 (win64) Build 2552052 Fri May 24 14:49:42 MDT 2019
--- Date        : Mon Nov 18 20:43:53 2019
+-- Tool Version: Vivado v.2022.1 (win64) Build 3526262 Mon Apr 18 15:48:16 MDT 2022
+-- Date        : Sat Aug 13 20:18:03 2022
 -- Host        : the-executive running 64-bit major release  (build 9200)
 -- Command     : write_vhdl -force -mode funcsim
---               C:/msys64/home/ferris/dev/projects/xenowing/mimas_a7/test/ddr3/ip/clk_mmcm/clk_mmcm_sim_netlist.vhdl
+--               c:/msys64/home/ferris/dev/projects/xenowing/mimas_a7/test/ddr3/ip/clk_mmcm/clk_mmcm_sim_netlist.vhdl
 -- Design      : clk_mmcm
 -- Purpose     : This VHDL netlist is a functional simulation representation of the design and should not be modified or
 --               synthesized. This netlist cannot be used for SDF annotated simulation.
@@ -14,18 +14,16 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 library UNISIM;
 use UNISIM.VCOMPONENTS.ALL;
-entity clk_mmcm_clk_mmcm_clk_wiz is
+entity clk_mmcm_clk_wiz is
   port (
     clk_200 : out STD_LOGIC;
     reset : in STD_LOGIC;
     locked : out STD_LOGIC;
     clk_in1 : in STD_LOGIC
   );
-  attribute ORIG_REF_NAME : string;
-  attribute ORIG_REF_NAME of clk_mmcm_clk_mmcm_clk_wiz : entity is "clk_mmcm_clk_wiz";
-end clk_mmcm_clk_mmcm_clk_wiz;
+end clk_mmcm_clk_wiz;
 
-architecture STRUCTURE of clk_mmcm_clk_mmcm_clk_wiz is
+architecture STRUCTURE of clk_mmcm_clk_wiz is
   signal clk_200_clk_mmcm : STD_LOGIC;
   signal clk_in1_clk_mmcm : STD_LOGIC;
   signal clkfbout_buf_clk_mmcm : STD_LOGIC;
@@ -180,7 +178,7 @@ end clk_mmcm;
 
 architecture STRUCTURE of clk_mmcm is
 begin
-inst: entity work.clk_mmcm_clk_mmcm_clk_wiz
+inst: entity work.clk_mmcm_clk_wiz
      port map (
       clk_200 => clk_200,
       clk_in1 => clk_in1,
