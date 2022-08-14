@@ -18,9 +18,23 @@ set_output_delay -clock uart_tx_dummy_clk -min 0 [get_ports { uart_tx }]
 set_output_delay -clock uart_tx_dummy_clk -max 1 [get_ports { uart_tx }]
 set_false_path -from [all_registers] -to [get_ports { uart_tx }]
 
-set_property -dict { PACKAGE_PIN "K17" IOSTANDARD LVCMOS33 SLEW FAST } [get_ports { led }];
+set_property -dict { PACKAGE_PIN "K17" IOSTANDARD LVCMOS33 SLEW FAST } [get_ports { success_led }];
 # Dummy clock/delays to suppress timing warnings for async signal
-create_clock -name led_dummy_clk -period 10
-set_output_delay -clock led_dummy_clk -min 0 [get_ports { led }]
-set_output_delay -clock led_dummy_clk -max 1 [get_ports { led }]
-set_false_path -from [all_registers] -to [get_ports { led }]
+create_clock -name success_led_dummy_clk -period 10
+set_output_delay -clock success_led_dummy_clk -min 0 [get_ports { success_led }]
+set_output_delay -clock success_led_dummy_clk -max 1 [get_ports { success_led }]
+set_false_path -from [all_registers] -to [get_ports { success_led }]
+
+set_property -dict { PACKAGE_PIN "J17" IOSTANDARD LVCMOS33 SLEW FAST } [get_ports { calibration_done_led }];
+# Dummy clock/delays to suppress timing warnings for async signal
+create_clock -name calibration_done_led_dummy_clk -period 10
+set_output_delay -clock calibration_done_led_dummy_clk -min 0 [get_ports { calibration_done_led }]
+set_output_delay -clock calibration_done_led_dummy_clk -max 1 [get_ports { calibration_done_led }]
+set_false_path -from [all_registers] -to [get_ports { calibration_done_led }]
+
+set_property -dict { PACKAGE_PIN "M16" IOSTANDARD LVCMOS33 SLEW FAST } [get_ports { error_led }];
+# Dummy clock/delays to suppress timing warnings for async signal
+create_clock -name error_led_dummy_clk -period 10
+set_output_delay -clock error_led_dummy_clk -min 0 [get_ports { error_led }]
+set_output_delay -clock error_led_dummy_clk -max 1 [get_ports { error_led }]
+set_false_path -from [all_registers] -to [get_ports { error_led }]

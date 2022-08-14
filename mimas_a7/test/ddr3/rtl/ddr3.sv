@@ -22,7 +22,9 @@ module ddr3(
 
     output wire logic uart_tx,
 
-    output wire logic led);
+    output wire logic success_led,
+    output wire logic calibration_done_led,
+    output wire logic error_led);
 
     logic sys_clk_200;
     logic clocking_locked;
@@ -137,8 +139,13 @@ module ddr3(
 
     assign uart_tx_data = uart_write_word[7:0];
 
-    logic led_reg;
-    assign led = led_reg;
+    logic success_led_reg;
+    assign success_led = success_led_reg;
+
+    assign calibration_done_led = ddr3_controller_calib_done;
+
+    logic error_led_reg;
+    assign error_led = error_led_reg;
 
     always_ff @(posedge clk_100) begin
         if (~reset_n) begin
@@ -158,7 +165,8 @@ module ddr3(
             uart_write_word <= 0;
             uart_write_byte_index <= 0;
 
-            led_reg <= 0;
+            success_led_reg <= 0;
+            error_led_reg <= 0;
         end
         else begin
             case (state)
@@ -293,11 +301,11 @@ module ddr3(
                 end
 
                 STATE_PARK: begin
-                    led_reg <= 1;
+                    success_led_reg <= 1;
                 end
 
                 STATE_ERROR: begin
-                    led_reg = ~led_reg;
+                    error_led_reg <= 1;
                 end
 
                 default: begin
