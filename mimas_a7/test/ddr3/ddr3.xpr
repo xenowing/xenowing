@@ -162,19 +162,6 @@
         <Option Name="TopAutoSet" Val="TRUE"/>
       </Config>
     </FileSet>
-    <FileSet Name="clk_mmcm" Type="BlockSrcs" RelSrcDir="$PSRCDIR/clk_mmcm" RelGenDir="$PGENDIR/clk_mmcm">
-      <File Path="$PPRDIR/ip/clk_mmcm/clk_mmcm.xci">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <Config>
-        <Option Name="TopModule" Val="clk_mmcm"/>
-        <Option Name="UseBlackboxStub" Val="1"/>
-      </Config>
-    </FileSet>
     <FileSet Name="ddr3_controller" Type="BlockSrcs" RelSrcDir="$PSRCDIR/ddr3_controller" RelGenDir="$PGENDIR/ddr3_controller">
       <File Path="$PPRDIR/ip/ddr3_controller/ddr3_controller.xci">
         <FileInfo>
@@ -185,6 +172,19 @@
       </File>
       <Config>
         <Option Name="TopModule" Val="ddr3_controller"/>
+        <Option Name="UseBlackboxStub" Val="1"/>
+      </Config>
+    </FileSet>
+    <FileSet Name="clk_mmcm" Type="BlockSrcs" RelSrcDir="$PSRCDIR/clk_mmcm" RelGenDir="$PGENDIR/clk_mmcm">
+      <File Path="$PPRDIR/ip/clk_mmcm/clk_mmcm.xci">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <Config>
+        <Option Name="TopModule" Val="clk_mmcm"/>
         <Option Name="UseBlackboxStub" Val="1"/>
       </Config>
     </FileSet>
@@ -218,7 +218,7 @@
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
       <RQSFiles/>
     </Run>
-    <Run Id="clk_mmcm_synth_1" Type="Ft3:Synth" SrcSet="clk_mmcm" Part="xc7a50tfgg484-1" ConstrsSet="clk_mmcm" Description="Vivado Synthesis Defaults" AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" Dir="$PRUNDIR/clk_mmcm_synth_1" IncludeInArchive="true" IsChild="false" AutoIncrementalDir="$PSRCDIR/utils_1/imports/clk_mmcm_synth_1" AutoRQSDir="$PSRCDIR/utils_1/imports/clk_mmcm_synth_1">
+    <Run Id="ddr3_controller_synth_1" Type="Ft3:Synth" SrcSet="ddr3_controller" Part="xc7a50tfgg484-1" ConstrsSet="ddr3_controller" Description="Vivado Synthesis Defaults" AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ddr3_controller_synth_1" IncludeInArchive="true" IsChild="false" AutoIncrementalDir="$PSRCDIR/utils_1/imports/ddr3_controller_synth_1" AutoRQSDir="$PSRCDIR/utils_1/imports/ddr3_controller_synth_1">
       <Strategy Version="1" Minor="2">
         <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2019"/>
         <Step Id="synth_design"/>
@@ -228,13 +228,15 @@
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
       <RQSFiles/>
     </Run>
-    <Run Id="ddr3_controller_synth_1" Type="Ft3:Synth" SrcSet="ddr3_controller" Part="xc7a50tfgg484-1" ConstrsSet="ddr3_controller" Description="Vivado Synthesis Defaults" AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ddr3_controller_synth_1" IncludeInArchive="true" IsChild="false" AutoIncrementalDir="$PSRCDIR/utils_1/imports/ddr3_controller_synth_1" AutoRQSDir="$PSRCDIR/utils_1/imports/ddr3_controller_synth_1">
+    <Run Id="clk_mmcm_synth_1" Type="Ft3:Synth" SrcSet="clk_mmcm" Part="xc7a50tfgg484-1" ConstrsSet="clk_mmcm" Description="Vivado Synthesis Defaults" AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" Dir="$PRUNDIR/clk_mmcm_synth_1" IncludeInArchive="true" IsChild="false" AutoIncrementalDir="$PSRCDIR/utils_1/imports/clk_mmcm_synth_1" AutoRQSDir="$PSRCDIR/utils_1/imports/clk_mmcm_synth_1">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2019"/>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2022">
+          <Desc>Vivado Synthesis Defaults</Desc>
+        </StratHandle>
         <Step Id="synth_design"/>
       </Strategy>
       <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
-      <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2019"/>
+      <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2022"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
       <RQSFiles/>
     </Run>
@@ -256,7 +258,7 @@
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
       <RQSFiles/>
     </Run>
-    <Run Id="clk_mmcm_impl_1" Type="Ft2:EntireDesign" Part="xc7a50tfgg484-1" ConstrsSet="clk_mmcm" Description="Default settings for Implementation." AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" SynthRun="clk_mmcm_synth_1" IncludeInArchive="false" IsChild="false" GenFullBitstream="true" AutoIncrementalDir="$PSRCDIR/utils_1/imports/clk_mmcm_impl_1" AutoRQSDir="$PSRCDIR/utils_1/imports/clk_mmcm_impl_1">
+    <Run Id="ddr3_controller_impl_1" Type="Ft2:EntireDesign" Part="xc7a50tfgg484-1" ConstrsSet="ddr3_controller" Description="Default settings for Implementation." AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" SynthRun="ddr3_controller_synth_1" IncludeInArchive="false" IsChild="false" GenFullBitstream="true" AutoIncrementalDir="$PSRCDIR/utils_1/imports/ddr3_controller_impl_1" AutoRQSDir="$PSRCDIR/utils_1/imports/ddr3_controller_impl_1">
       <Strategy Version="1" Minor="2">
         <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2019"/>
         <Step Id="init_design"/>
@@ -273,9 +275,11 @@
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
       <RQSFiles/>
     </Run>
-    <Run Id="ddr3_controller_impl_1" Type="Ft2:EntireDesign" Part="xc7a50tfgg484-1" ConstrsSet="ddr3_controller" Description="Default settings for Implementation." AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" SynthRun="ddr3_controller_synth_1" IncludeInArchive="false" IsChild="false" GenFullBitstream="true" AutoIncrementalDir="$PSRCDIR/utils_1/imports/ddr3_controller_impl_1" AutoRQSDir="$PSRCDIR/utils_1/imports/ddr3_controller_impl_1">
+    <Run Id="clk_mmcm_impl_1" Type="Ft2:EntireDesign" Part="xc7a50tfgg484-1" ConstrsSet="clk_mmcm" Description="Default settings for Implementation." AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" SynthRun="clk_mmcm_synth_1" IncludeInArchive="false" IsChild="false" GenFullBitstream="true" AutoIncrementalDir="$PSRCDIR/utils_1/imports/clk_mmcm_impl_1" AutoRQSDir="$PSRCDIR/utils_1/imports/clk_mmcm_impl_1">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2019"/>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2022">
+          <Desc>Default settings for Implementation.</Desc>
+        </StratHandle>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -286,7 +290,7 @@
         <Step Id="post_route_phys_opt_design"/>
         <Step Id="write_bitstream"/>
       </Strategy>
-      <ReportStrategy Name="Vivado Implementation Default Reports" Flow="Vivado Implementation 2019"/>
+      <ReportStrategy Name="Vivado Implementation Default Reports" Flow="Vivado Implementation 2022"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
       <RQSFiles/>
     </Run>
