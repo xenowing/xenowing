@@ -1,7 +1,7 @@
 -- Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 -- --------------------------------------------------------------------------------
 -- Tool Version: Vivado v.2022.1 (win64) Build 3526262 Mon Apr 18 15:48:16 MDT 2022
--- Date        : Sat Aug 13 20:32:03 2022
+-- Date        : Sun Aug 14 21:57:37 2022
 -- Host        : the-executive running 64-bit major release  (build 9200)
 -- Command     : write_vhdl -force -mode synth_stub
 --               c:/msys64/home/ferris/dev/projects/xenowing/mimas_a7/test/ddr3/ip/ddr3_controller/ddr3_controller_stub.vhdl

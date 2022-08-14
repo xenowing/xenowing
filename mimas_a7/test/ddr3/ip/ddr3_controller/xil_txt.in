@@ -15,7 +15,7 @@ SET_PREFERENCE flowvendor Other
 SET_PREFERENCE tool vivado
 SET_PREFERENCE compnamestatus 0
 SET_PARAMETER component_name ddr3_controller
-SET_PARAMETER xml_input_file C:/msys64/home/ferris/dev/projects/xenowing/mimas_a7/test/ddr3/ip/ddr3_controller/mig_a.prj
+SET_PARAMETER xml_input_file C:/msys64/home/ferris/dev/projects/xenowing/mimas_a7/test/ddr3/ip/ddr3_controller/mig_b.prj
 SET_PARAMETER data_dir_path d:/Installs/Xilinx/Vivado/2022.1/data/ip/xilinx/mig_7series_v4_2
 SET_CORE_NAME Memory Interface Generator (MIG 7 Series)
 SET_CORE_VERSION 4.2

@@ -3,8 +3,8 @@
 // Tool Version: Vivado v.2022.1 (win64) Build 3526262 Mon Apr 18 15:48:16 MDT 2022
 // Date        : Sun Aug 14 21:32:42 2022
 // Host        : the-executive running 64-bit major release  (build 9200)
-// Command     : write_verilog -force -mode funcsim
-//               c:/msys64/home/ferris/dev/projects/xenowing/mimas_a7/test/ddr3/ip/clk_mmcm/clk_mmcm_sim_netlist.v
+// Command     : write_verilog -force -mode funcsim -rename_top clk_mmcm -prefix
+//               clk_mmcm_ clk_mmcm_sim_netlist.v
 // Design      : clk_mmcm
 // Purpose     : This verilog netlist is a functional simulation representation of the design and should not be modified
 //               or synthesized. This netlist cannot be used for SDF annotated simulation.
@@ -28,14 +28,14 @@ module clk_mmcm
   wire locked;
   wire reset;
 
-  clk_mmcm_clk_wiz inst
+  clk_mmcm_clk_mmcm_clk_wiz inst
        (.clk_200(clk_200),
         .clk_in1(clk_in1),
         .locked(locked),
         .reset(reset));
 endmodule
 
-module clk_mmcm_clk_wiz
+module clk_mmcm_clk_mmcm_clk_wiz
    (clk_200,
     reset,
     locked,
