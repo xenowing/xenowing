@@ -101,7 +101,7 @@ module ddr3(
     logic [7:0] uart_tx_data;
     logic uart_tx_enable;
     logic uart_tx_ready;
-    UartTx uart_tx(
+    UartTx uart_tx0(
         .reset_n(reset_n),
         .clk(clk_100),
 
@@ -123,14 +123,14 @@ module ddr3(
 
     logic [31:0] word_counter;
 
-    assign app_addr = {1'h0, word_counter[23:0], 3'h0};
-    assign app_wdf_data = DATA_BASE + {96'h0, word_counter};
-
     localparam CMD_WRITE = 3'b000;
     localparam CMD_READ = 3'b001;
 
     localparam DATA_BASE = 128'hdeadbeefabad1deaba53b411fadebabe;
     localparam NUM_WORDS = 32'h1000000;
+
+    assign app_addr = {1'h0, word_counter[23:0], 3'h0};
+    assign app_wdf_data = DATA_BASE + {96'h0, word_counter};
 
     logic [63:0] write_cycles;
     logic [63:0] read_cycles;

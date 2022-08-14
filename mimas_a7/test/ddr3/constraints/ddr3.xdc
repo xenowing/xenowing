@@ -1,7 +1,6 @@
 set_property CFGBVS VCCO [current_design]
 set_property CONFIG_VOLTAGE 3.3 [current_design]
 
-create_clock -name input_clk_100 -period 10 [get_ports { input_clk_100 }];
 set_property -dict { PACKAGE_PIN "H4" IOSTANDARD LVCMOS33 } [get_ports { input_clk_100 }];
 
 set_property -dict { PACKAGE_PIN "M2" IOSTANDARD LVCMOS33 } [get_ports { reset }];
