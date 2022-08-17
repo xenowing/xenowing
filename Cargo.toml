@@ -13,6 +13,7 @@ members = [
     "rtl",
     "sim/approx-reciprocal",
     "sim/buster",
+    "sim/buster-mig-ui-bridge",
     "sim/fifo",
     "sim/flow-controlled-pipe",
     "sim/marv",

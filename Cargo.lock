@@ -73,6 +73,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "buster-mig-ui-bridge"
+version = "0.1.0"
+dependencies = [
+ "kaze",
+ "rand 0.7.3",
+ "rand_chacha 0.2.2",
+ "rtl",
+]
+
+[[package]]
 name = "bytemuck"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

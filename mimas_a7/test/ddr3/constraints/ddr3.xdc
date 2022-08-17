@@ -24,12 +24,12 @@ set_output_delay -clock success_led_dummy_clk -min 0 [get_ports { success_led }]
 set_output_delay -clock success_led_dummy_clk -max 1 [get_ports { success_led }]
 set_false_path -from [all_registers] -to [get_ports { success_led }]
 
-set_property -dict { PACKAGE_PIN "J17" IOSTANDARD LVCMOS33 SLEW FAST } [get_ports { calibration_done_led }];
+set_property -dict { PACKAGE_PIN "J17" IOSTANDARD LVCMOS33 SLEW FAST } [get_ports { init_calib_complete_led }];
 # Dummy clock/delays to suppress timing warnings for async signal
-create_clock -name calibration_done_led_dummy_clk -period 10
-set_output_delay -clock calibration_done_led_dummy_clk -min 0 [get_ports { calibration_done_led }]
-set_output_delay -clock calibration_done_led_dummy_clk -max 1 [get_ports { calibration_done_led }]
-set_false_path -from [all_registers] -to [get_ports { calibration_done_led }]
+create_clock -name init_calib_complete_led_dummy_clk -period 10
+set_output_delay -clock init_calib_complete_led_dummy_clk -min 0 [get_ports { init_calib_complete_led }]
+set_output_delay -clock init_calib_complete_led_dummy_clk -max 1 [get_ports { init_calib_complete_led }]
+set_false_path -from [all_registers] -to [get_ports { init_calib_complete_led }]
 
 set_property -dict { PACKAGE_PIN "M16" IOSTANDARD LVCMOS33 SLEW FAST } [get_ports { error_led }];
 # Dummy clock/delays to suppress timing warnings for async signal

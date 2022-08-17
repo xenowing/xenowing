@@ -1,6 +1,7 @@
 pub mod approx_reciprocal;
 pub mod boot_rom;
 pub mod buster;
+pub mod buster_mig_ui_bridge;
 pub mod byte_ram;
 pub mod color_thrust;
 pub mod fifo;

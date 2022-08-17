@@ -92,6 +92,7 @@ generated-rtl-clean:
 SIM_DIR=sim
 APPROX_RECIPROCAL_DIR=$(SIM_DIR)/approx-reciprocal
 BUSTER_DIR=$(SIM_DIR)/buster
+BUSTER_MIG_UI_BRIDGE_DIR=$(SIM_DIR)/buster-mig-ui-bridge
 FIFO_DIR=$(SIM_DIR)/fifo
 FLOW_CONTROLLED_PIPE_DIR=$(SIM_DIR)/flow-controlled-pipe
 MARV_DIR=$(SIM_DIR)/marv
@@ -99,7 +100,7 @@ PEEK_BUFFER_DIR=$(SIM_DIR)/peek-buffer
 READ_CACHE_DIR=$(SIM_DIR)/read-cache
 
 .PHONY: sim
-sim: approx-reciprocal buster fifo flow-controlled-pipe marv peek-buffer read-cache
+sim: approx-reciprocal buster buster-mig-ui-bridge fifo flow-controlled-pipe marv peek-buffer read-cache
 
 .PHONY: approx-reciprocal
 approx-reciprocal:
@@ -108,6 +109,10 @@ approx-reciprocal:
 .PHONY: buster
 buster:
 	cd $(BUSTER_DIR) && cargo build --release
+
+.PHONY: buster-mig-ui-bridge
+buster-mig-ui-bridge:
+	cd $(BUSTER_MIG_UI_BRIDGE_DIR) && cargo build --release
 
 .PHONY: fifo
 fifo:
@@ -130,7 +135,7 @@ read-cache:
 	cd $(READ_CACHE_DIR) && cargo build --release
 
 .PHONY: sim-clean
-sim-clean: approx-reciprocal-clean buster-clean fifo-clean flow-controlled-pipe-clean marv-clean peek-buffer-clean read-cache-clean
+sim-clean: approx-reciprocal-clean buster-clean buster-mig-ui-bridge-clean fifo-clean flow-controlled-pipe-clean marv-clean peek-buffer-clean read-cache-clean
 
 .PHONY: approx-reciprocal-clean
 approx-reciprocal-clean:
@@ -139,6 +144,10 @@ approx-reciprocal-clean:
 .PHONY: buster-clean
 buster-clean:
 	cd $(BUSTER_DIR) && cargo clean
+
+.PHONY: buster-mig-ui-bridge-clean
+buster-mig-ui-bridge-clean:
+	cd $(BUSTER_MIG_UI_BRIDGE_DIR) && cargo clean
 
 .PHONY: fifo-clean
 fifo-clean:
@@ -165,7 +174,7 @@ read-cache-clean:
 TEST_DIR=test
 
 .PHONY: test
-test: approx-reciprocal-test buster-test compliance-test fifo-test flow-controlled-pipe-test peek-buffer-test read-cache-test rtl-test
+test: approx-reciprocal-test buster-test buster-mig-ui-bridge-test compliance-test fifo-test flow-controlled-pipe-test peek-buffer-test read-cache-test rtl-test
 
 .PHONY: approx-reciprocal-test
 approx-reciprocal-test: approx-reciprocal
@@ -174,6 +183,10 @@ approx-reciprocal-test: approx-reciprocal
 .PHONY: buster-test
 buster-test: buster
 	cd $(BUSTER_DIR) && cargo test --release
+
+.PHONY: buster-mig-ui-bridge-test
+buster-mig-ui-bridge-test: buster-mig-ui-bridge
+	cd $(BUSTER_MIG_UI_BRIDGE_DIR) && cargo test --release && cargo run --release -- 10 1000
 
 .PHONY: compliance-test
 compliance-test: marv

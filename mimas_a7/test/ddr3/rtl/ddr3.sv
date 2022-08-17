@@ -23,7 +23,7 @@ module ddr3(
     output wire logic uart_tx,
 
     output wire logic success_led,
-    output wire logic calibration_done_led,
+    output wire logic init_calib_complete_led,
     output wire logic error_led);
 
     logic sys_clk_200;
@@ -43,12 +43,13 @@ module ddr3(
 
         .x_sync(sys_reset_n));
 
-    logic ddr3_controller_calib_done;
+    logic init_calib_complete;
     logic [27:0] app_addr;
     logic [2:0] app_cmd;
     logic app_en;
     logic [127:0] app_wdf_data;
     logic app_wdf_wren;
+    logic app_wdf_end;
     logic [127:0] app_rd_data;
     logic app_rd_data_valid;
     logic app_rdy;
@@ -76,13 +77,13 @@ module ddr3(
         .ddr3_dm(ddr3_dm),
         .ddr3_odt(ddr3_odt),
 
-        .init_calib_complete(ddr3_controller_calib_done),
+        .init_calib_complete(init_calib_complete),
 
         .app_addr(app_addr),
         .app_cmd(app_cmd),
         .app_en(app_en),
         .app_wdf_data(app_wdf_data),
-        .app_wdf_end(app_wdf_wren),
+        .app_wdf_end(app_wdf_end),
         .app_wdf_wren(app_wdf_wren),
         .app_rd_data(app_rd_data),
         .app_rd_data_valid(app_rd_data_valid),
@@ -96,7 +97,45 @@ module ddr3(
         .ui_clk(clk_100),
         .ui_clk_sync_rst(ddr3_controller_ui_clk_sync_rst));
 
-    logic reset_n = ~ddr3_controller_ui_clk_sync_rst & ddr3_controller_calib_done;
+    logic reset_n = ~ddr3_controller_ui_clk_sync_rst & init_calib_complete;
+
+    logic bus_enable;
+    logic [23:0] bus_addr;
+    logic bus_write;
+    logic [127:0] bus_write_data;
+    logic [15:0] bus_write_byte_enable;
+    logic bus_ready;
+    logic [127:0] bus_read_data;
+    logic bus_read_data_valid;
+    logic [23:0] bridge_app_addr;
+    BusterMigUiBridge buster_mig_ui_bridge(
+        .reset_n(reset_n),
+        .clk(clk_100),
+
+        .bus_enable(bus_enable),
+        .bus_addr(bus_addr),
+        .bus_write(bus_write),
+        .bus_write_data(bus_write_data),
+        .bus_write_byte_enable(bus_write_byte_enable),
+        .bus_ready(bus_ready),
+        .bus_read_data(bus_read_data),
+        .bus_read_data_valid(bus_read_data_valid),
+
+        .init_calib_complete(init_calib_complete),
+
+        .app_rdy(app_rdy),
+        .app_en(app_en),
+        .app_cmd(app_cmd),
+        .app_addr(bridge_app_addr),
+
+        .app_wdf_rdy(app_wdf_rdy),
+        .app_wdf_data(app_wdf_data),
+        .app_wdf_wren(app_wdf_wren),
+        .app_wdf_mask(app_wdf_mask),
+        .app_wdf_end(app_wdf_end),
+
+        .app_rd_data(app_rd_data),
+        .app_rd_data_valid(app_rd_data_valid));
 
     logic [7:0] uart_tx_data;
     logic uart_tx_enable;
@@ -123,14 +162,13 @@ module ddr3(
 
     logic [31:0] word_counter;
 
-    localparam CMD_WRITE = 3'b000;
-    localparam CMD_READ = 3'b001;
-
     localparam DATA_BASE = 128'hdeadbeefabad1deaba53b411fadebabe;
     localparam NUM_WORDS = 32'h1000000;
 
-    assign app_addr = {1'h0, word_counter[23:0], 3'h0};
-    assign app_wdf_data = DATA_BASE + {96'h0, word_counter};
+    assign app_addr = {1'h0, bridge_app_addr, 3'h0};
+
+    assign bus_addr = word_counter[23:0];
+    assign bus_write_data = DATA_BASE + {96'h0, word_counter};
 
     logic [63:0] write_cycles;
     logic [63:0] read_cycles;
@@ -142,17 +180,16 @@ module ddr3(
     logic success_led_reg;
     assign success_led = success_led_reg;
 
-    assign calibration_done_led = ddr3_controller_calib_done;
+    assign init_calib_complete_led = init_calib_complete;
 
     logic error_led_reg;
     assign error_led = error_led_reg;
 
     always_ff @(posedge clk_100) begin
         if (~reset_n) begin
-            app_cmd <= 0;
-            app_en <= 0;
-            app_wdf_wren <= 0;
-            app_wdf_mask <= 0;
+            bus_enable <= 0;
+            bus_write <= 0;
+            bus_write_byte_enable <= 16'h0000;
 
             uart_tx_enable <= 0;
 
@@ -171,63 +208,26 @@ module ddr3(
         else begin
             case (state)
                 STATE_IDLE: begin
-                    app_cmd <= CMD_WRITE;
-                    app_en <= 1;
-                    app_wdf_wren <= 1;
+                    bus_enable <= 1;
+                    bus_write <= 1;
+                    bus_write_byte_enable <= 16'hffff;
 
                     state <= STATE_WRITE;
                 end
 
                 STATE_WRITE: begin
-                    // TODO: There's a lot of duped code here, but the idea is both the command and data write ports are actually
-                    //  seperated, and either can be busy for any reason completely out of sync with the other. This means we need
-                    //  to be careful in order to not issue extra commands or data in the case that one port is busy while the
-                    //  other isn't. A simpler version of this code would be to have separate if statements to disable asserting
-                    //  writes to each port separately and then a third to check if both ports have been written to, but this
-                    //  introduces an additional wait cycle for _every write_, which literally _halves_ our performance, as in the
-                    //  ideal case we should be able to issue a write almost every cycle. So, the lazy way to make this work is to
-                    //  dupe the inner code like I've done here, but this can probably be done better.
-                    if (app_rdy & app_en) begin
-                        app_en <= 0;
+                    if (bus_enable & bus_ready) begin
+                        if (word_counter == NUM_WORDS - 1) begin
+                            bus_enable <= 0;
 
-                        if ((app_wdf_rdy & app_wdf_wren) | ~app_wdf_wren) begin
-                            app_wdf_wren <= 0;
+                            uart_tx_enable <= 1;
 
-                            if (word_counter == NUM_WORDS - 1) begin
-                                uart_tx_enable <= 1;
+                            uart_write_word <= write_cycles;
 
-                                uart_write_word <= write_cycles;
-
-                                state <= STATE_TRANSMIT_WRITE_CYCLES;
-                            end
-                            else begin
-                                app_en <= 1;
-                                app_wdf_wren <= 1;
-
-                                word_counter <= word_counter + 32'h1;
-                            end
+                            state <= STATE_TRANSMIT_WRITE_CYCLES;
                         end
-                    end
-
-                    if (app_wdf_rdy & app_wdf_wren) begin
-                        app_wdf_wren <= 0;
-
-                        if ((app_rdy & app_en) | ~app_en) begin
-                            app_en <= 0;
-
-                            if (word_counter == NUM_WORDS - 1) begin
-                                uart_tx_enable <= 1;
-
-                                uart_write_word <= write_cycles;
-
-                                state <= STATE_TRANSMIT_WRITE_CYCLES;
-                            end
-                            else begin
-                                app_en <= 1;
-                                app_wdf_wren <= 1;
-
-                                word_counter <= word_counter + 32'h1;
-                            end
+                        else begin
+                            word_counter <= word_counter + 32'h1;
                         end
                     end
 
@@ -241,8 +241,8 @@ module ddr3(
                             uart_write_byte_index <= uart_write_byte_index + 3'h1;
                         end
                         else begin
-                            app_cmd <= CMD_READ;
-                            app_en <= 1;
+                            bus_enable <= 1;
+                            bus_write <= 0;
 
                             uart_tx_enable <= 0;
 
@@ -254,9 +254,9 @@ module ddr3(
                 end
 
                 STATE_READ: begin
-                    if (app_rdy) begin
+                    if (bus_ready) begin
                         if (word_counter == NUM_WORDS - 1) begin
-                            app_en <= 0;
+                            bus_enable <= 0;
 
                             state <= STATE_READ_WAIT;
                         end
@@ -326,8 +326,8 @@ module ddr3(
             read_check_word_counter <= 0;
         end
         else begin
-            if (~read_check_done & app_rd_data_valid) begin
-                if (app_rd_data == DATA_BASE + {96'h0, read_check_word_counter}) begin
+            if (~read_check_done & bus_read_data_valid) begin
+                if (bus_read_data == DATA_BASE + {96'h0, read_check_word_counter}) begin
                     if (read_check_word_counter == NUM_WORDS - 1) begin
                         read_check_done <= 1;
                         read_check_valid <= 1;

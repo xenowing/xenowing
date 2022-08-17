@@ -1,6 +1,6 @@
 use crate::boot_rom::*;
 use crate::buster::*;
-use crate::byte_ram::*;
+use crate::buster_mig_ui_bridge::*;
 use crate::color_thrust::*;
 use crate::led_interface::*;
 use crate::marv::*;
@@ -12,9 +12,13 @@ use kaze::*;
 
 pub struct Xenowing<'a> {
     pub m: &'a Module<'a>,
+
     pub leds: &'a Output<'a>,
+
     pub tx: &'a Output<'a>,
     pub rx: &'a Input<'a>,
+
+    pub ddr3: MigUiPort<'a>,
 }
 
 impl<'a> Xenowing<'a> {
@@ -43,9 +47,13 @@ impl<'a> Xenowing<'a> {
 
         Xenowing {
             m,
+
             leds,
+
             tx,
             rx,
+
+            ddr3: inner.ddr3.forward("ddr3", m),
         }
     }
 }
@@ -53,13 +61,17 @@ impl<'a> Xenowing<'a> {
 // TODO: Better name?
 pub struct XenowingInner<'a> {
     pub m: &'a Module<'a>,
+
     pub leds: &'a Output<'a>,
+
     pub uart_tx_data: &'a Output<'a>,
     pub uart_tx_enable: &'a Output<'a>,
     pub uart_tx_ready: &'a Input<'a>,
     pub uart_rx_data: &'a Input<'a>,
     pub uart_rx_data_valid: &'a Input<'a>,
     pub uart_rx_ready: &'a Output<'a>,
+
+    pub ddr3: MigUiPort<'a>,
 }
 
 impl<'a> XenowingInner<'a> {
@@ -88,8 +100,7 @@ impl<'a> XenowingInner<'a> {
 
         let color_thrust = ColorThrust::new("color_thrust", m);
 
-        // TODO: Proper memory interface!
-        let ddr3_interface = ByteRam::new("ddr3_interface", 24, 24, m);
+        let ddr3_bridge = BusterMigUiBridge::new("ddr3_bridge", 128, 24, m);
 
         // Interconnect
         let cpu_crossbar = Crossbar::new("cpu_crossbar", 1, 2, 28, 4, 128, 5, m);
@@ -99,7 +110,7 @@ impl<'a> XenowingInner<'a> {
         let mem_crossbar = Crossbar::new("mem_crossbar", 2, 1, 24, 0, 128, 5, m);
         cpu_crossbar.primary_ports[1].connect(&mem_crossbar.replica_ports[0]);
         color_thrust.tex_cache_system_port.connect(&mem_crossbar.replica_ports[1]);
-        mem_crossbar.primary_ports[0].connect(&ddr3_interface.client_port);
+        mem_crossbar.primary_ports[0].connect(&ddr3_bridge.client_port);
 
         let sys_crossbar = Crossbar::new("sys_crossbar", 1, 6, 24, 4, 128, 5, m);
         cpu_crossbar.primary_ports[0].connect(&sys_crossbar.replica_ports[0]);
@@ -112,13 +123,17 @@ impl<'a> XenowingInner<'a> {
 
         XenowingInner {
             m,
+
             leds,
+
             uart_tx_data,
             uart_tx_enable,
             uart_tx_ready,
             uart_rx_data,
             uart_rx_data_valid,
             uart_rx_ready,
+
+            ddr3: ddr3_bridge.ui_port.forward("ddr3", m),
         }
     }
 }
