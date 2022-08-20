@@ -35,6 +35,8 @@ fn main() -> Result<()> {
     uart_tx.data.drive(m.input("uart_rx_data", 8));
     uart_tx.enable.drive(m.input("uart_rx_enable", 1));
 
+    xenowing.ddr3.forward("ddr3", m);
+
     sim::generate(m, sim::GenerationOptions::default(), &mut file)?;
 
     let m = c.module("top", "TopInner");
@@ -49,6 +51,8 @@ fn main() -> Result<()> {
     inner.uart_rx_data.drive(m.input("uart_rx_data", 8));
     inner.uart_rx_data_valid.drive(m.input("uart_rx_data_valid", 1));
     m.output("uart_rx_ready", inner.uart_rx_ready);
+
+    inner.ddr3.forward("ddr3", m);
 
     sim::generate(m, sim::GenerationOptions::default(), file)
 }

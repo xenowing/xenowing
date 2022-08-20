@@ -7,6 +7,7 @@ mod modules {
 use modules::*;
 
 use minifb::{Scale, ScaleMode, Window, WindowOptions};
+use rtl::buster_mig_ui_bridge::*;
 use serialport::prelude::*;
 use strugl::{WIDTH, HEIGHT};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
@@ -98,42 +99,135 @@ impl SimDevice {
 
             let mut is_sending_byte = false;
 
+            let mut ddr3 = vec![0; 1 << 24];
+
+            let mut remaining_calib_cycles = 10;
+
+            struct UiCommand {
+                ui_cmd: u32,
+                addr: u32,
+            }
+
+            struct UiData {
+                data: u128,
+                mask: u32,
+            }
+
+            let mut next_ui_command = None;
+            let mut next_ui_data = None;
+
+            let read_latency = 2;
+            let mut read_returns = vec![None; read_latency];
+            let mut read_return_index = 0;
+
             let mut top = Top::new();
+            top.reset();
 
-            let mut is_first_cycle = true;
             loop {
-                if is_first_cycle {
-                    top.reset();
+                let new_leds = top.leds;
+                if new_leds != leds {
+                    println!("LEDs updated: 0b{:08b} -> 0b{:08b}", leds, new_leds);
+                    leds = new_leds;
+                }
 
-                    is_first_cycle = false;
+                if top.uart_tx_data_valid {
+                    host_command_tx.send(top.uart_tx_data as _).unwrap();
+                }
+
+                // TODO: This isn't necessarily the best way to use this interface, but it should work :)
+                if is_sending_byte && top.uart_rx_ready {
+                    is_sending_byte = false;
+                    top.uart_rx_enable = false;
+                }
+                if !is_sending_byte {
+                    if let Ok(value) = host_response_rx.try_recv() {
+                        is_sending_byte = true;
+                        top.uart_rx_enable = true;
+                        top.uart_rx_data = value as u32;
+                    }
+                }
+
+                // Calibration
+                if remaining_calib_cycles > 0 {
+                    remaining_calib_cycles -= 1;
+                    if remaining_calib_cycles == 0 {
+                        top.ddr3_init_calib_complete = true;
+                        top.ddr3_app_rdy = true;
+                        top.ddr3_app_wdf_rdy = true;
+                    }
+                }
+
+                // Return read data, if any
+                if let Some(data) = read_returns[read_return_index].take() {
+                    top.ddr3_app_rd_data = data;
+                    top.ddr3_app_rd_data_valid = true;
                 } else {
-                    top.posedge_clk();
+                    top.ddr3_app_rd_data_valid = false;
+                }
 
-                    let new_leds = top.leds;
-                    if new_leds != leds {
-                        println!("LEDs updated: 0b{:08b} -> 0b{:08b}", leds, new_leds);
-                        leds = new_leds;
-                    }
+                top.prop();
 
-                    if top.uart_tx_data_valid {
-                        host_command_tx.send(top.uart_tx_data as _).unwrap();
+                // UI command acceptance
+                if top.ddr3_app_en && top.ddr3_app_rdy {
+                    if next_ui_command.is_some() {
+                        panic!("UI command already issued");
                     }
+                    next_ui_command = Some(UiCommand {
+                        ui_cmd: top.ddr3_app_cmd,
+                        addr: top.ddr3_app_addr,
+                    });
+                }
 
-                    // TODO: This isn't necessarily the best way to use this interface, but it should work :)
-                    if is_sending_byte && top.uart_rx_ready {
-                        is_sending_byte = false;
-                        top.uart_rx_enable = false;
+                // UI data acceptance
+                if top.ddr3_app_wdf_wren && top.ddr3_app_wdf_rdy {
+                    if next_ui_data.is_some() {
+                        panic!("UI data already issued");
                     }
-                    if !is_sending_byte {
-                        if let Ok(value) = host_response_rx.try_recv() {
-                            is_sending_byte = true;
-                            top.uart_rx_enable = true;
-                            top.uart_rx_data = value as u32;
+                    next_ui_data = Some(UiData {
+                        data: top.ddr3_app_wdf_data,
+                        mask: top.ddr3_app_wdf_mask,
+                    });
+                    assert_eq!(top.ddr3_app_wdf_end, true);
+                }
+
+                // Process next UI command, if any
+                if let Some(command) = &next_ui_command {
+                    let element = &mut ddr3[command.addr as usize];
+                    match command.ui_cmd {
+                        UI_CMD_WRITE => {
+                            if let Some(data) = &next_ui_data {
+                                let mut new_value = 0;
+                                for i in 0..16 {
+                                    new_value |= if ((data.mask >> i) & 1) == 0 {
+                                        data.data
+                                    } else {
+                                        *element
+                                    } & (0xff << (i * 8));
+                                }
+                                *element = new_value;
+
+                                next_ui_command = None;
+                                next_ui_data = None;
+                            }
                         }
+                        UI_CMD_READ => {
+                            if next_ui_data.is_some() {
+                                panic!("Data issued with read command");
+                            }
+
+                            read_returns[read_return_index] = Some(*element);
+
+                            next_ui_command = None;
+                        }
+                        _ => panic!("Unrecognized UI command")
                     }
                 }
 
                 top.prop();
+
+                top.posedge_clk();
+
+                read_return_index = (read_return_index + 1) % read_returns.len();
             }
         });
 
@@ -173,42 +267,135 @@ impl SimInnerDevice {
 
             let mut is_sending_byte = false;
 
+            let mut ddr3 = vec![0; 1 << 24];
+
+            let mut remaining_calib_cycles = 10;
+
+            struct UiCommand {
+                ui_cmd: u32,
+                addr: u32,
+            }
+
+            struct UiData {
+                data: u128,
+                mask: u32,
+            }
+
+            let mut next_ui_command = None;
+            let mut next_ui_data = None;
+
+            let read_latency = 2;
+            let mut read_returns = vec![None; read_latency];
+            let mut read_return_index = 0;
+
             let mut top = TopInner::new();
+            top.reset();
 
-            let mut is_first_cycle = true;
             loop {
-                if is_first_cycle {
-                    top.reset();
+                let new_leds = top.leds;
+                if new_leds != leds {
+                    println!("LEDs updated: 0b{:08b} -> 0b{:08b}", leds, new_leds);
+                    leds = new_leds;
+                }
 
-                    is_first_cycle = false;
+                if top.uart_tx_enable {
+                    host_command_tx.send(top.uart_tx_data as _).unwrap();
+                }
+
+                // TODO: This isn't necessarily the best way to use this interface, but it should work :)
+                if is_sending_byte && top.uart_rx_ready {
+                    is_sending_byte = false;
+                    top.uart_rx_data_valid = false;
+                }
+                if !is_sending_byte {
+                    if let Ok(value) = host_response_rx.try_recv() {
+                        is_sending_byte = true;
+                        top.uart_rx_data = value as u32;
+                        top.uart_rx_data_valid = true;
+                    }
+                }
+
+                // Calibration
+                if remaining_calib_cycles > 0 {
+                    remaining_calib_cycles -= 1;
+                    if remaining_calib_cycles == 0 {
+                        top.ddr3_init_calib_complete = true;
+                        top.ddr3_app_rdy = true;
+                        top.ddr3_app_wdf_rdy = true;
+                    }
+                }
+
+                // Return read data, if any
+                if let Some(data) = read_returns[read_return_index].take() {
+                    top.ddr3_app_rd_data = data;
+                    top.ddr3_app_rd_data_valid = true;
                 } else {
-                    top.posedge_clk();
+                    top.ddr3_app_rd_data_valid = false;
+                }
 
-                    let new_leds = top.leds;
-                    if new_leds != leds {
-                        println!("LEDs updated: 0b{:08b} -> 0b{:08b}", leds, new_leds);
-                        leds = new_leds;
-                    }
+                top.prop();
 
-                    if top.uart_tx_enable {
-                        host_command_tx.send(top.uart_tx_data as _).unwrap();
+                // UI command acceptance
+                if top.ddr3_app_en && top.ddr3_app_rdy {
+                    if next_ui_command.is_some() {
+                        panic!("UI command already issued");
                     }
+                    next_ui_command = Some(UiCommand {
+                        ui_cmd: top.ddr3_app_cmd,
+                        addr: top.ddr3_app_addr,
+                    });
+                }
 
-                    // TODO: This isn't necessarily the best way to use this interface, but it should work :)
-                    if is_sending_byte && top.uart_rx_ready {
-                        is_sending_byte = false;
-                        top.uart_rx_data_valid = false;
+                // UI data acceptance
+                if top.ddr3_app_wdf_wren && top.ddr3_app_wdf_rdy {
+                    if next_ui_data.is_some() {
+                        panic!("UI data already issued");
                     }
-                    if !is_sending_byte {
-                        if let Ok(value) = host_response_rx.try_recv() {
-                            is_sending_byte = true;
-                            top.uart_rx_data = value as u32;
-                            top.uart_rx_data_valid = true;
+                    next_ui_data = Some(UiData {
+                        data: top.ddr3_app_wdf_data,
+                        mask: top.ddr3_app_wdf_mask,
+                    });
+                    assert_eq!(top.ddr3_app_wdf_end, true);
+                }
+
+                // Process next UI command, if any
+                if let Some(command) = &next_ui_command {
+                    let element = &mut ddr3[command.addr as usize];
+                    match command.ui_cmd {
+                        UI_CMD_WRITE => {
+                            if let Some(data) = &next_ui_data {
+                                let mut new_value = 0;
+                                for i in 0..16 {
+                                    new_value |= if ((data.mask >> i) & 1) == 0 {
+                                        data.data
+                                    } else {
+                                        *element
+                                    } & (0xff << (i * 8));
+                                }
+                                *element = new_value;
+
+                                next_ui_command = None;
+                                next_ui_data = None;
+                            }
                         }
+                        UI_CMD_READ => {
+                            if next_ui_data.is_some() {
+                                panic!("Data issued with read command");
+                            }
+
+                            read_returns[read_return_index] = Some(*element);
+
+                            next_ui_command = None;
+                        }
+                        _ => panic!("Unrecognized UI command")
                     }
                 }
 
                 top.prop();
+
+                top.posedge_clk();
+
+                read_return_index = (read_return_index + 1) % read_returns.len();
             }
         });
 

@@ -195,7 +195,6 @@ fn main() -> io::Result<()> {
                     ui_commands_issued += 1;
 
                     next_ui_command = None;
-                    next_ui_data = None;
                 }
                 _ => panic!("Unrecognized UI command")
             }
