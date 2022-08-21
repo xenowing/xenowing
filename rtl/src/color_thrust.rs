@@ -1359,6 +1359,11 @@ impl<'a> BackPipe<'a> {
         let in_t_fract = m.input("in_t_fract", ST_FILTER_FRACT_BITS + 1);
         let in_one_minus_t_fract = m.input("in_one_minus_t_fract", ST_FILTER_FRACT_BITS + 1);
 
+        let mut in_tex_buffer_read_values = Vec::new();
+        for i in 0..4 {
+            in_tex_buffer_read_values.push(m.input(format!("in_tex_buffer{}_read_value", i), 32));
+        }
+
         // Aux inputs
         let in_depth_write_mask_enable = m.input("in_depth_write_mask_enable", 1);
 
@@ -1385,6 +1390,29 @@ impl<'a> BackPipe<'a> {
         let blend_src_factor = in_blend_src_factor;
         let blend_dst_factor = in_blend_dst_factor;
 
+        // Stage 1
+        let valid = valid.reg_next_with_default("stage_1_valid", false);
+        let tile_addr = tile_addr.reg_next("stage_1_tile_addr");
+
+        let r = r.reg_next("stage_1_r");
+        let g = g.reg_next("stage_1_g");
+        let b = b.reg_next("stage_1_b");
+        let a = a.reg_next("stage_1_a");
+
+        let z = z.reg_next("stage_1_z");
+
+        let s_fract = s_fract.reg_next("stage_1_s_fract");
+        let one_minus_s_fract = one_minus_s_fract.reg_next("stage_1_one_minus_s_fract");
+        let t_fract = t_fract.reg_next("stage_1_t_fract");
+        let one_minus_t_fract = one_minus_t_fract.reg_next("stage_1_one_minus_t_fract");
+
+        let mut tex_buffer_read_values = Vec::new();
+        for i in 0..4 {
+            tex_buffer_read_values.push(
+                in_tex_buffer_read_values[i].reg_next(format!("stage_1_tex_buffer{}_read_value", i))
+            );
+        }
+
         struct Texel<'a> {
             r: &'a dyn Signal<'a>,
             g: &'a dyn Signal<'a>,
@@ -1407,17 +1435,11 @@ impl<'a> BackPipe<'a> {
             }
         }
 
-        let mut in_tex_buffer_read_values = Vec::new();
-        for i in 0..4 {
-            in_tex_buffer_read_values.push(m.input(format!("in_tex_buffer{}_read_value", i), 32));
-        }
+        let texel0 = Texel::new(tex_buffer_read_values[0]);
+        let texel1 = Texel::new(tex_buffer_read_values[1]);
+        let texel2 = Texel::new(tex_buffer_read_values[2]);
+        let texel3 = Texel::new(tex_buffer_read_values[3]);
 
-        let texel0 = Texel::new(in_tex_buffer_read_values[0]);
-        let texel1 = Texel::new(in_tex_buffer_read_values[1]);
-        let texel2 = Texel::new(in_tex_buffer_read_values[2]);
-        let texel3 = Texel::new(in_tex_buffer_read_values[3]);
-
-        // Stage 1
         fn blend_component<'a>(
             a: &'a dyn Signal<'a>,
             b: &'a dyn Signal<'a>,
