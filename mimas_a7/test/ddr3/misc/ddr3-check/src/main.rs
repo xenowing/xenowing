@@ -35,12 +35,20 @@ fn main() -> Result<(), Error> {
     }
 
     loop {
-        let write_cycles = read_u64(&mut port)?;
-        println!("Write cycles: {} (0x{:016x})", write_cycles, write_cycles);
-        let read_cycles = read_u64(&mut port)?;
-        println!("Read cycles: {} (0x{:016x})", read_cycles, read_cycles);
-        let total_cycles = write_cycles + read_cycles;
-        println!("Total cycles: {} (0x{:016x})", total_cycles, total_cycles);
+        let sequential_write_cycles = read_u64(&mut port)?;
+        println!("Sequential write cycles: {} (0x{:016x})", sequential_write_cycles, sequential_write_cycles);
+        let sequential_read_cycles = read_u64(&mut port)?;
+        println!("Sequential read cycles:  {} (0x{:016x})", sequential_read_cycles, sequential_read_cycles);
+        let total_sequential_cycles = sequential_write_cycles + sequential_read_cycles;
+        println!("Total sequential cycles: {} (0x{:016x})", total_sequential_cycles, total_sequential_cycles);
+        let random_write_cycles = read_u64(&mut port)?;
+        println!("Random write cycles:     {} (0x{:016x})", random_write_cycles, random_write_cycles);
+        let random_read_cycles = read_u64(&mut port)?;
+        println!("Random read cycles:      {} (0x{:016x})", random_read_cycles, random_read_cycles);
+        let total_random_cycles = random_write_cycles + random_read_cycles;
+        println!("Total random cycles:     {} (0x{:016x})", total_random_cycles, total_random_cycles);
+        let total_cycles = total_sequential_cycles + total_random_cycles;
+        println!("Total cycles:            {} (0x{:016x})", total_cycles, total_cycles);
         println!("");
     }
 }

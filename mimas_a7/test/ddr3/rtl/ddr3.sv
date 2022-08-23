@@ -150,15 +150,23 @@ module ddr3(
 
         .tx(uart_tx));
 
-    localparam STATE_IDLE = 3'd0;
-    localparam STATE_WRITE = 3'd1;
-    localparam STATE_TRANSMIT_WRITE_CYCLES = 3'd2;
-    localparam STATE_READ = 3'd3;
-    localparam STATE_READ_WAIT = 3'd4;
-    localparam STATE_TRANSMIT_READ_CYCLES = 3'd5;
-    localparam STATE_PARK = 3'd6;
-    localparam STATE_ERROR = 3'd7;
-    logic [2:0] state;
+    typedef enum logic [3:0] {
+        STATE_IDLE,
+        STATE_SEQUENTIAL_WRITE,
+        STATE_TRANSMIT_SEQUENTIAL_WRITE_CYCLES,
+        STATE_SEQUENTIAL_READ,
+        STATE_SEQUENTIAL_READ_WAIT,
+        STATE_TRANSMIT_SEQUENTIAL_READ_CYCLES,
+        STATE_RANDOM_WRITE,
+        STATE_TRANSMIT_RANDOM_WRITE_CYCLES,
+        STATE_RANDOM_READ,
+        STATE_RANDOM_READ_WAIT,
+        STATE_TRANSMIT_RANDOM_READ_CYCLES,
+        STATE_PARK,
+        STATE_ERROR
+    } State;
+
+    State state;
 
     logic [31:0] word_counter;
 
@@ -167,11 +175,31 @@ module ddr3(
 
     assign app_addr = {1'h0, bridge_app_addr, 3'h0};
 
-    assign bus_addr = word_counter[23:0];
     assign bus_write_data = DATA_BASE + {96'h0, word_counter};
 
-    logic [63:0] write_cycles;
-    logic [63:0] read_cycles;
+    logic [63:0] sequential_write_cycles;
+    logic [63:0] sequential_read_cycles;
+    logic [63:0] random_write_cycles;
+    logic [63:0] random_read_cycles;
+
+    logic random_write_lfsr_shift_enable;
+    logic [7:0] random_write_lfsr_value;
+    Lfsr random_write_lfsr(
+        .reset_n(reset_n),
+        .clk(clk_100),
+
+        .shift_enable(random_write_lfsr_shift_enable),
+        .value(random_write_lfsr_value));
+
+    logic random_read_lfsr_shift_enable;
+    logic [7:0] random_read_lfsr_value;
+    Lfsr random_read_lfsr(
+        .reset_n(reset_n),
+        .clk(clk_100),
+
+        .shift_enable(random_read_lfsr_shift_enable),
+        .value(random_read_lfsr_value));
+
     logic [63:0] uart_write_word;
     logic [2:0] uart_write_byte_index;
 
@@ -195,12 +223,15 @@ module ddr3(
 
             state <= STATE_IDLE;
 
-            word_counter <= 0;
+            sequential_write_cycles <= 0;
+            sequential_read_cycles <= 0;
+            random_write_cycles <= 0;
+            random_read_cycles <= 0;
 
-            write_cycles <= 0;
-            read_cycles <= 0;
-            uart_write_word <= 0;
-            uart_write_byte_index <= 0;
+            random_write_lfsr_shift_enable <= 0;
+            random_read_lfsr_shift_enable <= 0;
+
+            random_read_check_enable <= 0;
 
             success_led_reg <= 0;
             error_led_reg <= 0;
@@ -209,32 +240,37 @@ module ddr3(
             case (state)
                 STATE_IDLE: begin
                     bus_enable <= 1;
+                    bus_addr <= 24'h0;
                     bus_write <= 1;
                     bus_write_byte_enable <= 16'hffff;
 
-                    state <= STATE_WRITE;
+                    state <= STATE_SEQUENTIAL_WRITE;
+
+                    word_counter <= 0;
                 end
 
-                STATE_WRITE: begin
+                STATE_SEQUENTIAL_WRITE: begin
                     if (bus_enable & bus_ready) begin
                         if (word_counter == NUM_WORDS - 1) begin
                             bus_enable <= 0;
 
                             uart_tx_enable <= 1;
 
-                            uart_write_word <= write_cycles;
+                            uart_write_word <= sequential_write_cycles;
+                            uart_write_byte_index <= 0;
 
-                            state <= STATE_TRANSMIT_WRITE_CYCLES;
+                            state <= STATE_TRANSMIT_SEQUENTIAL_WRITE_CYCLES;
                         end
                         else begin
+                            bus_addr <= bus_addr + 24'h1;
                             word_counter <= word_counter + 32'h1;
                         end
                     end
 
-                    write_cycles <= write_cycles + 64'h1;
+                    sequential_write_cycles <= sequential_write_cycles + 64'h1;
                 end
 
-                STATE_TRANSMIT_WRITE_CYCLES: begin
+                STATE_TRANSMIT_SEQUENTIAL_WRITE_CYCLES: begin
                     if (uart_tx_ready) begin
                         if (uart_write_byte_index != 3'h7) begin
                             uart_write_word <= {8'h0, uart_write_word[63:8]};
@@ -242,51 +278,154 @@ module ddr3(
                         end
                         else begin
                             bus_enable <= 1;
+                            bus_addr <= 24'h0;
                             bus_write <= 0;
 
                             uart_tx_enable <= 0;
 
-                            state <= STATE_READ;
+                            state <= STATE_SEQUENTIAL_READ;
 
                             word_counter <= 0;
                         end
                     end
                 end
 
-                STATE_READ: begin
+                STATE_SEQUENTIAL_READ: begin
                     if (bus_ready) begin
                         if (word_counter == NUM_WORDS - 1) begin
                             bus_enable <= 0;
 
-                            state <= STATE_READ_WAIT;
+                            state <= STATE_SEQUENTIAL_READ_WAIT;
                         end
                         else begin
+                            bus_addr <= bus_addr + 24'h1;
                             word_counter <= word_counter + 32'h1;
                         end
                     end
 
-                    read_cycles <= read_cycles + 64'h1;
+                    sequential_read_cycles <= sequential_read_cycles + 64'h1;
                 end
 
-                STATE_READ_WAIT: begin
-                    if (read_check_done) begin
-                        if (read_check_valid) begin
+                STATE_SEQUENTIAL_READ_WAIT: begin
+                    if (sequential_read_check_done) begin
+                        if (sequential_read_check_valid) begin
                             uart_tx_enable <= 1;
 
-                            uart_write_word <= read_cycles;
+                            uart_write_word <= sequential_read_cycles;
                             uart_write_byte_index <= 0;
 
-                            state <= STATE_TRANSMIT_READ_CYCLES;
+                            state <= STATE_TRANSMIT_SEQUENTIAL_READ_CYCLES;
                         end
                         else begin
                             state <= STATE_ERROR;
                         end
                     end
 
-                    read_cycles <= read_cycles + 64'h1;
+                    sequential_read_cycles <= sequential_read_cycles + 64'h1;
                 end
 
-                STATE_TRANSMIT_READ_CYCLES: begin
+                STATE_TRANSMIT_SEQUENTIAL_READ_CYCLES: begin
+                    if (uart_tx_ready) begin
+                        if (uart_write_byte_index != 3'h7) begin
+                            uart_write_word <= {8'h0, uart_write_word[63:8]};
+                            uart_write_byte_index <= uart_write_byte_index + 3'h1;
+                        end
+                        else begin
+                            bus_enable <= 1;
+                            bus_addr <= {3{random_write_lfsr_value}};
+                            random_write_lfsr_shift_enable <= 1;
+                            bus_write <= 1;
+                            bus_write_byte_enable <= 16'hffff;
+
+                            uart_tx_enable <= 0;
+
+                            state <= STATE_RANDOM_WRITE;
+
+                            word_counter <= 0;
+                        end
+                    end
+                end
+
+                STATE_RANDOM_WRITE: begin
+                    random_write_lfsr_shift_enable <= 0;
+
+                    if (bus_enable & bus_ready) begin
+                        if (word_counter == NUM_WORDS - 1) begin
+                            bus_enable <= 0;
+
+                            uart_tx_enable <= 1;
+
+                            uart_write_word <= random_write_cycles;
+                            uart_write_byte_index <= 0;
+
+                            state <= STATE_TRANSMIT_RANDOM_WRITE_CYCLES;
+                        end
+                        else begin
+                            bus_addr <= {3{random_write_lfsr_value}};
+                            random_write_lfsr_shift_enable <= 1;
+                            word_counter <= word_counter + 32'h1;
+                        end
+                    end
+
+                    random_write_cycles <= random_write_cycles + 64'h1;
+                end
+
+                STATE_TRANSMIT_RANDOM_WRITE_CYCLES: begin
+                    if (uart_tx_ready) begin
+                        if (uart_write_byte_index != 3'h7) begin
+                            uart_write_word <= {8'h0, uart_write_word[63:8]};
+                            uart_write_byte_index <= uart_write_byte_index + 3'h1;
+                        end
+                        else begin
+                            bus_enable <= 1;
+                            bus_addr <= {3{random_read_lfsr_value}};
+                            random_read_lfsr_shift_enable <= 1;
+                            bus_write <= 0;
+
+                            uart_tx_enable <= 0;
+
+                            state <= STATE_RANDOM_READ;
+
+                            word_counter <= 0;
+
+                            random_read_check_enable <= 1;
+                        end
+                    end
+                end
+
+                STATE_RANDOM_READ: begin
+                    random_read_lfsr_shift_enable <= 0;
+
+                    if (bus_ready) begin
+                        if (word_counter == NUM_WORDS - 1) begin
+                            bus_enable <= 0;
+
+                            state <= STATE_RANDOM_READ_WAIT;
+                        end
+                        else begin
+                            bus_addr <= {3{random_read_lfsr_value}};
+                            random_read_lfsr_shift_enable <= 1;
+                            word_counter <= word_counter + 32'h1;
+                        end
+                    end
+
+                    random_read_cycles <= random_read_cycles + 64'h1;
+                end
+
+                STATE_RANDOM_READ_WAIT: begin
+                    if (random_read_check_done) begin
+                        uart_tx_enable <= 1;
+
+                        uart_write_word <= random_read_cycles;
+                        uart_write_byte_index <= 0;
+
+                        state <= STATE_TRANSMIT_RANDOM_READ_CYCLES;
+                    end
+
+                    random_read_cycles <= random_read_cycles + 64'h1;
+                end
+
+                STATE_TRANSMIT_RANDOM_READ_CYCLES: begin
                     if (uart_tx_ready) begin
                         if (uart_write_byte_index != 3'h7) begin
                             uart_write_word <= {8'h0, uart_write_word[63:8]};
@@ -315,30 +454,51 @@ module ddr3(
         end
     end
 
-    logic read_check_done;
-    logic read_check_valid;
-    logic [31:0] read_check_word_counter;
+    logic sequential_read_check_done;
+    logic sequential_read_check_valid;
+    logic [31:0] sequential_read_check_word_counter;
 
     always_ff @(posedge clk_100) begin
         if (~reset_n) begin
-            read_check_done <= 0;
-            read_check_valid <= 0;
-            read_check_word_counter <= 0;
+            sequential_read_check_done <= 0;
+            sequential_read_check_valid <= 0;
+            sequential_read_check_word_counter <= 0;
         end
         else begin
-            if (~read_check_done & bus_read_data_valid) begin
-                if (bus_read_data == DATA_BASE + {96'h0, read_check_word_counter}) begin
-                    if (read_check_word_counter == NUM_WORDS - 1) begin
-                        read_check_done <= 1;
-                        read_check_valid <= 1;
+            if (~sequential_read_check_done & bus_read_data_valid) begin
+                if (bus_read_data == DATA_BASE + {96'h0, sequential_read_check_word_counter}) begin
+                    if (sequential_read_check_word_counter == NUM_WORDS - 1) begin
+                        sequential_read_check_done <= 1;
+                        sequential_read_check_valid <= 1;
                     end
                     else begin
-                        read_check_word_counter <= read_check_word_counter + 32'h1;
+                        sequential_read_check_word_counter <= sequential_read_check_word_counter + 32'h1;
                     end
                 end
                 else begin
-                    read_check_done <= 1;
-                    read_check_valid <= 0;
+                    sequential_read_check_done <= 1;
+                    sequential_read_check_valid <= 0;
+                end
+            end
+        end
+    end
+
+    logic random_read_check_enable;
+    logic random_read_check_done;
+    logic [31:0] random_read_check_word_counter;
+
+    always_ff @(posedge clk_100) begin
+        if (~reset_n) begin
+            random_read_check_done <= 0;
+            random_read_check_word_counter <= 0;
+        end
+        else begin
+            if (random_read_check_enable & ~random_read_check_done & bus_read_data_valid) begin
+                if (random_read_check_word_counter == NUM_WORDS - 1) begin
+                    random_read_check_done <= 1;
+                end
+                else begin
+                    random_read_check_word_counter <= random_read_check_word_counter + 32'h1;
                 end
             end
         end
