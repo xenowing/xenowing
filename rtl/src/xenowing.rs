@@ -5,6 +5,7 @@ use crate::color_thrust::*;
 use crate::led_interface::*;
 use crate::marv::*;
 use crate::marv_system_bridge::*;
+use crate::read_cache::*;
 use crate::uart::*;
 use crate::uart_interface::*;
 
@@ -104,7 +105,10 @@ impl<'a> XenowingInner<'a> {
         let cpu_crossbar = Crossbar::new("cpu_crossbar", 2, 2, 28, 4, 128, 5, m);
         let marv_instruction_bridge = MarvSystemBridge::new("marv_instruction_bridge", m);
         marv.instruction_port.connect(&marv_instruction_bridge.marv_port);
-        marv_instruction_bridge.system_port.connect(&cpu_crossbar.replica_ports[0]);
+        let marv_instruction_cache = ReadCache::new("marv_instruction_cache", 128, 28, 12 - 4, m);
+        marv_instruction_cache.invalidate.drive(m.low()); // TODO: Expose this to the CPU somehow
+        marv_instruction_bridge.system_port.connect(&marv_instruction_cache.client_port);
+        marv_instruction_cache.system_port.connect(&cpu_crossbar.replica_ports[0]);
         let marv_data_bridge = MarvSystemBridge::new("marv_data_bridge", m);
         marv.data_port.connect(&marv_data_bridge.marv_port);
         marv_data_bridge.system_port.connect(&cpu_crossbar.replica_ports[1]);
