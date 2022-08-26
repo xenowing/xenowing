@@ -79,8 +79,6 @@ impl<'a> XenowingInner<'a> {
         let m = p.module(instance_name, "XenowingInner");
 
         let marv = Marv::new("marv", m);
-        let marv_system_bridge = MarvSystemBridge::new("marv_system_bridge", m);
-        marv.system_port.connect(&marv_system_bridge.marv_port);
 
         let boot_rom = BootRom::new("boot_rom", m);
 
@@ -103,9 +101,13 @@ impl<'a> XenowingInner<'a> {
         let ddr3_bridge = BusterMigUiBridge::new("ddr3_bridge", 128, 24, m);
 
         // Interconnect
-        let cpu_crossbar = Crossbar::new("cpu_crossbar", 1, 2, 28, 4, 128, 5, m);
-
-        marv_system_bridge.system_port.connect(&cpu_crossbar.replica_ports[0]);
+        let cpu_crossbar = Crossbar::new("cpu_crossbar", 2, 2, 28, 4, 128, 5, m);
+        let marv_instruction_bridge = MarvSystemBridge::new("marv_instruction_bridge", m);
+        marv.instruction_port.connect(&marv_instruction_bridge.marv_port);
+        marv_instruction_bridge.system_port.connect(&cpu_crossbar.replica_ports[0]);
+        let marv_data_bridge = MarvSystemBridge::new("marv_data_bridge", m);
+        marv.data_port.connect(&marv_data_bridge.marv_port);
+        marv_data_bridge.system_port.connect(&cpu_crossbar.replica_ports[1]);
 
         let mem_crossbar = Crossbar::new("mem_crossbar", 2, 1, 24, 0, 128, 5, m);
         cpu_crossbar.primary_ports[1].connect(&mem_crossbar.replica_ports[0]);

@@ -69,7 +69,8 @@ impl<'a> Instruction<'a> {
 pub struct Marv<'a> {
     pub m: &'a Module<'a>,
 
-    pub system_port: PrimaryPort<'a>,
+    pub instruction_port: PrimaryPort<'a>,
+    pub data_port: PrimaryPort<'a>,
 }
 
 impl<'a> Marv<'a> {
@@ -91,20 +92,20 @@ impl<'a> Marv<'a> {
         let instructions_retired_counter = m.reg("instructions_retired_counter", 64);
         instructions_retired_counter.default_value(0u64);
 
-        let bus_ready = m.input("bus_ready", 1);
-        let bus_read_data = m.input("bus_read_data", 32);
-        let bus_read_data_valid = m.input("bus_read_data_valid", 1);
+        let instruction_bus_ready = m.input("instruction_bus_ready", 1);
+        let instruction_bus_read_data = m.input("instruction_bus_read_data", 32);
+        let instruction_bus_read_data_valid = m.input("instruction_bus_read_data_valid", 1);
 
         let instruction_fetch = InstructionFetch::new("instruction_fetch", m);
         control.instruction_fetch_ready.drive(instruction_fetch.ready);
         instruction_fetch.enable.drive(control.instruction_fetch_enable);
         instruction_fetch.pc.drive(pc.bits(31, 2));
-        instruction_fetch.bus_ready.drive(bus_ready);
+        instruction_fetch.bus_ready.drive(instruction_bus_ready);
 
         let decode = Decode::new("decode", m);
         control.decode_ready.drive(decode.ready);
-        decode.bus_read_data.drive(bus_read_data);
-        decode.bus_read_data_valid.drive(bus_read_data_valid);
+        decode.bus_read_data.drive(instruction_bus_read_data);
+        decode.bus_read_data_valid.drive(instruction_bus_read_data_valid);
 
         let decode_instruction = Instruction::new(decode.instruction);
 
@@ -127,16 +128,19 @@ impl<'a> Marv<'a> {
         execute.cycle_counter_value.drive(cycle_counter);
         execute.instructions_retired_counter_value.drive(instructions_retired_counter);
 
+        let data_bus_ready = m.input("data_bus_ready", 1);
+        let data_bus_read_data = m.input("data_bus_read_data", 32);
+        let data_bus_read_data_valid = m.input("data_bus_read_data_valid", 1);
+
         let mem = Mem::new("mem", m);
         control.mem_ready.drive(mem.ready);
         mem.enable.drive(control.mem_enable);
-        mem.bus_ready_in.drive(bus_ready);
+        mem.bus_ready_in.drive(data_bus_ready);
         mem.bus_enable_in.drive(execute.bus_enable);
         mem.bus_addr_in.drive(execute.bus_addr);
         mem.bus_write_data_in.drive(execute.bus_write_data);
         mem.bus_write_byte_enable_in.drive(execute.bus_write_byte_enable);
         mem.bus_write_in.drive(execute.bus_write);
-        let bus_write_data = m.output("bus_write_data", mem.bus_write_data_out);
 
         let writeback = Writeback::new("writeback", m);
         control.writeback_ready.drive(writeback.ready);
@@ -155,27 +159,31 @@ impl<'a> Marv<'a> {
             writeback.register_file_write_addr,
             writeback.register_file_write_data,
             writeback.register_file_write_enable);
-        writeback.bus_read_data.drive(bus_read_data);
-        writeback.bus_read_data_valid.drive(bus_read_data_valid);
-
-        let mem_bus_enable = mem.bus_enable_out;
-        let bus_enable = m.output("bus_enable", instruction_fetch.bus_enable | mem_bus_enable);
-        let bus_addr = m.output("bus_addr", mem_bus_enable.mux(mem.bus_addr_out.bits(31, 2), instruction_fetch.bus_addr));
-        let bus_write_byte_enable = m.output("bus_write_byte_enable", mem_bus_enable.mux(mem.bus_write_byte_enable_out, instruction_fetch.bus_write_byte_enable));
-        let bus_write = m.output("bus_write", mem_bus_enable & mem.bus_write_out);
+        writeback.bus_read_data.drive(data_bus_read_data);
+        writeback.bus_read_data_valid.drive(data_bus_read_data_valid);
 
         Marv {
             m,
 
-            system_port: PrimaryPort {
-                bus_enable,
-                bus_addr,
-                bus_write,
-                bus_write_data,
-                bus_write_byte_enable,
-                bus_ready,
-                bus_read_data,
-                bus_read_data_valid,
+            instruction_port: PrimaryPort {
+                bus_enable: m.output("instruction_bus_enable", instruction_fetch.bus_enable),
+                bus_addr: m.output("instruction_bus_addr", instruction_fetch.bus_addr),
+                bus_write: m.output("instruction_bus_write", m.low()),
+                bus_write_data: m.output("instruction_bus_write_data", m.lit(0u32, 32)),
+                bus_write_byte_enable: m.output("instruction_bus_write_byte_enable", m.lit(0u32, 4)),
+                bus_ready: instruction_bus_ready,
+                bus_read_data: instruction_bus_read_data,
+                bus_read_data_valid: instruction_bus_read_data_valid,
+            },
+            data_port: PrimaryPort {
+                bus_enable: m.output("data_bus_enable", mem.bus_enable_out),
+                bus_addr: m.output("data_bus_addr", mem.bus_addr_out.bits(31, 2)),
+                bus_write: m.output("data_bus_write", mem.bus_write_out),
+                bus_write_data: m.output("data_bus_write_data", mem.bus_write_data_out),
+                bus_write_byte_enable: m.output("data_bus_write_byte_enable", mem.bus_write_byte_enable_out),
+                bus_ready: data_bus_ready,
+                bus_read_data: data_bus_read_data,
+                bus_read_data_valid: data_bus_read_data_valid,
             },
         }
     }
@@ -259,7 +267,6 @@ pub struct InstructionFetch<'a> {
     pub bus_ready: &'a Input<'a>,
     pub bus_enable: &'a Output<'a>,
     pub bus_addr: &'a Output<'a>,
-    pub bus_write_byte_enable: &'a Output<'a>,
 }
 
 impl<'a> InstructionFetch<'a> {
@@ -272,7 +279,6 @@ impl<'a> InstructionFetch<'a> {
         let bus_enable = m.output("bus_enable", enable);
         let pc = m.input("pc", 30);
         let bus_addr = m.output("bus_addr", pc);
-        let bus_write_byte_enable = m.output("bus_write_byte_enable", m.high().repeat(4));
 
         InstructionFetch {
             m,
@@ -284,7 +290,6 @@ impl<'a> InstructionFetch<'a> {
             bus_ready,
             bus_enable,
             bus_addr,
-            bus_write_byte_enable,
         }
     }
 }
