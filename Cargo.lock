@@ -238,6 +238,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd56b59865bce947ac5958779cfa508f6c3b9497cc762b7e24a12d11ccde2c4f"
 
 [[package]]
+name = "env"
+version = "0.1.0"
+
+[[package]]
 name = "fifo"
 version = "0.1.0"
 dependencies = [
@@ -887,6 +891,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rename-me"
+version = "0.1.0"
+dependencies = [
+ "color-thrust-interface",
+ "color-thrust-test-devices",
+ "image",
+ "linalg",
+ "minifb",
+ "rand 0.7.3",
+ "rand_pcg 0.2.1",
+ "strugl",
+]
+
+[[package]]
 name = "rtl"
 version = "0.1.0"
 dependencies = [
@@ -1014,6 +1032,7 @@ name = "strugl"
 version = "0.1.0"
 dependencies = [
  "color-thrust-interface",
+ "env",
  "linalg",
 ]
 
@@ -1022,12 +1041,8 @@ name = "strugl-test"
 version = "0.1.0"
 dependencies = [
  "color-thrust-interface",
- "color-thrust-test-devices",
- "image",
+ "env",
  "linalg",
- "minifb",
- "rand 0.7.3",
- "rand_pcg 0.2.1",
  "strugl",
 ]
 

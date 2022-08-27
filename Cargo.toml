@@ -19,10 +19,12 @@ members = [
     "sim/marv",
     "sim/peek-buffer",
     "sim/read-cache",
+    "sw/env",
     "sw/linalg",
-    "sw/misc/strugl-test",
+    "sw/misc/rename-me",
     "sw/misc/xw-blaster",
     "sw/strugl",
+    "sw/strugl-test",
     "sw/trig",
     "sw/xw",
 ]

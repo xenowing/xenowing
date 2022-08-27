@@ -490,7 +490,7 @@ fn main() -> Result<(), Error> {
     let mut back_buffer = vec![0xffff00ff; PIXELS];
 
     let mut window = Window::new("trim", WIDTH, HEIGHT, WindowOptions {
-        scale: Scale::X4,
+        scale: Scale::X2,
         scale_mode: ScaleMode::AspectRatioStretch,
         ..WindowOptions::default()
     }).unwrap();
@@ -538,7 +538,7 @@ fn main() -> Result<(), Error> {
 
                 writeln!(&mut stdout, "commands requested, rendering entire frame")?;
 
-                device.write_byte(0x06)?;
+                device.write_byte(0x00)?;
 
                 stdout.reset()?;
             }

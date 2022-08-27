@@ -3,17 +3,21 @@
 #[macro_use]
 extern crate alloc;
 
-use alloc::rc::Rc;
-use alloc::vec::Vec;
-
 use color_thrust_interface::device::*;
 use color_thrust_interface::params_and_regs::*;
 
+use env::*;
+
 use linalg::*;
 
+use alloc::rc::Rc;
+use alloc::vec::Vec;
+
+use core::fmt::Write;
+
 // TODO: Don't specify this here?
-pub const WIDTH: usize = 16 * 2;//8;//320;
-pub const HEIGHT: usize = 16 * 2;//8;//240;
+pub const WIDTH: usize = 320;
+pub const HEIGHT: usize = 240;
 pub const PIXELS: usize = WIDTH * HEIGHT;
 
 pub const FRACT_BITS: u32 = 16;
@@ -140,11 +144,14 @@ pub struct Context<D: Device> {
     pub projection: Im4<FRACT_BITS>,
 
     assembled_triangles: Vec<Vec<Triangle>>,
+}
 
-    /*pub estimated_frame_bin_cycles: u64,
-    pub estimated_frame_reg_cycles: u64,
-    pub estimated_frame_xfer_cycles: u64,
-    pub estimated_frame_rasterization_cycles: u64,*/
+pub struct RenderStats {
+    pub vertex_transformation_cycles: u64,
+    pub primitive_assembly_and_binning_cycles: u64,
+    pub num_nonempty_tiles: u32,
+    pub total_tile_xfer_cycles: u64,
+    pub total_rasterization_cycles: u64,
 }
 
 impl<D: Device> Context<D> {
@@ -168,11 +175,6 @@ impl<D: Device> Context<D> {
 
             // TODO: Fixed capacity and splitting drawcalls on overflow
             assembled_triangles: vec![Vec::new(); PIXELS / TILE_PIXELS as usize],
-
-            /*estimated_frame_bin_cycles: 0,
-            estimated_frame_reg_cycles: 0,
-            estimated_frame_xfer_cycles: 0,
-            estimated_frame_rasterization_cycles: 0,*/
         }
     }
 
@@ -230,16 +232,11 @@ impl<D: Device> Context<D> {
         for depth in &mut self.depth_buffer {
             *depth = 0xffff;
         }
-
-        // TODO: Move?
-        /*self.estimated_frame_bin_cycles = 0;
-        self.estimated_frame_reg_cycles = 0;
-        self.estimated_frame_xfer_cycles = 0;
-        self.estimated_frame_rasterization_cycles = 0;*/
     }
 
-    pub fn render(&mut self, verts: &[Vertex]) {
+    pub fn render<W: Write, E: Environment<W>>(&mut self, verts: &[Vertex], total_primitive_assembly_cycles: &mut u64, total_binning_cycles: &mut u64, env: &E) -> RenderStats {
         // Transformation
+        let start_cycles = env.cycles();
         let verts = verts.iter().map(|vert| {
             let object = vert.position;
             let eye = self.model_view * object;
@@ -250,18 +247,20 @@ impl<D: Device> Context<D> {
                 tex_coord: vert.tex_coord,
             }
         }).collect::<Vec<_>>();
+        let vertex_transformation_cycles = env.cycles().wrapping_sub(start_cycles);
 
         // Primitive assembly
+        let start_cycles = env.cycles();
         for i in (0..verts.len()).step_by(3) {
-            self.assemble_triangle([verts[i + 0], verts[i + 1], verts[i + 2]])
+            self.assemble_triangle([verts[i + 0], verts[i + 1], verts[i + 2]], total_primitive_assembly_cycles, total_binning_cycles, env);
         }
+        let primitive_assembly_and_binning_cycles = env.cycles().wrapping_sub(start_cycles);
 
         // Per-drawcall rasterizer setup
         self.device.write_reg(
             REG_DEPTH_SETTINGS_ADDR,
             (if self.depth_test_enable { 1 } else { 0 } << REG_DEPTH_TEST_ENABLE_BIT) |
             (if self.depth_write_mask_enable { 1 } else { 0 } << REG_DEPTH_WRITE_MASK_ENABLE_BIT));
-        //self.estimated_frame_reg_cycles += 1;
 
         if let Some(texture) = self.texture.as_ref() {
             self.device.write_reg(
@@ -276,10 +275,8 @@ impl<D: Device> Context<D> {
                     TextureDim::X64 => REG_TEXTURE_SETTINGS_DIM_64,
                     TextureDim::X128 => REG_TEXTURE_SETTINGS_DIM_128,
                 } << REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET));
-            //self.estimated_frame_reg_cycles += 1;
             // TODO: Proper addr where texture data is loaded
             self.device.write_reg(REG_TEXTURE_BASE_ADDR, 0x00000000);
-            //self.estimated_frame_reg_cycles += 1;
         }
 
         self.device.write_reg(
@@ -296,7 +293,10 @@ impl<D: Device> Context<D> {
                 BlendDstFactor::SrcAlpha => REG_BLEND_SETTINGS_DST_FACTOR_SRC_ALPHA,
                 BlendDstFactor::OneMinusSrcAlpha => REG_BLEND_SETTINGS_DST_FACTOR_ONE_MINUS_SRC_ALPHA,
             } << REG_BLEND_SETTINGS_DST_FACTOR_BIT_OFFSET));
-        //self.estimated_frame_reg_cycles += 1;
+
+        let mut num_nonempty_tiles = 0;
+        let mut total_tile_xfer_cycles = 0;
+        let mut total_rasterization_cycles = 0;
 
         // Primitive rendering
         for tile_index_y in 0..HEIGHT / (TILE_DIM as usize) {
@@ -311,7 +311,10 @@ impl<D: Device> Context<D> {
                     continue;
                 }
 
+                num_nonempty_tiles += 1;
+
                 // Copy tile into rasterizer memory
+                let start_cycles = env.cycles();
                 for y in 0..TILE_DIM as usize {
                     for x in 0..TILE_DIM as usize / 4 {
                         let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 4;
@@ -320,8 +323,6 @@ impl<D: Device> Context<D> {
                             word |= (self.back_buffer[buffer_index + i] as u128) << (i * 32);
                         }
                         self.device.write_color_buffer_word(y as u32 * TILE_DIM / 4 + x as u32, word);
-
-                        //self.estimated_frame_xfer_cycles += 1;
                     }
                 }
                 if self.depth_test_enable || self.depth_write_mask_enable {
@@ -333,12 +334,12 @@ impl<D: Device> Context<D> {
                                 word |= (self.depth_buffer[buffer_index + i] as u128) << (i * 16);
                             }
                             self.device.write_depth_buffer_word(y as u32 * TILE_DIM / 8 + x as u32, word);
-
-                            //self.estimated_frame_xfer_cycles += 1;
                         }
                     }
                 }
+                total_tile_xfer_cycles += env.cycles().wrapping_sub(start_cycles);
 
+                let start_cycles = env.cycles();
                 for triangle in assembled_triangles.iter() {
                     self.device.write_reg(REG_W0_MIN_ADDR, triangle.w0_min);
                     self.device.write_reg(REG_W0_DX_ADDR, triangle.w0_dx);
@@ -373,13 +374,10 @@ impl<D: Device> Context<D> {
                     self.device.write_reg(REG_T_MIN_ADDR, triangle.t_min);
                     self.device.write_reg(REG_T_DX_ADDR, triangle.t_dx);
                     self.device.write_reg(REG_T_DY_ADDR, triangle.t_dy);
-                    //self.estimated_frame_reg_cycles += 33;
-
-                    //self.estimated_frame_bin_cycles += (mem::size_of::<Triangle>() / mem::size_of::<u32>()) as u64;
 
                     // Ensure previous primitive is complete, if any
                     while self.device.read_reg(REG_STATUS_ADDR) != 0 {
-                        //self.estimated_frame_rasterization_cycles += 1;
+                        // Do nothing
                     }
                     // Dispatch next primitive
                     self.device.write_reg(REG_START_ADDR, 1);
@@ -387,10 +385,12 @@ impl<D: Device> Context<D> {
 
                 // Ensure last primitive is complete
                 while self.device.read_reg(REG_STATUS_ADDR) != 0 {
-                    //self.estimated_frame_rasterization_cycles += 1;
+                    // Do nothing
                 }
+                total_rasterization_cycles += env.cycles().wrapping_sub(start_cycles);
 
                 // Copy rasterizer memory back to tile
+                let start_cycles = env.cycles();
                 for y in 0..TILE_DIM as usize {
                     for x in 0..TILE_DIM as usize / 4 {
                         let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 4;
@@ -407,8 +407,6 @@ impl<D: Device> Context<D> {
                             let g = if g > 255 { 255 } else { g };*/
                             self.back_buffer[buffer_index + i] = (a << 24) | (r << 16) | (g << 8) | b;
                         }
-
-                        //self.estimated_frame_xfer_cycles += 1;
                     }
                 }
                 if self.depth_write_mask_enable {
@@ -419,18 +417,27 @@ impl<D: Device> Context<D> {
                             for i in 0..8 {
                                 self.depth_buffer[buffer_index + i] = (word >> (16 * i)) as _;
                             }
-
-                            //self.estimated_frame_xfer_cycles += 1;
                         }
                     }
                 }
+                total_tile_xfer_cycles += env.cycles().wrapping_sub(start_cycles);
 
                 assembled_triangles.clear();
             }
         }
+
+        RenderStats {
+            vertex_transformation_cycles,
+            primitive_assembly_and_binning_cycles,
+            num_nonempty_tiles,
+            total_tile_xfer_cycles,
+            total_rasterization_cycles,
+        }
     }
 
-    fn assemble_triangle(&mut self, mut verts: [TransformedVertex; 3]) {
+    fn assemble_triangle<W: Write, E: Environment<W>>(&mut self, mut verts: [TransformedVertex; 3], total_primitive_assembly_cycles: &mut u64, total_binning_cycles: &mut u64, env: &E) {
+        let start_cycles = env.cycles();
+
         // TODO: Proper viewport
         let viewport_x = 0;
         let viewport_y = 0;
@@ -604,6 +611,10 @@ impl<D: Device> Context<D> {
         triangle.s_dy = s_dy.into_raw(ST_FRACT_BITS) as _;
         triangle.t_dy = t_dy.into_raw(ST_FRACT_BITS) as _;
 
+        *total_primitive_assembly_cycles += env.cycles().wrapping_sub(start_cycles);
+
+        let start_cycles = env.cycles();
+
         for tile_index_y in 0..HEIGHT / (TILE_DIM as usize) {
             let tile_min_y = (tile_index_y * (TILE_DIM as usize)) as i32;
             let tile_max_y = tile_min_y + (TILE_DIM as usize) as i32 - 1;
@@ -663,9 +674,9 @@ impl<D: Device> Context<D> {
 
                 let tile_index = tile_index_y * (WIDTH / (TILE_DIM as usize)) + tile_index_x;
                 self.assembled_triangles[tile_index].push(triangle.clone());
-
-                //self.estimated_frame_bin_cycles += (mem::size_of::<Triangle>() / mem::size_of::<u32>()) as u64;
             }
         }
+
+        *total_binning_cycles += env.cycles().wrapping_sub(start_cycles);
     }
 }
