@@ -23,6 +23,7 @@ members = [
     "sw/linalg",
     "sw/misc/rename-me",
     "sw/misc/xw-blaster",
+    "sw/qoi",
     "sw/strugl",
     "sw/strugl-test",
     "sw/trig",
