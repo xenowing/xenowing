@@ -495,8 +495,6 @@ fn main() -> Result<(), Error> {
         ..WindowOptions::default()
     }).unwrap();
 
-    let tex = image::open("tex.png").unwrap();
-
     println!("XENOWING BLASTER ENGAGED");
     println!("ALL SYSTEMS ARE GO");
     println!();
