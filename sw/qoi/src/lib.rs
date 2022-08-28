@@ -27,6 +27,10 @@ impl Pixel {
         Pixel(((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | ((b as u32) << 0))
     }
 
+    pub fn to_argb(&self) -> u32 {
+        self.0
+    }
+
     pub fn a(&self) -> u8 {
         (self.0 >> 24) as _
     }

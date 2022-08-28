@@ -3,15 +3,12 @@ use color_thrust_interface::device::*;
 use core::ptr;
 
 // TODO: Make singleton somehow?
-pub struct NativeDevice {
-    // TODO: Phantom data for enforcing some kind of lifetime?
-}
+// TODO: Phantom data for enforcing some kind of lifetime?
+pub struct NativeDevice;
 
 impl NativeDevice {
     pub fn new() -> NativeDevice {
-        NativeDevice {
-            // TODO
-        }
+        NativeDevice
     }
 }
 
@@ -52,7 +49,10 @@ impl Device for NativeDevice {
         unsafe { ptr::read_volatile(base_addr.offset(addr as _)) }
     }
 
-    fn write_tex_buffer_word(&mut self, _addr: u32, _data: u128) {
-        todo!()
+    fn write_tex_buffer_word(&mut self, addr: u32, data: u128) {
+        let addr = addr as *mut u128;
+        unsafe {
+            ptr::write_volatile(addr, data);
+        }
     }
 }

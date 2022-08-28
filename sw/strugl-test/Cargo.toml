@@ -5,8 +5,13 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[build-dependencies]
+image = "0.24"
+qoi = { path = "../qoi" }
+
 [dependencies]
 color-thrust-interface = { path = "../../color-thrust/color-thrust-interface" }
 env = { path = "../env" }
 linalg = { path = "../linalg" }
+qoi = { path = "../qoi" }
 strugl = { path = "../strugl" }

@@ -188,7 +188,7 @@ impl<D: Device> Context<D> {
     // TODO: Expose failure possibility in type signature
     pub fn alloc_texture_data(&mut self, dim: TextureDim, data: &[u32]) -> Rc<TextureData> {
         // TODO: Properly allocate in underlying memory
-        let mut addr = 0;
+        let mut addr = 0x18000000;
         // Upload data
         //  To support reading a filtered texel in one clock cycle, the texture storage organization is a little tricky.
         //  The main idea is to conceptually group texels into 2x2 blocks. For a bilinear-filtered texel, we need to
@@ -214,7 +214,7 @@ impl<D: Device> Context<D> {
                             word |= (argb as u128) << (x * 32);
                         }
                         self.device.write_tex_buffer_word(addr, word);
-                        addr += 1;
+                        addr += 16;
                     }
                 }
             }
@@ -276,7 +276,7 @@ impl<D: Device> Context<D> {
                     TextureDim::X128 => REG_TEXTURE_SETTINGS_DIM_128,
                 } << REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET));
             // TODO: Proper addr where texture data is loaded
-            self.device.write_reg(REG_TEXTURE_BASE_ADDR, 0x00000000);
+            self.device.write_reg(REG_TEXTURE_BASE_ADDR, 0x18000000);
         }
 
         self.device.write_reg(

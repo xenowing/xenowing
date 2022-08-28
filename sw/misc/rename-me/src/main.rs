@@ -5,11 +5,7 @@ use color_thrust_test_devices::{model_device, sim_device};
 
 use strugl::*;
 
-use linalg::*;
-use image::GenericImageView;
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
-use rand::{Rng, SeedableRng};
-use rand_pcg::Pcg32;
 
 use std::env;
 use std::time::Instant;
