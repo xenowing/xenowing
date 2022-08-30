@@ -2,6 +2,8 @@
 #![no_main]
 #![no_std]
 
+extern crate alloc;
+
 mod native_device;
 mod native_environment;
 

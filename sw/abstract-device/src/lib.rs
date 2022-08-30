@@ -1,6 +1,8 @@
 #![no_std]
 
 pub trait Device {
+    fn mem_alloc(&mut self, num_words: u32, align_words: u32) -> u32;
+    fn mem_dealloc(&mut self, addr: u32);
     fn mem_write_word(&mut self, addr: u32, data: u128);
 
     fn color_thrust_write_reg(&mut self, addr: u32, data: u32);
@@ -12,6 +14,16 @@ pub trait Device {
 }
 
 impl<D: Device + ?Sized> Device for &mut D {
+    #[inline]
+    fn mem_alloc(&mut self, num_words: u32, align_words: u32) -> u32 {
+        (**self).mem_alloc(num_words, align_words)
+    }
+
+    #[inline]
+    fn mem_dealloc(&mut self, addr: u32) {
+        (**self).mem_dealloc(addr);
+    }
+
     #[inline]
     fn mem_write_word(&mut self, addr: u32, data: u128) {
         (**self).mem_write_word(addr, data);

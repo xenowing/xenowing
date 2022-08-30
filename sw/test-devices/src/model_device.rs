@@ -327,6 +327,14 @@ impl ModelDevice {
 }
 
 impl Device for ModelDevice {
+    fn mem_alloc(&mut self, _num_words: u32, _align_words: u32) -> u32 {
+        todo!()
+    }
+
+    fn mem_dealloc(&mut self, _addr: u32) {
+        todo!()
+    }
+
     fn mem_write_word(&mut self, addr: u32, data: u128) {
         self.tex_buffer[(addr / 16) as usize] = data;
     }

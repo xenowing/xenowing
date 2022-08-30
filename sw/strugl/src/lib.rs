@@ -67,8 +67,9 @@ pub struct Texture {
     filter: TextureFilter,
 }
 
-// TODO: Refer to actual memory and properly free when dropped
+// TODO: Properly free memory when dropped
 pub struct TextureData {
+    base_addr: u32,
     dim: TextureDim,
 }
 
@@ -187,8 +188,13 @@ impl<D: Device> Context<D> {
 
     // TODO: Expose failure possibility in type signature
     pub fn alloc_texture_data(&mut self, dim: TextureDim, data: &[u32]) -> Rc<TextureData> {
-        // TODO: Properly allocate in underlying memory
-        let mut addr = 0x18000000;
+        let align_bits = 6 + match dim {
+            TextureDim::X16 => 0,
+            TextureDim::X32 => 2,
+            TextureDim::X64 => 4,
+            TextureDim::X128 => 8,
+        };
+        let base_addr = self.device.mem_alloc(data.len() as u32 / 4, 1 << align_bits);
         // Upload data
         //  To support reading a filtered texel in one clock cycle, the texture storage organization is a little tricky.
         //  The main idea is to conceptually group texels into 2x2 blocks. For a bilinear-filtered texel, we need to
@@ -203,6 +209,7 @@ impl<D: Device> Context<D> {
         //  at once. So, each 128-bit word contains a 4x1 group of texels of its corresponding chunk (which, given the
         //  above, corresponds to a span of 8x1 texels in "texture-space", where every 2nd texel is skipped).
         // TODO: Non-linear swizzling for better hit rate (be sure to measure/compare first!)
+        let mut addr = base_addr;
         for block_y in 0..2 {
             for block_x in 0..2 {
                 for chunk_y in 0..dim.to_u32() / 2 {
@@ -222,6 +229,7 @@ impl<D: Device> Context<D> {
         }
 
         Rc::new(TextureData {
+            base_addr,
             dim,
         })
     }
@@ -276,8 +284,7 @@ impl<D: Device> Context<D> {
                     TextureDim::X64 => REG_TEXTURE_SETTINGS_DIM_64,
                     TextureDim::X128 => REG_TEXTURE_SETTINGS_DIM_128,
                 } << REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET));
-            // TODO: Proper addr where texture data is loaded
-            self.device.color_thrust_write_reg(REG_TEXTURE_BASE_ADDR, 0x18000000);
+            self.device.color_thrust_write_reg(REG_TEXTURE_BASE_ADDR, texture.data.base_addr);
         }
 
         self.device.color_thrust_write_reg(

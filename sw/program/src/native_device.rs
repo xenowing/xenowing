@@ -1,5 +1,7 @@
 use abstract_device::*;
 
+use alloc::alloc::{alloc, Layout};
+
 use core::ptr;
 
 // TODO: Make singleton somehow?
@@ -13,6 +15,19 @@ impl NativeDevice {
 }
 
 impl Device for NativeDevice {
+    fn mem_alloc(&mut self, num_words: u32, align_words: u32) -> u32 {
+        unsafe {
+            alloc(
+                Layout::from_size_align((num_words * 16) as _, (align_words * 16) as _)
+                    .expect("Couldn't create memory layout")
+            ) as _
+        }
+    }
+
+    fn mem_dealloc(&mut self, _addr: u32) {
+        todo!()
+    }
+
     fn mem_write_word(&mut self, addr: u32, data: u128) {
         let addr = addr as *mut u128;
         unsafe {

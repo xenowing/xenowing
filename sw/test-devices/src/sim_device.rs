@@ -2,7 +2,25 @@ use crate::modules::*;
 
 use abstract_device::*;
 
+// TODO: Dedupe and move!
+const MEM_ADDR_BITS: u32 = 24;
+const MEM_NUM_WORDS: u32 = 1 << MEM_ADDR_BITS;
+const MEM_NUM_BYTES: u32 = MEM_NUM_WORDS << 4;
+
+struct Allocation {
+    start: u32,
+    size: u32,
+}
+
+impl Allocation {
+    fn end(&self) -> u32 {
+        self.start + self.size
+    }
+}
+
 pub struct SimDevice {
+    allocations: Vec<Allocation>,
+
     color_thrust: Top,
 }
 
@@ -17,13 +35,35 @@ impl SimDevice {
         color_thrust.prop();
 
         SimDevice {
+            allocations: Vec::new(),
+
             color_thrust,
         }
     }
 }
 
 impl Device for SimDevice {
+    fn mem_alloc(&mut self, num_words: u32, align_words: u32) -> u32 {
+        let align = align_words * 16;
+        let start = (self.allocations.last().map_or(0, |a| a.end()) + align - 1) / align * align;
+        if start >= MEM_NUM_BYTES {
+            panic!("Out of device memory");
+        }
+        self.allocations.push(Allocation {
+            start,
+            size: num_words * 16,
+        });
+        start
+    }
+
+    fn mem_dealloc(&mut self, _addr: u32) {
+        todo!()
+    }
+
     fn mem_write_word(&mut self, addr: u32, data: u128) {
+        if (addr % 16) != 0 {
+            panic!("Unaligned device memory access");
+        }
         self.color_thrust.mem_bus_addr = addr / 16;
         self.color_thrust.mem_bus_enable = true;
         self.color_thrust.mem_bus_write = true;
