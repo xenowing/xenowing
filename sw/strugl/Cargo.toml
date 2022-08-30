@@ -7,6 +7,6 @@ edition = "2021"
 
 [dependencies]
 abstract-device = { path = "../abstract-device" }
+abstract-environment = { path = "../abstract-environment" }
 color-thrust-meta = { path = "../color-thrust-meta" }
-env = { path = "../env" }
 linalg = { path = "../linalg" }

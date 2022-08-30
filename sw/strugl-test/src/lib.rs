@@ -3,8 +3,7 @@
 extern crate alloc;
 
 use abstract_device::*;
-
-use env::*;
+use abstract_environment::*;
 
 use linalg::*;
 

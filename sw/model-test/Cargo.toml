@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 abstract-device = { path = "../abstract-device" }
-env = { path = "../env" }
+abstract-environment = { path = "../abstract-environment" }
 minifb = "0.16"
 strugl = { path = "../strugl" }
 strugl-test = { path = "../strugl-test" }

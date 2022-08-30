@@ -11,7 +11,7 @@ qoi = { path = "../qoi" }
 
 [dependencies]
 abstract-device = { path = "../abstract-device" }
-env = { path = "../env" }
+abstract-environment = { path = "../abstract-environment" }
 linalg = { path = "../linalg" }
 qoi = { path = "../qoi" }
 strugl = { path = "../strugl" }

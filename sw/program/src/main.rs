@@ -8,7 +8,7 @@ mod native_environment;
 use native_device::*;
 use native_environment::*;
 
-use env::*;
+use abstract_environment::*;
 
 use strugl::*;
 

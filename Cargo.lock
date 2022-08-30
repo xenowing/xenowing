@@ -28,6 +28,10 @@ name = "abstract-device"
 version = "0.1.0"
 
 [[package]]
+name = "abstract-environment"
+version = "0.1.0"
+
+[[package]]
 name = "adler"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -252,10 +256,6 @@ name = "either"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd56b59865bce947ac5958779cfa508f6c3b9497cc762b7e24a12d11ccde2c4f"
-
-[[package]]
-name = "env"
-version = "0.1.0"
 
 [[package]]
 name = "exr"
@@ -594,7 +594,7 @@ name = "model-test"
 version = "0.1.0"
 dependencies = [
  "abstract-device",
- "env",
+ "abstract-environment",
  "minifb",
  "strugl",
  "strugl-test",
@@ -1168,8 +1168,8 @@ name = "strugl"
 version = "0.1.0"
 dependencies = [
  "abstract-device",
+ "abstract-environment",
  "color-thrust-meta",
- "env",
  "linalg",
 ]
 
@@ -1178,7 +1178,7 @@ name = "strugl-test"
 version = "0.1.0"
 dependencies = [
  "abstract-device",
- "env",
+ "abstract-environment",
  "image",
  "linalg",
  "qoi",

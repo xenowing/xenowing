@@ -4,10 +4,9 @@
 extern crate alloc;
 
 use abstract_device::*;
+use abstract_environment::*;
 
 use color_thrust_meta::*;
-
-use env::*;
 
 use linalg::*;
 
