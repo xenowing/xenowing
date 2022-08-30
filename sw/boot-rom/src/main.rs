@@ -19,7 +19,7 @@ fn main() -> ! {
     // TODO: Proper command
     uart::write_u8(0x01);
     // TODO: Proper filename
-    let filename = "../../program/target/program.bin";
+    let filename = "../program/target/program.bin";
     for b in filename.bytes() {
         uart::write_u8(b);
     }

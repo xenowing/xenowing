@@ -7,13 +7,13 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-kaze = { path = "../../../../kaze/kaze" } #kaze = "0.1"
-rtl = { path = "../../../rtl" }
+kaze = { path = "../../../kaze/kaze" } #kaze = "0.1"
+rtl = { path = "../../rtl" }
 
 [dependencies]
 minifb = "0.16"
 rand = "0.7"
-rtl = { path = "../../../rtl" }
+rtl = { path = "../../rtl" }
 serialport = "3.3.0"
-strugl = { path = "../../strugl" }
+strugl = { path = "../strugl" }
 termcolor = "1"
