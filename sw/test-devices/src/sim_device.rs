@@ -24,7 +24,7 @@ impl SimDevice {
 
 impl Device for SimDevice {
     fn mem_write_word(&mut self, addr: u32, data: u128) {
-        self.color_thrust.mem_bus_addr = addr;
+        self.color_thrust.mem_bus_addr = addr / 16;
         self.color_thrust.mem_bus_enable = true;
         self.color_thrust.mem_bus_write = true;
         self.color_thrust.mem_bus_write_byte_enable = 0xffff;

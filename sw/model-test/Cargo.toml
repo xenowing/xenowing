@@ -1,5 +1,5 @@
 [package]
-name = "rename-me"
+name = "model-test"
 version = "0.1.0"
 authors = ["ferris <yupferris@gmail.com>"]
 edition = "2018"
@@ -8,6 +8,8 @@ edition = "2018"
 
 [dependencies]
 abstract-device = { path = "../abstract-device" }
-test-devices = { path = "../test-devices" }
+env = { path = "../env" }
 minifb = "0.16"
 strugl = { path = "../strugl" }
+strugl-test = { path = "../strugl-test" }
+test-devices = { path = "../test-devices" }

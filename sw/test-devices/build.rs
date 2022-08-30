@@ -22,8 +22,7 @@ fn main() -> Result<()> {
 
     let color_thrust = ColorThrust::new("color_thrust", m);
 
-    let mem_addr_bit_width = 13;
-    let mem = ByteRam::new("mem", mem_addr_bit_width, SYSTEM_BUS_ADDR_BITS, m);
+    let mem = ByteRam::new("mem", SYSTEM_BUS_ADDR_BITS, SYSTEM_BUS_ADDR_BITS, m);
 
     // Interconnect
     color_thrust.reg_port.forward("reg", m);

@@ -590,6 +590,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "model-test"
+version = "0.1.0"
+dependencies = [
+ "abstract-device",
+ "env",
+ "minifb",
+ "strugl",
+ "strugl-test",
+ "test-devices",
+]
+
+[[package]]
 name = "nanorand"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1017,16 +1029,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3acd125665422973a33ac9d3dd2df85edad0f4ae9b00dafb1a05e43a9f5ef8e7"
 dependencies = [
  "winapi",
-]
-
-[[package]]
-name = "rename-me"
-version = "0.1.0"
-dependencies = [
- "abstract-device",
- "minifb",
- "strugl",
- "test-devices",
 ]
 
 [[package]]

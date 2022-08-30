@@ -1,6 +1,6 @@
 use crate::uart::*;
 
-use core::fmt::Write;
+use core::fmt::{Result, Write};
 
 // TODO: This is specific to xw-blaster, and may have a better home
 const COMMAND_PUTC: u8 = 0x00;
@@ -25,7 +25,7 @@ pub fn puts_nn(s: &str) {
 pub struct Stdout;
 
 impl Write for Stdout {
-    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+    fn write_str(&mut self, s: &str) -> Result {
         puts_nn(s);
 
         Ok(())

@@ -328,7 +328,7 @@ impl ModelDevice {
 
 impl Device for ModelDevice {
     fn mem_write_word(&mut self, addr: u32, data: u128) {
-        self.tex_buffer[addr as usize] = data;
+        self.tex_buffer[(addr / 16) as usize] = data;
     }
 
     fn color_thrust_write_reg(&mut self, addr: u32, data: u32) {
