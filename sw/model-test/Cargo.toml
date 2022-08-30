@@ -6,10 +6,15 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[build-dependencies]
+color-thrust-meta = { path = "../color-thrust-meta" }
+kaze = { path = "../../../kaze/kaze" } #kaze = "0.1"
+rtl = { path = "../../rtl" }
+
 [dependencies]
 abstract-device = { path = "../abstract-device" }
 abstract-environment = { path = "../abstract-environment" }
+color-thrust-meta = { path = "../color-thrust-meta" }
 minifb = "0.16"
 strugl = { path = "../strugl" }
 strugl-test = { path = "../strugl-test" }
-test-devices = { path = "../test-devices" }

@@ -25,7 +25,6 @@ members = [
     "sw/qoi",
     "sw/strugl",
     "sw/strugl-test",
-    "sw/test-devices",
     "sw/trig",
     "sw/xw",
     "sw/xw-blaster",

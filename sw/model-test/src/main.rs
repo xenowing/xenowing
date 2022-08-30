@@ -1,6 +1,11 @@
 #![feature(box_syntax)]
 
+mod model_device;
 mod model_environment;
+mod modules {
+    include!(concat!(env!("OUT_DIR"), "/modules.rs"));
+}
+mod sim_device;
 
 use model_environment::*;
 
@@ -9,8 +14,6 @@ use abstract_device::*;
 use strugl::*;
 
 use strugl_test::*;
-
-use test_devices::{model_device, sim_device};
 
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 
