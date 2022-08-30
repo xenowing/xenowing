@@ -10,7 +10,7 @@ lto = true
 codegen-units = 1
 
 [dependencies]
-color-thrust-interface = { path = "../../color-thrust/color-thrust-interface" }
+abstract-device = { path = "../abstract-device" }
 env = { path = "../env" }
 linalg = { path = "../linalg" }
 strugl = { path = "../strugl" }

@@ -6,8 +6,6 @@ exclude = [
 ]
 
 members = [
-    "color-thrust/color-thrust-interface",
-    "color-thrust/color-thrust-test-devices",
     "mimas_a7/test/ddr3/misc/ddr3-check",
     "mimas_a7/test/uart/misc/uart-check",
     "rtl",
@@ -19,6 +17,8 @@ members = [
     "sim/marv",
     "sim/peek-buffer",
     "sim/read-cache",
+    "sw/abstract-device",
+    "sw/color-thrust-meta",
     "sw/env",
     "sw/linalg",
     "sw/misc/rename-me",
@@ -26,6 +26,7 @@ members = [
     "sw/qoi",
     "sw/strugl",
     "sw/strugl-test",
+    "sw/test-devices",
     "sw/trig",
     "sw/xw",
 ]

@@ -10,7 +10,7 @@ image = "0.24"
 qoi = { path = "../qoi" }
 
 [dependencies]
-color-thrust-interface = { path = "../../color-thrust/color-thrust-interface" }
+abstract-device = { path = "../abstract-device" }
 env = { path = "../env" }
 linalg = { path = "../linalg" }
 qoi = { path = "../qoi" }

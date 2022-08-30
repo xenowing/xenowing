@@ -1,6 +1,6 @@
 use kaze::*;
 
-use color_thrust_interface::params_and_regs::*;
+use color_thrust_meta::*;
 
 use rtl::buster::*;
 use rtl::byte_ram::*;

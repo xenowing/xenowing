@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-color-thrust-interface = { path = "../../color-thrust/color-thrust-interface" }
+abstract-device = { path = "../abstract-device" }
+color-thrust-meta = { path = "../color-thrust-meta" }
 env = { path = "../env" }
 linalg = { path = "../linalg" }

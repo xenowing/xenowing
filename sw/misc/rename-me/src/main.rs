@@ -1,7 +1,8 @@
 #![feature(box_syntax)]
 
-use color_thrust_interface::device::*;
-use color_thrust_test_devices::{model_device, sim_device};
+use abstract_device::*;
+
+use test_devices::{model_device, sim_device};
 
 use strugl::*;
 

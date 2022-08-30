@@ -3,8 +3,9 @@
 #[macro_use]
 extern crate alloc;
 
-use color_thrust_interface::device::*;
-use color_thrust_interface::params_and_regs::*;
+use abstract_device::*;
+
+use color_thrust_meta::*;
 
 use env::*;
 
@@ -202,6 +203,7 @@ impl<D: Device> Context<D> {
         //  when we have a chunk-cache miss, we'd be wasting precious system bus bandwidth if we weren't loading 4 texels
         //  at once. So, each 128-bit word contains a 4x1 group of texels of its corresponding chunk (which, given the
         //  above, corresponds to a span of 8x1 texels in "texture-space", where every 2nd texel is skipped).
+        // TODO: Non-linear swizzling for better hit rate (be sure to measure/compare first!)
         for block_y in 0..2 {
             for block_x in 0..2 {
                 for chunk_y in 0..dim.to_u32() / 2 {
@@ -213,7 +215,7 @@ impl<D: Device> Context<D> {
                             let argb = data[(texel_y * dim.to_u32() + texel_x) as usize];
                             word |= (argb as u128) << (x * 32);
                         }
-                        self.device.write_tex_buffer_word(addr, word);
+                        self.device.mem_write_word(addr, word);
                         addr += 16;
                     }
                 }
@@ -257,13 +259,13 @@ impl<D: Device> Context<D> {
         let primitive_assembly_and_binning_cycles = env.cycles().wrapping_sub(start_cycles);
 
         // Per-drawcall rasterizer setup
-        self.device.write_reg(
+        self.device.color_thrust_write_reg(
             REG_DEPTH_SETTINGS_ADDR,
             (if self.depth_test_enable { 1 } else { 0 } << REG_DEPTH_TEST_ENABLE_BIT) |
             (if self.depth_write_mask_enable { 1 } else { 0 } << REG_DEPTH_WRITE_MASK_ENABLE_BIT));
 
         if let Some(texture) = self.texture.as_ref() {
-            self.device.write_reg(
+            self.device.color_thrust_write_reg(
                 REG_TEXTURE_SETTINGS_ADDR,
                 (match texture.filter {
                     TextureFilter::Nearest => REG_TEXTURE_SETTINGS_FILTER_SELECT_NEAREST,
@@ -276,10 +278,10 @@ impl<D: Device> Context<D> {
                     TextureDim::X128 => REG_TEXTURE_SETTINGS_DIM_128,
                 } << REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET));
             // TODO: Proper addr where texture data is loaded
-            self.device.write_reg(REG_TEXTURE_BASE_ADDR, 0x18000000);
+            self.device.color_thrust_write_reg(REG_TEXTURE_BASE_ADDR, 0x18000000);
         }
 
-        self.device.write_reg(
+        self.device.color_thrust_write_reg(
             REG_BLEND_SETTINGS_ADDR,
             (match self.blend_src_factor {
                 BlendSrcFactor::Zero => REG_BLEND_SETTINGS_SRC_FACTOR_ZERO,
@@ -322,7 +324,7 @@ impl<D: Device> Context<D> {
                         for i in 0..4 {
                             word |= (self.back_buffer[buffer_index + i] as u128) << (i * 32);
                         }
-                        self.device.write_color_buffer_word(y as u32 * TILE_DIM / 4 + x as u32, word);
+                        self.device.color_thrust_write_color_buffer_word(y as u32 * TILE_DIM / 4 + x as u32, word);
                     }
                 }
                 if self.depth_test_enable || self.depth_write_mask_enable {
@@ -333,7 +335,7 @@ impl<D: Device> Context<D> {
                             for i in 0..8 {
                                 word |= (self.depth_buffer[buffer_index + i] as u128) << (i * 16);
                             }
-                            self.device.write_depth_buffer_word(y as u32 * TILE_DIM / 8 + x as u32, word);
+                            self.device.color_thrust_write_depth_buffer_word(y as u32 * TILE_DIM / 8 + x as u32, word);
                         }
                     }
                 }
@@ -341,50 +343,50 @@ impl<D: Device> Context<D> {
 
                 let start_cycles = env.cycles();
                 for triangle in assembled_triangles.iter() {
-                    self.device.write_reg(REG_W0_MIN_ADDR, triangle.w0_min);
-                    self.device.write_reg(REG_W0_DX_ADDR, triangle.w0_dx);
-                    self.device.write_reg(REG_W0_DY_ADDR, triangle.w0_dy);
-                    self.device.write_reg(REG_W1_MIN_ADDR, triangle.w1_min);
-                    self.device.write_reg(REG_W1_DX_ADDR, triangle.w1_dx);
-                    self.device.write_reg(REG_W1_DY_ADDR, triangle.w1_dy);
-                    self.device.write_reg(REG_W2_MIN_ADDR, triangle.w2_min);
-                    self.device.write_reg(REG_W2_DX_ADDR, triangle.w2_dx);
-                    self.device.write_reg(REG_W2_DY_ADDR, triangle.w2_dy);
-                    self.device.write_reg(REG_R_MIN_ADDR, triangle.r_min);
-                    self.device.write_reg(REG_R_DX_ADDR, triangle.r_dx);
-                    self.device.write_reg(REG_R_DY_ADDR, triangle.r_dy);
-                    self.device.write_reg(REG_G_MIN_ADDR, triangle.g_min);
-                    self.device.write_reg(REG_G_DX_ADDR, triangle.g_dx);
-                    self.device.write_reg(REG_G_DY_ADDR, triangle.g_dy);
-                    self.device.write_reg(REG_B_MIN_ADDR, triangle.b_min);
-                    self.device.write_reg(REG_B_DX_ADDR, triangle.b_dx);
-                    self.device.write_reg(REG_B_DY_ADDR, triangle.b_dy);
-                    self.device.write_reg(REG_A_MIN_ADDR, triangle.a_min);
-                    self.device.write_reg(REG_A_DX_ADDR, triangle.a_dx);
-                    self.device.write_reg(REG_A_DY_ADDR, triangle.a_dy);
-                    self.device.write_reg(REG_W_INVERSE_MIN_ADDR, triangle.w_inverse_min);
-                    self.device.write_reg(REG_W_INVERSE_DX_ADDR, triangle.w_inverse_dx);
-                    self.device.write_reg(REG_W_INVERSE_DY_ADDR, triangle.w_inverse_dy);
-                    self.device.write_reg(REG_Z_MIN_ADDR, triangle.z_min);
-                    self.device.write_reg(REG_Z_DX_ADDR, triangle.z_dx);
-                    self.device.write_reg(REG_Z_DY_ADDR, triangle.z_dy);
-                    self.device.write_reg(REG_S_MIN_ADDR, triangle.s_min);
-                    self.device.write_reg(REG_S_DX_ADDR, triangle.s_dx);
-                    self.device.write_reg(REG_S_DY_ADDR, triangle.s_dy);
-                    self.device.write_reg(REG_T_MIN_ADDR, triangle.t_min);
-                    self.device.write_reg(REG_T_DX_ADDR, triangle.t_dx);
-                    self.device.write_reg(REG_T_DY_ADDR, triangle.t_dy);
+                    self.device.color_thrust_write_reg(REG_W0_MIN_ADDR, triangle.w0_min);
+                    self.device.color_thrust_write_reg(REG_W0_DX_ADDR, triangle.w0_dx);
+                    self.device.color_thrust_write_reg(REG_W0_DY_ADDR, triangle.w0_dy);
+                    self.device.color_thrust_write_reg(REG_W1_MIN_ADDR, triangle.w1_min);
+                    self.device.color_thrust_write_reg(REG_W1_DX_ADDR, triangle.w1_dx);
+                    self.device.color_thrust_write_reg(REG_W1_DY_ADDR, triangle.w1_dy);
+                    self.device.color_thrust_write_reg(REG_W2_MIN_ADDR, triangle.w2_min);
+                    self.device.color_thrust_write_reg(REG_W2_DX_ADDR, triangle.w2_dx);
+                    self.device.color_thrust_write_reg(REG_W2_DY_ADDR, triangle.w2_dy);
+                    self.device.color_thrust_write_reg(REG_R_MIN_ADDR, triangle.r_min);
+                    self.device.color_thrust_write_reg(REG_R_DX_ADDR, triangle.r_dx);
+                    self.device.color_thrust_write_reg(REG_R_DY_ADDR, triangle.r_dy);
+                    self.device.color_thrust_write_reg(REG_G_MIN_ADDR, triangle.g_min);
+                    self.device.color_thrust_write_reg(REG_G_DX_ADDR, triangle.g_dx);
+                    self.device.color_thrust_write_reg(REG_G_DY_ADDR, triangle.g_dy);
+                    self.device.color_thrust_write_reg(REG_B_MIN_ADDR, triangle.b_min);
+                    self.device.color_thrust_write_reg(REG_B_DX_ADDR, triangle.b_dx);
+                    self.device.color_thrust_write_reg(REG_B_DY_ADDR, triangle.b_dy);
+                    self.device.color_thrust_write_reg(REG_A_MIN_ADDR, triangle.a_min);
+                    self.device.color_thrust_write_reg(REG_A_DX_ADDR, triangle.a_dx);
+                    self.device.color_thrust_write_reg(REG_A_DY_ADDR, triangle.a_dy);
+                    self.device.color_thrust_write_reg(REG_W_INVERSE_MIN_ADDR, triangle.w_inverse_min);
+                    self.device.color_thrust_write_reg(REG_W_INVERSE_DX_ADDR, triangle.w_inverse_dx);
+                    self.device.color_thrust_write_reg(REG_W_INVERSE_DY_ADDR, triangle.w_inverse_dy);
+                    self.device.color_thrust_write_reg(REG_Z_MIN_ADDR, triangle.z_min);
+                    self.device.color_thrust_write_reg(REG_Z_DX_ADDR, triangle.z_dx);
+                    self.device.color_thrust_write_reg(REG_Z_DY_ADDR, triangle.z_dy);
+                    self.device.color_thrust_write_reg(REG_S_MIN_ADDR, triangle.s_min);
+                    self.device.color_thrust_write_reg(REG_S_DX_ADDR, triangle.s_dx);
+                    self.device.color_thrust_write_reg(REG_S_DY_ADDR, triangle.s_dy);
+                    self.device.color_thrust_write_reg(REG_T_MIN_ADDR, triangle.t_min);
+                    self.device.color_thrust_write_reg(REG_T_DX_ADDR, triangle.t_dx);
+                    self.device.color_thrust_write_reg(REG_T_DY_ADDR, triangle.t_dy);
 
                     // Ensure previous primitive is complete, if any
-                    while self.device.read_reg(REG_STATUS_ADDR) != 0 {
+                    while self.device.color_thrust_read_reg(REG_STATUS_ADDR) != 0 {
                         // Do nothing
                     }
                     // Dispatch next primitive
-                    self.device.write_reg(REG_START_ADDR, 1);
+                    self.device.color_thrust_write_reg(REG_START_ADDR, 1);
                 }
 
                 // Ensure last primitive is complete
-                while self.device.read_reg(REG_STATUS_ADDR) != 0 {
+                while self.device.color_thrust_read_reg(REG_STATUS_ADDR) != 0 {
                     // Do nothing
                 }
                 total_rasterization_cycles += env.cycles().wrapping_sub(start_cycles);
@@ -394,7 +396,7 @@ impl<D: Device> Context<D> {
                 for y in 0..TILE_DIM as usize {
                     for x in 0..TILE_DIM as usize / 4 {
                         let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 4;
-                        let word = self.device.read_color_buffer_word(y as u32 * TILE_DIM / 4 + x as u32);
+                        let word = self.device.color_thrust_read_color_buffer_word(y as u32 * TILE_DIM / 4 + x as u32);
                         for i in 0..4 {
                             let tile_pixel = (word >> (32 * i)) as u32;
                             let a = (tile_pixel >> 24) & 0xff;
@@ -413,7 +415,7 @@ impl<D: Device> Context<D> {
                     for y in 0..TILE_DIM as usize {
                         for x in 0..TILE_DIM as usize / 8 {
                             let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 8;
-                            let word = self.device.read_depth_buffer_word(y as u32 * TILE_DIM / 8 + x as u32);
+                            let word = self.device.color_thrust_read_depth_buffer_word(y as u32 * TILE_DIM / 8 + x as u32);
                             for i in 0..8 {
                                 self.depth_buffer[buffer_index + i] = (word >> (16 * i)) as _;
                             }

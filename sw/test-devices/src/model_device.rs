@@ -1,5 +1,6 @@
-use color_thrust_interface::device::*;
-use color_thrust_interface::params_and_regs::*;
+use abstract_device::*;
+
+use color_thrust_meta::*;
 
 enum TextureFilter {
     Nearest,
@@ -326,7 +327,11 @@ impl ModelDevice {
 }
 
 impl Device for ModelDevice {
-    fn write_reg(&mut self, addr: u32, data: u32) {
+    fn mem_write_word(&mut self, addr: u32, data: u128) {
+        self.tex_buffer[addr as usize] = data;
+    }
+
+    fn color_thrust_write_reg(&mut self, addr: u32, data: u32) {
         match addr {
             REG_START_ADDR => self.rasterize_primitive(),
             REG_DEPTH_SETTINGS_ADDR => {
@@ -393,7 +398,7 @@ impl Device for ModelDevice {
         }
     }
 
-    fn read_reg(&mut self, addr: u32) -> u32 {
+    fn color_thrust_read_reg(&mut self, addr: u32) -> u32 {
         match addr {
             REG_STATUS_ADDR => 0,
             REG_DEPTH_SETTINGS_ADDR => {
@@ -457,13 +462,13 @@ impl Device for ModelDevice {
         }
     }
 
-    fn write_color_buffer_word(&mut self, addr: u32, data: u128) {
+    fn color_thrust_write_color_buffer_word(&mut self, addr: u32, data: u128) {
         for i in 0..4 {
             self.color_buffer[(addr * 4 + i) as usize] = (data >> (i * 32)) as _;
         }
     }
 
-    fn read_color_buffer_word(&mut self, addr: u32) -> u128 {
+    fn color_thrust_read_color_buffer_word(&mut self, addr: u32) -> u128 {
         let mut ret = 0;
         for i in 0..4 {
             ret |= (self.color_buffer[(addr * 4 + i) as usize] as u128) << (i * 32);
@@ -471,21 +476,17 @@ impl Device for ModelDevice {
         ret
     }
 
-    fn write_depth_buffer_word(&mut self, addr: u32, data: u128) {
+    fn color_thrust_write_depth_buffer_word(&mut self, addr: u32, data: u128) {
         for i in 0..8 {
             self.depth_buffer[(addr * 8 + i) as usize] = (data >> (i * 16)) as _;
         }
     }
 
-    fn read_depth_buffer_word(&mut self, addr: u32) -> u128 {
+    fn color_thrust_read_depth_buffer_word(&mut self, addr: u32) -> u128 {
         let mut ret = 0;
         for i in 0..8 {
             ret |= (self.depth_buffer[(addr * 8 + i) as usize] as u128) << (i * 16);
         }
         ret
-    }
-
-    fn write_tex_buffer_word(&mut self, addr: u32, data: u128) {
-        self.tex_buffer[addr as usize] = data;
     }
 }

@@ -2,7 +2,7 @@
 
 extern crate alloc;
 
-use color_thrust_interface::device::*;
+use abstract_device::*;
 
 use env::*;
 
@@ -47,7 +47,9 @@ impl StruglTest {
     pub fn render_frame<D: Device, W: Write, E: Environment<W>>(&mut self, c: &mut Context<D>, env: &E) {
         let frame_time = 6.0;//start_time.elapsed().as_secs_f64();
 
+        let start_cycles = env.cycles();
         c.clear();
+        let clear_cycles = env.cycles().wrapping_sub(start_cycles);
 
         c.depth_test_enable = true;
         c.depth_write_mask_enable = true;
@@ -106,6 +108,7 @@ impl StruglTest {
         let mut total_binning_cycles = 0;
         let stats = c.render(&self.cube_verts, &mut total_primitive_assembly_cycles, &mut total_binning_cycles, env);
 
+        writeln!(env.stdout(), "Clear cycles: {}", clear_cycles).unwrap();
         writeln!(env.stdout(), "Vertex transformation cycles: {}", stats.vertex_transformation_cycles).unwrap();
         writeln!(env.stdout(), "Primitive assembly and binning cycles: {}", stats.primitive_assembly_and_binning_cycles).unwrap();
         writeln!(env.stdout(), " - Primitive assembly cycles: {}", total_primitive_assembly_cycles).unwrap();

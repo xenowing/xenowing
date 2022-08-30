@@ -24,6 +24,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "abstract-device"
+version = "0.1.0"
+
+[[package]]
 name = "adler"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -149,17 +153,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "color-thrust-interface"
+name = "color-thrust-meta"
 version = "0.1.0"
-
-[[package]]
-name = "color-thrust-test-devices"
-version = "0.1.0"
-dependencies = [
- "color-thrust-interface",
- "kaze",
- "rtl",
-]
 
 [[package]]
 name = "color_quant"
@@ -1028,17 +1023,17 @@ dependencies = [
 name = "rename-me"
 version = "0.1.0"
 dependencies = [
- "color-thrust-interface",
- "color-thrust-test-devices",
+ "abstract-device",
  "minifb",
  "strugl",
+ "test-devices",
 ]
 
 [[package]]
 name = "rtl"
 version = "0.1.0"
 dependencies = [
- "color-thrust-interface",
+ "color-thrust-meta",
  "kaze",
 ]
 
@@ -1170,7 +1165,8 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 name = "strugl"
 version = "0.1.0"
 dependencies = [
- "color-thrust-interface",
+ "abstract-device",
+ "color-thrust-meta",
  "env",
  "linalg",
 ]
@@ -1179,7 +1175,7 @@ dependencies = [
 name = "strugl-test"
 version = "0.1.0"
 dependencies = [
- "color-thrust-interface",
+ "abstract-device",
  "env",
  "image",
  "linalg",
@@ -1219,6 +1215,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb6bfa289a4d7c5766392812c0a1f4c1ba45afa1ad47803c11e1f407d846d75f"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "test-devices"
+version = "0.1.0"
+dependencies = [
+ "abstract-device",
+ "color-thrust-meta",
+ "kaze",
+ "rtl",
 ]
 
 [[package]]
