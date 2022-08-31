@@ -686,7 +686,7 @@ impl<D: Device> Context<D> {
     }
 
     pub fn extract_back_buffer(&mut self) -> Vec<u32> {
-        let mut ret = Vec::with_capacity((PIXELS / 4) as _);
+        let mut ret = Vec::with_capacity(PIXELS as _);
 
         for y in 0..HEIGHT {
             for x in 0..WIDTH / 4 {
