@@ -22,6 +22,7 @@ pub const PIXELS: u32 = WIDTH * HEIGHT;
 
 const FRACT_BITS: u32 = 16;
 
+const NUM_COLOR_BUFFER_WORDS: u32 = PIXELS * 4 / 16;
 const NUM_DEPTH_BUFFER_WORDS: u32 = PIXELS * 2 / 16;
 
 // TODO: Change this..
@@ -131,7 +132,7 @@ struct Triangle {
 pub struct Context<D: Device> {
     device: D,
 
-    pub back_buffer: Vec<u32>,
+    back_buffer_base_addr: u32,
     depth_buffer_base_addr: u32,
 
     // TODO: Don't make these public; expose as some kind of register interface instead
@@ -159,12 +160,13 @@ pub struct RenderStats {
 
 impl<D: Device> Context<D> {
     pub fn new(mut device: D) -> Context<D> {
+        let back_buffer_base_addr = device.mem_alloc(NUM_COLOR_BUFFER_WORDS, 1);
         let depth_buffer_base_addr = device.mem_alloc(NUM_DEPTH_BUFFER_WORDS, 1);
 
         Context {
             device,
 
-            back_buffer: vec![0; PIXELS as usize],
+            back_buffer_base_addr,
             depth_buffer_base_addr,
 
             depth_test_enable: false,
@@ -239,11 +241,21 @@ impl<D: Device> Context<D> {
     }
 
     pub fn clear(&mut self) {
-        for pixel in &mut self.back_buffer {
-            *pixel = 0x00ff00; // TODO: Change back to 0
+        let clear_color = 0x00ff00; // TODO: Expose this properly
+        let mut clear_color_word = 0;
+        for i in 0..4 {
+            clear_color_word |= (clear_color as u128) << (i * 32);
+        }
+        for i in 0..NUM_COLOR_BUFFER_WORDS {
+            self.device.mem_write_word(self.back_buffer_base_addr + i * 16, clear_color_word);
+        }
+        let clear_depth = 0xffff; // TODO: Expose this properly
+        let mut clear_depth_word = 0;
+        for i in 0..8 {
+            clear_depth_word |= (clear_depth as u128) << (i * 16);
         }
         for i in 0..NUM_DEPTH_BUFFER_WORDS {
-            self.device.mem_write_word(self.depth_buffer_base_addr + i * 16, 0xffffffffffffffffffffffffffffffff);
+            self.device.mem_write_word(self.depth_buffer_base_addr + i * 16, clear_depth_word);
         }
     }
 
@@ -330,10 +342,7 @@ impl<D: Device> Context<D> {
                 for y in 0..TILE_DIM {
                     for x in 0..TILE_DIM / 4 {
                         let buffer_index = (HEIGHT - 1 - (tile_min_y + y)) * WIDTH + tile_min_x + x * 4;
-                        let mut word = 0;
-                        for i in 0..4 {
-                            word |= (self.back_buffer[(buffer_index + i) as usize] as u128) << (i * 32);
-                        }
+                        let word = self.device.mem_read_word(self.back_buffer_base_addr + buffer_index * 4);
                         self.device.color_thrust_write_color_buffer_word(y * TILE_DIM / 4 + x, word);
                     }
                 }
@@ -402,16 +411,9 @@ impl<D: Device> Context<D> {
                 let start_cycles = env.cycles();
                 for y in 0..TILE_DIM {
                     for x in 0..TILE_DIM / 4 {
-                        let buffer_index = (HEIGHT - 1 - (tile_min_y + y)) * WIDTH + tile_min_x + x * 4;
                         let word = self.device.color_thrust_read_color_buffer_word(y * TILE_DIM / 4 + x);
-                        for i in 0..4 {
-                            let tile_pixel = (word >> (32 * i)) as u32;
-                            let a = (tile_pixel >> 24) & 0xff;
-                            let r = (tile_pixel >> 16) & 0xff;
-                            let g = (tile_pixel >> 8) & 0xff;
-                            let b = (tile_pixel >> 0) & 0xff;
-                            self.back_buffer[(buffer_index + i) as usize] = (a << 24) | (r << 16) | (g << 8) | b;
-                        }
+                        let buffer_index = (HEIGHT - 1 - (tile_min_y + y)) * WIDTH + tile_min_x + x * 4;
+                        self.device.mem_write_word(self.back_buffer_base_addr + buffer_index * 4, word);
                     }
                 }
                 if self.depth_write_mask_enable {
@@ -681,5 +683,20 @@ impl<D: Device> Context<D> {
         }
 
         *total_binning_cycles += env.cycles().wrapping_sub(start_cycles);
+    }
+
+    pub fn extract_back_buffer(&mut self) -> Vec<u32> {
+        let mut ret = Vec::with_capacity((PIXELS / 4) as _);
+
+        for y in 0..HEIGHT {
+            for x in 0..WIDTH / 4 {
+                let word = self.device.mem_read_word(self.back_buffer_base_addr + ((y * WIDTH) + x * 4) * 4);
+                for i in 0..4 {
+                    ret.push((word >> (i * 32)) as _);
+                }
+            }
+        }
+
+        ret
     }
 }

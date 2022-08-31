@@ -48,9 +48,10 @@ fn main() -> ! {
                     uart::write_u8(0x03);
                     uart::write_u64_le(elapsed_cycles);
 
+                    let back_buffer = c.extract_back_buffer();
                     for y in 0..HEIGHT {
                         for x in 0..WIDTH {
-                            uart::write_u32_le(c.back_buffer[(y * WIDTH + x) as usize]);
+                            uart::write_u32_le(back_buffer[(y * WIDTH + x) as usize]);
                         }
                     }
                     break;

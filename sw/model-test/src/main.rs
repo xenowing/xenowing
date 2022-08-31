@@ -39,9 +39,10 @@ fn main() {
     while window.is_open() && !window.is_key_down(Key::Escape) {
         strugl_test.render_frame(&mut c, &env);
 
-        let mut flipped_buffer: Vec<u32> = Vec::with_capacity(c.back_buffer.len());
+        let back_buffer = c.extract_back_buffer();
+        let mut flipped_buffer: Vec<u32> = Vec::with_capacity(back_buffer.len());
         for y in (0..HEIGHT).rev() {
-            flipped_buffer.extend_from_slice(&c.back_buffer[(y * WIDTH) as usize..((y + 1) * WIDTH) as usize]);
+            flipped_buffer.extend_from_slice(&back_buffer[(y * WIDTH) as usize..((y + 1) * WIDTH) as usize]);
         }
         window.update_with_buffer(&flipped_buffer, WIDTH as _, HEIGHT as _).unwrap();
     }
