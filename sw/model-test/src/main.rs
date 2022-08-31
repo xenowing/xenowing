@@ -26,7 +26,7 @@ fn main() {
         _ => panic!("Invalid device type argument")
     };
 
-    let mut window = Window::new("strugl", WIDTH, HEIGHT, WindowOptions {
+    let mut window = Window::new("strugl", WIDTH as _, HEIGHT as _, WindowOptions {
         scale: Scale::X2,
         scale_mode: ScaleMode::AspectRatioStretch,
         ..WindowOptions::default()
@@ -41,8 +41,8 @@ fn main() {
 
         let mut flipped_buffer: Vec<u32> = Vec::with_capacity(c.back_buffer.len());
         for y in (0..HEIGHT).rev() {
-            flipped_buffer.extend_from_slice(&c.back_buffer[y * WIDTH..(y + 1) * WIDTH]);
+            flipped_buffer.extend_from_slice(&c.back_buffer[(y * WIDTH) as usize..((y + 1) * WIDTH) as usize]);
         }
-        window.update_with_buffer(&flipped_buffer, WIDTH, HEIGHT).unwrap();
+        window.update_with_buffer(&flipped_buffer, WIDTH as _, HEIGHT as _).unwrap();
     }
 }

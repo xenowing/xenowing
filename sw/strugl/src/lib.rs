@@ -16,11 +16,13 @@ use alloc::vec::Vec;
 use core::fmt::Write;
 
 // TODO: Don't specify this here?
-pub const WIDTH: usize = 320;
-pub const HEIGHT: usize = 240;
-pub const PIXELS: usize = WIDTH * HEIGHT;
+pub const WIDTH: u32 = 320;
+pub const HEIGHT: u32 = 240;
+pub const PIXELS: u32 = WIDTH * HEIGHT;
 
-pub const FRACT_BITS: u32 = 16;
+const FRACT_BITS: u32 = 16;
+
+const NUM_DEPTH_BUFFER_WORDS: u32 = PIXELS * 2 / 16;
 
 // TODO: Change this..
 #[derive(Clone, Copy)]
@@ -130,7 +132,7 @@ pub struct Context<D: Device> {
     device: D,
 
     pub back_buffer: Vec<u32>,
-    depth_buffer: Vec<u16>,
+    depth_buffer_base_addr: u32,
 
     // TODO: Don't make these public; expose as some kind of register interface instead
     pub depth_test_enable: bool,
@@ -156,12 +158,14 @@ pub struct RenderStats {
 }
 
 impl<D: Device> Context<D> {
-    pub fn new(device: D) -> Context<D> {
+    pub fn new(mut device: D) -> Context<D> {
+        let depth_buffer_base_addr = device.mem_alloc(NUM_DEPTH_BUFFER_WORDS, 1);
+
         Context {
             device,
 
-            back_buffer: vec![0; PIXELS],
-            depth_buffer: vec![0xffff; PIXELS],
+            back_buffer: vec![0; PIXELS as usize],
+            depth_buffer_base_addr,
 
             depth_test_enable: false,
             depth_write_mask_enable: false,
@@ -175,7 +179,7 @@ impl<D: Device> Context<D> {
             projection: Im4::identity(),
 
             // TODO: Fixed capacity and splitting drawcalls on overflow
-            assembled_triangles: vec![Vec::new(); PIXELS / TILE_PIXELS as usize],
+            assembled_triangles: vec![Vec::new(); (PIXELS / TILE_PIXELS) as usize],
         }
     }
 
@@ -238,8 +242,8 @@ impl<D: Device> Context<D> {
         for pixel in &mut self.back_buffer {
             *pixel = 0x00ff00; // TODO: Change back to 0
         }
-        for depth in &mut self.depth_buffer {
-            *depth = 0xffff;
+        for i in 0..NUM_DEPTH_BUFFER_WORDS {
+            self.device.mem_write_word(self.depth_buffer_base_addr + i * 16, 0xffffffffffffffffffffffffffffffff);
         }
     }
 
@@ -307,14 +311,14 @@ impl<D: Device> Context<D> {
         let mut total_rasterization_cycles = 0;
 
         // Primitive rendering
-        for tile_index_y in 0..HEIGHT / (TILE_DIM as usize) {
-            let tile_min_y = (tile_index_y * (TILE_DIM as usize)) as i32;
+        for tile_index_y in 0..HEIGHT / TILE_DIM {
+            let tile_min_y = tile_index_y * TILE_DIM;
 
-            for tile_index_x in 0..WIDTH / (TILE_DIM as usize) {
-                let tile_min_x = (tile_index_x * (TILE_DIM as usize)) as i32;
+            for tile_index_x in 0..WIDTH / TILE_DIM {
+                let tile_min_x = tile_index_x * TILE_DIM;
 
-                let tile_index = tile_index_y * (WIDTH / (TILE_DIM as usize)) + tile_index_x;
-                let assembled_triangles = &mut self.assembled_triangles[tile_index];
+                let tile_index = tile_index_y * (WIDTH / TILE_DIM) + tile_index_x;
+                let assembled_triangles = &mut self.assembled_triangles[tile_index as usize];
                 if assembled_triangles.is_empty() {
                     continue;
                 }
@@ -323,25 +327,22 @@ impl<D: Device> Context<D> {
 
                 // Copy tile into rasterizer memory
                 let start_cycles = env.cycles();
-                for y in 0..TILE_DIM as usize {
-                    for x in 0..TILE_DIM as usize / 4 {
-                        let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 4;
+                for y in 0..TILE_DIM {
+                    for x in 0..TILE_DIM / 4 {
+                        let buffer_index = (HEIGHT - 1 - (tile_min_y + y)) * WIDTH + tile_min_x + x * 4;
                         let mut word = 0;
                         for i in 0..4 {
-                            word |= (self.back_buffer[buffer_index + i] as u128) << (i * 32);
+                            word |= (self.back_buffer[(buffer_index + i) as usize] as u128) << (i * 32);
                         }
-                        self.device.color_thrust_write_color_buffer_word(y as u32 * TILE_DIM / 4 + x as u32, word);
+                        self.device.color_thrust_write_color_buffer_word(y * TILE_DIM / 4 + x, word);
                     }
                 }
                 if self.depth_test_enable || self.depth_write_mask_enable {
-                    for y in 0..TILE_DIM as usize {
-                        for x in 0..TILE_DIM as usize / 8 {
-                            let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 8;
-                            let mut word = 0;
-                            for i in 0..8 {
-                                word |= (self.depth_buffer[buffer_index + i] as u128) << (i * 16);
-                            }
-                            self.device.color_thrust_write_depth_buffer_word(y as u32 * TILE_DIM / 8 + x as u32, word);
+                    for y in 0..TILE_DIM {
+                        for x in 0..TILE_DIM / 8 {
+                            let buffer_index = (HEIGHT - 1 - (tile_min_y + y)) * WIDTH + tile_min_x + x * 8;
+                            let word = self.device.mem_read_word(self.depth_buffer_base_addr + buffer_index * 2);
+                            self.device.color_thrust_write_depth_buffer_word(y * TILE_DIM / 8 + x, word);
                         }
                     }
                 }
@@ -399,32 +400,26 @@ impl<D: Device> Context<D> {
 
                 // Copy rasterizer memory back to tile
                 let start_cycles = env.cycles();
-                for y in 0..TILE_DIM as usize {
-                    for x in 0..TILE_DIM as usize / 4 {
-                        let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 4;
-                        let word = self.device.color_thrust_read_color_buffer_word(y as u32 * TILE_DIM / 4 + x as u32);
+                for y in 0..TILE_DIM {
+                    for x in 0..TILE_DIM / 4 {
+                        let buffer_index = (HEIGHT - 1 - (tile_min_y + y)) * WIDTH + tile_min_x + x * 4;
+                        let word = self.device.color_thrust_read_color_buffer_word(y * TILE_DIM / 4 + x);
                         for i in 0..4 {
                             let tile_pixel = (word >> (32 * i)) as u32;
                             let a = (tile_pixel >> 24) & 0xff;
                             let r = (tile_pixel >> 16) & 0xff;
                             let g = (tile_pixel >> 8) & 0xff;
                             let b = (tile_pixel >> 0) & 0xff;
-                            /*let r = r + 16 * (assembled_triangles.len() as u32 - 1);
-                            let g = g + 16;
-                            let r = if r > 255 { 255 } else { r };
-                            let g = if g > 255 { 255 } else { g };*/
-                            self.back_buffer[buffer_index + i] = (a << 24) | (r << 16) | (g << 8) | b;
+                            self.back_buffer[(buffer_index + i) as usize] = (a << 24) | (r << 16) | (g << 8) | b;
                         }
                     }
                 }
                 if self.depth_write_mask_enable {
-                    for y in 0..TILE_DIM as usize {
-                        for x in 0..TILE_DIM as usize / 8 {
-                            let buffer_index = (HEIGHT - 1 - (tile_min_y as usize + y)) * WIDTH + tile_min_x as usize + x * 8;
-                            let word = self.device.color_thrust_read_depth_buffer_word(y as u32 * TILE_DIM / 8 + x as u32);
-                            for i in 0..8 {
-                                self.depth_buffer[buffer_index + i] = (word >> (16 * i)) as _;
-                            }
+                    for y in 0..TILE_DIM {
+                        for x in 0..TILE_DIM / 8 {
+                            let word = self.device.color_thrust_read_depth_buffer_word(y * TILE_DIM / 8 + x);
+                            let buffer_index = (HEIGHT - 1 - (tile_min_y + y)) * WIDTH + tile_min_x + x * 8;
+                            self.device.mem_write_word(self.depth_buffer_base_addr + buffer_index * 2, word);
                         }
                     }
                 }
@@ -623,17 +618,17 @@ impl<D: Device> Context<D> {
 
         let start_cycles = env.cycles();
 
-        for tile_index_y in 0..HEIGHT / (TILE_DIM as usize) {
-            let tile_min_y = (tile_index_y * (TILE_DIM as usize)) as i32;
-            let tile_max_y = tile_min_y + (TILE_DIM as usize) as i32 - 1;
+        for tile_index_y in 0..HEIGHT / TILE_DIM {
+            let tile_min_y = (tile_index_y * TILE_DIM) as i32;
+            let tile_max_y = tile_min_y + TILE_DIM as i32 - 1;
 
             if bb_max_y < tile_min_y || bb_min_y > tile_max_y {
                 continue;
             }
 
-            for tile_index_x in 0..WIDTH / (TILE_DIM as usize) {
-                let tile_min_x = (tile_index_x * (TILE_DIM as usize)) as i32;
-                let tile_max_x = tile_min_x + (TILE_DIM as usize) as i32 - 1;
+            for tile_index_x in 0..WIDTH / TILE_DIM {
+                let tile_min_x = (tile_index_x * TILE_DIM) as i32;
+                let tile_max_x = tile_min_x + TILE_DIM as i32 - 1;
 
                 if bb_max_x < tile_min_x || bb_min_x > tile_max_x {
                     continue;
@@ -680,8 +675,8 @@ impl<D: Device> Context<D> {
                 triangle.s_min = s_min.into_raw(ST_FRACT_BITS) as _;
                 triangle.t_min = t_min.into_raw(ST_FRACT_BITS) as _;
 
-                let tile_index = tile_index_y * (WIDTH / (TILE_DIM as usize)) + tile_index_x;
-                self.assembled_triangles[tile_index].push(triangle.clone());
+                let tile_index = tile_index_y * (WIDTH / TILE_DIM) + tile_index_x;
+                self.assembled_triangles[tile_index as usize].push(triangle.clone());
             }
         }
 

@@ -1,9 +1,11 @@
 #![no_std]
 
 pub trait Device {
+    // TODO: Consider device memory pointer type for addrs
     fn mem_alloc(&mut self, num_words: u32, align_words: u32) -> u32;
     fn mem_dealloc(&mut self, addr: u32);
     fn mem_write_word(&mut self, addr: u32, data: u128);
+    fn mem_read_word(&mut self, addr: u32) -> u128;
 
     fn color_thrust_write_reg(&mut self, addr: u32, data: u32);
     fn color_thrust_read_reg(&mut self, addr: u32) -> u32;
@@ -27,6 +29,11 @@ impl<D: Device + ?Sized> Device for &mut D {
     #[inline]
     fn mem_write_word(&mut self, addr: u32, data: u128) {
         (**self).mem_write_word(addr, data);
+    }
+
+    #[inline]
+    fn mem_read_word(&mut self, addr: u32) -> u128 {
+        (**self).mem_read_word(addr)
     }
 
     #[inline]

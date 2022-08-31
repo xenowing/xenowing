@@ -9,7 +9,7 @@ use modules::*;
 use minifb::{Scale, ScaleMode, Window, WindowOptions};
 use rtl::buster_mig_ui_bridge::*;
 use serialport::prelude::*;
-use strugl::{WIDTH, HEIGHT};
+use strugl::{PIXELS, HEIGHT, WIDTH};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 use std::env;
@@ -18,8 +18,6 @@ use std::io::{self, Write};
 use std::str;
 use std::sync::mpsc::{self, channel, Receiver, Sender};
 use std::thread;
-
-const PIXELS: usize = WIDTH * HEIGHT;
 
 #[derive(Debug)]
 enum Error {
@@ -487,9 +485,9 @@ fn main() -> Result<(), Error> {
     };
     println!();
 
-    let mut back_buffer = vec![0xffff00ff; PIXELS];
+    let mut back_buffer = vec![0xffff00ff; PIXELS as usize];
 
-    let mut window = Window::new("trim", WIDTH, HEIGHT, WindowOptions {
+    let mut window = Window::new("trim", WIDTH as _, HEIGHT as _, WindowOptions {
         scale: Scale::X2,
         scale_mode: ScaleMode::AspectRatioStretch,
         ..WindowOptions::default()
@@ -552,11 +550,11 @@ fn main() -> Result<(), Error> {
 
                 for y in 0..HEIGHT {
                     for x in 0..WIDTH {
-                        back_buffer[(HEIGHT - 1 - y) * WIDTH + x] = device.read_u32()?;
+                        back_buffer[((HEIGHT - 1 - y) * WIDTH + x) as usize] = device.read_u32()?;
                     }
                 }
 
-                window.update_with_buffer(&back_buffer, WIDTH, HEIGHT).unwrap();
+                window.update_with_buffer(&back_buffer, WIDTH as _, HEIGHT as _).unwrap();
 
                 writeln!(&mut stdout, "frame complete")?;
 

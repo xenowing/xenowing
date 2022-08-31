@@ -336,6 +336,10 @@ impl Device for ModelDevice {
         todo!()
     }
 
+    fn mem_read_word(&mut self, addr: u32) -> u128 {
+        todo!()
+    }
+
     fn color_thrust_write_reg(&mut self, addr: u32, data: u32) {
         match addr {
             REG_START_ADDR => self.rasterize_primitive(),

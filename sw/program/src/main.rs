@@ -50,7 +50,7 @@ fn main() -> ! {
 
                     for y in 0..HEIGHT {
                         for x in 0..WIDTH {
-                            uart::write_u32_le(c.back_buffer[y * WIDTH + x]);
+                            uart::write_u32_le(c.back_buffer[(y * WIDTH + x) as usize]);
                         }
                     }
                     break;
