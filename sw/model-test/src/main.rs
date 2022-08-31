@@ -1,5 +1,3 @@
-#![feature(box_syntax)]
-
 mod model_device;
 mod model_environment;
 mod modules {
@@ -23,8 +21,8 @@ fn main() {
     let device_type = env::args().skip(1).nth(0).expect("No device type argument provided");
 
     let mut device: Box<dyn Device> = match device_type.as_str() {
-        "model" => box model_device::ModelDevice::new(),
-        "sim" => box sim_device::SimDevice::new(),
+        "model" => Box::new(model_device::ModelDevice::new()),
+        "sim" => Box::new(sim_device::SimDevice::new()),
         _ => panic!("Invalid device type argument")
     };
 

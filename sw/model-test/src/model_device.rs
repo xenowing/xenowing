@@ -22,10 +22,8 @@ enum BlendDstFactor {
 }
 
 pub struct ModelDevice {
-    color_buffer: [u32; TILE_PIXELS as usize],
-    depth_buffer: [u16; TILE_PIXELS as usize],
-
-    tex_buffer: [u128; (1 << TEX_WORD_ADDR_BITS) as usize],
+    color_buffer: Box<[u32]>,
+    depth_buffer: Box<[u16]>,
 
     depth_test_enable: bool,
     depth_write_mask_enable: bool,
@@ -73,10 +71,8 @@ pub struct ModelDevice {
 impl ModelDevice {
     pub fn new() -> ModelDevice {
         ModelDevice {
-            color_buffer: [0; TILE_PIXELS as usize],
-            depth_buffer: [0; TILE_PIXELS as usize],
-
-            tex_buffer: [0; (1 << TEX_WORD_ADDR_BITS) as usize],
+            color_buffer: vec![0; TILE_PIXELS as usize].into_boxed_slice(),
+            depth_buffer: vec![0; TILE_PIXELS as usize].into_boxed_slice(),
 
             depth_test_enable: false,
             depth_write_mask_enable: false,
@@ -317,12 +313,13 @@ impl ModelDevice {
         let s = s as usize & (texture_width - 1);
         let t = t as usize & (texture_height - 1);
         // TODO: Proper fetch from correct address
-        let texel = self.tex_buffer[t / 2 * texture_width / 2 + s / 2] as u32;
+        todo!()
+        /*let texel = self.tex_buffer[t / 2 * texture_width / 2 + s / 2] as u32;
         let texel_red = (texel >> 16) & 0xff;
         let texel_green = (texel >> 8) & 0xff;
         let texel_blue = (texel >> 0) & 0xff;
         let texel_alpha = (texel >> 24) & 0xff;
-        (texel_red, texel_green, texel_blue, texel_alpha)
+        (texel_red, texel_green, texel_blue, texel_alpha)*/
     }
 }
 
@@ -336,7 +333,7 @@ impl Device for ModelDevice {
     }
 
     fn mem_write_word(&mut self, addr: u32, data: u128) {
-        self.tex_buffer[(addr / 16) as usize] = data;
+        todo!()
     }
 
     fn color_thrust_write_reg(&mut self, addr: u32, data: u32) {
