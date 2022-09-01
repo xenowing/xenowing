@@ -2,39 +2,51 @@ mod color_thrust;
 
 use color_thrust::*;
 
+use crate::mem_allocator::*;
+
 use abstract_device::*;
 
 pub struct ModelDevice {
     color_thrust: ColorThrust,
+    mem: Box<[u128]>,
+    mem_allocator: MemAllocator,
 }
 
 impl ModelDevice {
     pub fn new() -> ModelDevice {
         ModelDevice {
             color_thrust: ColorThrust::new(),
+            mem: vec![0; MEM_NUM_WORDS as usize].into_boxed_slice(),
+            mem_allocator: MemAllocator::new(),
         }
     }
 }
 
 impl Device for ModelDevice {
-    fn mem_alloc(&mut self, _num_words: u32, _align_words: u32) -> u32 {
-        todo!()
+    fn mem_alloc(&mut self, num_words: u32, align_words: u32) -> u32 {
+        self.mem_allocator.alloc(num_words, align_words)
     }
 
-    fn mem_dealloc(&mut self, _addr: u32) {
-        todo!()
+    fn mem_dealloc(&mut self, addr: u32) {
+        self.mem_allocator.dealloc(addr);
     }
 
     fn mem_write_word(&mut self, addr: u32, data: u128) {
-        todo!()
+        if (addr % 16) != 0 {
+            panic!("Unaligned device memory access");
+        }
+        self.mem[(addr / 16) as usize] = data;
     }
 
     fn mem_read_word(&mut self, addr: u32) -> u128 {
-        todo!()
+        if (addr % 16) != 0 {
+            panic!("Unaligned device memory access");
+        }
+        self.mem[(addr / 16) as usize]
     }
 
     fn color_thrust_write_reg(&mut self, addr: u32, data: u32) {
-        self.color_thrust.write_reg(addr, data);
+        self.color_thrust.write_reg(addr, data, &self.mem);
     }
 
     fn color_thrust_read_reg(&mut self, addr: u32) -> u32 {

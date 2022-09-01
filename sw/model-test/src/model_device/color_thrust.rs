@@ -5,6 +5,13 @@ enum TextureFilter {
     Bilinear,
 }
 
+pub enum TextureDim {
+    X16,
+    X32,
+    X64,
+    X128,
+}
+
 enum BlendSrcFactor {
     Zero,
     One,
@@ -27,6 +34,8 @@ pub struct ColorThrust {
     depth_write_mask_enable: bool,
 
     texture_filter: TextureFilter,
+    texture_dim: TextureDim,
+    texture_base: u32,
 
     blend_src_factor: BlendSrcFactor,
     blend_dst_factor: BlendDstFactor,
@@ -76,6 +85,8 @@ impl ColorThrust {
             depth_write_mask_enable: false,
 
             texture_filter: TextureFilter::Nearest,
+            texture_dim: TextureDim::X16,
+            texture_base: 0,
 
             blend_src_factor: BlendSrcFactor::One,
             blend_dst_factor: BlendDstFactor::Zero,
@@ -116,19 +127,29 @@ impl ColorThrust {
         }
     }
 
-    pub fn write_reg(&mut self, addr: u32, data: u32) {
+    pub fn write_reg(&mut self, addr: u32, data: u32, mem: &[u128]) {
         match addr {
-            REG_START_ADDR => self.rasterize_primitive(),
+            REG_START_ADDR => self.rasterize_primitive(mem),
             REG_DEPTH_SETTINGS_ADDR => {
                 self.depth_test_enable = (data & (1 << REG_DEPTH_TEST_ENABLE_BIT)) != 0;
                 self.depth_write_mask_enable = (data & (1 << REG_DEPTH_WRITE_MASK_ENABLE_BIT)) != 0;
             }
             REG_TEXTURE_SETTINGS_ADDR => {
-                self.texture_filter = match (data >> REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT_OFFSET) & ((1 << REG_TEXTURE_SETTINGS_BITS) - 1) {
+                self.texture_filter = match (data >> REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT_OFFSET) & ((1 << REG_TEXTURE_SETTINGS_FILTER_SELECT_BITS) - 1) {
                     REG_TEXTURE_SETTINGS_FILTER_SELECT_NEAREST => TextureFilter::Nearest,
                     REG_TEXTURE_SETTINGS_FILTER_SELECT_BILINEAR => TextureFilter::Bilinear,
-                    _ => unreachable!(),
+                    _ => unreachable!()
                 };
+                self.texture_dim = match (data >> REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET) & ((1 << REG_TEXTURE_SETTINGS_DIM_BITS) - 1) {
+                    REG_TEXTURE_SETTINGS_DIM_16 => TextureDim::X16,
+                    REG_TEXTURE_SETTINGS_DIM_32 => TextureDim::X32,
+                    REG_TEXTURE_SETTINGS_DIM_64 => TextureDim::X64,
+                    REG_TEXTURE_SETTINGS_DIM_128 => TextureDim::X128,
+                    _ => unreachable!()
+                };
+            }
+            REG_TEXTURE_BASE_ADDR => {
+                self.texture_base = (data >> (6 + 4)) & ((1 << REG_TEXTURE_BASE_BITS) - 1);
             }
             REG_BLEND_SETTINGS_ADDR => {
                 self.blend_src_factor = match (data >> REG_BLEND_SETTINGS_SRC_FACTOR_BIT_OFFSET) & ((1 << REG_BLEND_SETTINGS_SRC_FACTOR_BITS) - 1) {
@@ -136,14 +157,14 @@ impl ColorThrust {
                     REG_BLEND_SETTINGS_SRC_FACTOR_ONE => BlendSrcFactor::One,
                     REG_BLEND_SETTINGS_SRC_FACTOR_SRC_ALPHA => BlendSrcFactor::SrcAlpha,
                     REG_BLEND_SETTINGS_SRC_FACTOR_ONE_MINUS_SRC_ALPHA => BlendSrcFactor::OneMinusSrcAlpha,
-                    _ => unreachable!(),
+                    _ => unreachable!()
                 };
                 self.blend_dst_factor = match (data >> REG_BLEND_SETTINGS_DST_FACTOR_BIT_OFFSET) & ((1 << REG_BLEND_SETTINGS_DST_FACTOR_BITS) - 1) {
                     REG_BLEND_SETTINGS_DST_FACTOR_ZERO => BlendDstFactor::Zero,
                     REG_BLEND_SETTINGS_DST_FACTOR_ONE => BlendDstFactor::One,
                     REG_BLEND_SETTINGS_DST_FACTOR_SRC_ALPHA => BlendDstFactor::SrcAlpha,
                     REG_BLEND_SETTINGS_DST_FACTOR_ONE_MINUS_SRC_ALPHA => BlendDstFactor::OneMinusSrcAlpha,
-                    _ => unreachable!(),
+                    _ => unreachable!()
                 };
             }
             REG_W0_MIN_ADDR => { self.w0_min = data; }
@@ -275,7 +296,7 @@ impl ColorThrust {
         ret
     }
 
-    fn rasterize_primitive(&mut self) {
+    fn rasterize_primitive(&mut self, mem: &[u128]) {
         let mut w0_row = self.w0_min;
         let mut w1_row = self.w1_min;
         let mut w2_row = self.w2_min;
@@ -351,10 +372,30 @@ impl ColorThrust {
                         }
                         TextureFilter::Bilinear => (), // Do nothing
                     }
-                    let texel_color0 = self.fetch_texel(s_floor + 0, t_floor + 0);
-                    let texel_color1 = self.fetch_texel(s_floor + 1, t_floor + 0);
-                    let texel_color2 = self.fetch_texel(s_floor + 0, t_floor + 1);
-                    let texel_color3 = self.fetch_texel(s_floor + 1, t_floor + 1);
+                    // Swap weights depending on pixel offsets
+                    let (s_fract, one_minus_s_fract) = if (s_floor & 1) == 0 {
+                        (s_fract, one_minus_s_fract)
+                    } else {
+                        (one_minus_s_fract, s_fract)
+                    };
+                    let (t_fract, one_minus_t_fract) = if (t_floor & 1) == 0 {
+                        (t_fract, one_minus_t_fract)
+                    } else {
+                        (one_minus_t_fract, t_fract)
+                    };
+
+                    let buffer0_s = (s_floor.wrapping_add(1) >> 1) & 0x3f;
+                    let buffer0_t = (t_floor.wrapping_add(1) >> 1) & 0x3f;
+                    let buffer1_s = (s_floor >> 1) & 0x3f;
+                    let buffer1_t = buffer0_t;
+                    let buffer2_s = buffer0_s;
+                    let buffer2_t = (t_floor >> 1) & 0x3f;
+                    let buffer3_s = buffer1_s;
+                    let buffer3_t = buffer2_t;
+                    let texel_color0 = self.fetch_texel(buffer0_s, buffer0_t, 0, mem);
+                    let texel_color1 = self.fetch_texel(buffer1_s, buffer1_t, 1, mem);
+                    let texel_color2 = self.fetch_texel(buffer2_s, buffer2_t, 2, mem);
+                    let texel_color3 = self.fetch_texel(buffer3_s, buffer3_t, 3, mem);
                     let a_r = (texel_color0.0 * one_minus_s_fract + texel_color1.0 * s_fract) >> ST_FILTER_FRACT_BITS;
                     let a_g = (texel_color0.1 * one_minus_s_fract + texel_color1.1 * s_fract) >> ST_FILTER_FRACT_BITS;
                     let a_b = (texel_color0.2 * one_minus_s_fract + texel_color1.2 * s_fract) >> ST_FILTER_FRACT_BITS;
@@ -368,10 +409,18 @@ impl ColorThrust {
                     let texel_b = (a_b * one_minus_t_fract + b_b * t_fract) >> ST_FILTER_FRACT_BITS;
                     let texel_a = (a_a * one_minus_t_fract + b_a * t_fract) >> ST_FILTER_FRACT_BITS;
 
-                    let r = r >> COLOR_FRACT_BITS;
-                    let g = g >> COLOR_FRACT_BITS;
-                    let b = b >> COLOR_FRACT_BITS;
-                    let a = a >> COLOR_FRACT_BITS;
+                    fn clamp_comp(comp: u32) -> u32 {
+                        if (comp & (1 << (COLOR_WHOLE_BITS - 1))) != 0 {
+                            0
+                        } else {
+                            comp & ((1 << (COLOR_WHOLE_BITS - 2)) - 1)
+                        }
+                    }
+
+                    let r = clamp_comp(r >> COLOR_FRACT_BITS);
+                    let g = clamp_comp(g >> COLOR_FRACT_BITS);
+                    let b = clamp_comp(b >> COLOR_FRACT_BITS);
+                    let a = clamp_comp(a >> COLOR_FRACT_BITS);
 
                     let scale_comp = |color_comp: u32, texel_comp: u32| -> u32 {
                         (color_comp * texel_comp) >> 8
@@ -464,18 +513,25 @@ impl ColorThrust {
         }
     }
 
-    fn fetch_texel(&self, s: u32, t: u32) -> (u32, u32, u32, u32) {
-        let texture_width = 2 << 3;//self.texture_width_shift;
-        let texture_height = 2 << 3;//self.texture_height_shift;
-        let s = s as usize & (texture_width - 1);
-        let t = t as usize & (texture_height - 1);
-        // TODO: Proper fetch from correct address
-        todo!()
-        /*let texel = self.tex_buffer[t / 2 * texture_width / 2 + s / 2] as u32;
+    fn fetch_texel(&self, s: u32, t: u32, buffer_index: u32, mem: &[u128]) -> (u32, u32, u32, u32) {
+        //println!("texture base: 0x{:08x} (byte addr: 0x{:08x})", self.texture_base, self.texture_base << (6 + 4));
+        //println!("  s: {}, t: {}, buffer_index: {}", s, t, buffer_index);
+        let texel_addr = match self.texture_dim {
+            TextureDim::X16 | TextureDim::X32 | TextureDim::X128 => todo!(),
+            TextureDim::X64 =>
+                ((self.texture_base >> 4) << 12) |
+                (buffer_index << 10) |
+                ((t & 0x1f) << 5) |
+                (s & 0x1f),
+        };
+        //println!("texel addr:   0x{:08x} (byte addr: 0x{:08x})", texel_addr, texel_addr << 2);
+        let word_addr = texel_addr >> 2;
+        let word = mem[word_addr as usize];
+        let texel = (word >> ((texel_addr & 0x03) * 32)) as u32;
         let texel_red = (texel >> 16) & 0xff;
         let texel_green = (texel >> 8) & 0xff;
         let texel_blue = (texel >> 0) & 0xff;
         let texel_alpha = (texel >> 24) & 0xff;
-        (texel_red, texel_green, texel_blue, texel_alpha)*/
+        (texel_red, texel_green, texel_blue, texel_alpha)
     }
 }

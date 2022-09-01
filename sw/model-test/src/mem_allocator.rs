@@ -1,7 +1,7 @@
 // TODO: Dedupe and move!
-const MEM_ADDR_BITS: u32 = 24;
-const MEM_NUM_WORDS: u32 = 1 << MEM_ADDR_BITS;
-const MEM_NUM_BYTES: u32 = MEM_NUM_WORDS << 4;
+pub const MEM_ADDR_BITS: u32 = 24;
+pub const MEM_NUM_WORDS: u32 = 1 << MEM_ADDR_BITS;
+pub const MEM_NUM_BYTES: u32 = MEM_NUM_WORDS << 4;
 
 struct Allocation {
     start: u32,
