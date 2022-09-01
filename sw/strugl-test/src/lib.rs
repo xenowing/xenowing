@@ -19,6 +19,8 @@ use alloc::vec::Vec;
 pub struct StruglTest {
     cube_verts: Vec<Vertex>,
     texture: Rc<Texture>,
+
+    start_time: f64,
 }
 
 impl StruglTest {
@@ -40,11 +42,13 @@ impl StruglTest {
         StruglTest {
             cube_verts,
             texture,
+
+            start_time: env.time_seconds(),
         }
     }
 
     pub fn render_frame<D: Device, W: Write, E: Environment<W>>(&mut self, c: &mut Context<D>, env: &E) {
-        let frame_time = 6.0;//start_time.elapsed().as_secs_f64();
+        let frame_time = env.time_seconds() - self.start_time;
 
         let start_cycles = env.cycles();
         c.clear();

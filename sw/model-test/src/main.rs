@@ -34,7 +34,7 @@ fn main() {
     }).unwrap();
 
     let mut c = Context::new(&mut *device);
-    let env = ModelEnvironment;
+    let env = ModelEnvironment::new();
     let mut strugl_test = StruglTest::new(&mut c, &env);
 
     while window.is_open() && !window.is_key_down(Key::Escape) {

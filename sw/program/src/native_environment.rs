@@ -12,4 +12,8 @@ impl Environment<stdio::Stdout> for NativeEnvironment {
     fn stdout(&self) -> stdio::Stdout {
         stdio::stdout()
     }
+
+    fn time_seconds(&self) -> f64 {
+        marv::cycles() as f64 * (1.0 / 100000000.0)
+    }
 }
