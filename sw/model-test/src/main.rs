@@ -1,3 +1,4 @@
+mod mem_allocator;
 mod model_device;
 mod model_environment;
 mod modules {

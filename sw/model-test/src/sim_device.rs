@@ -1,27 +1,11 @@
+use crate::mem_allocator::*;
 use crate::modules::*;
 
 use abstract_device::*;
 
-// TODO: Dedupe and move!
-const MEM_ADDR_BITS: u32 = 24;
-const MEM_NUM_WORDS: u32 = 1 << MEM_ADDR_BITS;
-const MEM_NUM_BYTES: u32 = MEM_NUM_WORDS << 4;
-
-struct Allocation {
-    start: u32,
-    size: u32,
-}
-
-impl Allocation {
-    fn end(&self) -> u32 {
-        self.start + self.size
-    }
-}
-
 pub struct SimDevice {
-    allocations: Vec<Allocation>,
-
     top: Top,
+    mem_allocator: MemAllocator,
 }
 
 impl SimDevice {
@@ -35,43 +19,19 @@ impl SimDevice {
         top.prop();
 
         SimDevice {
-            allocations: Vec::new(),
-
             top,
+            mem_allocator: MemAllocator::new(),
         }
     }
 }
 
 impl Device for SimDevice {
     fn mem_alloc(&mut self, num_words: u32, align_words: u32) -> u32 {
-        let size = num_words * 16;
-        let align = align_words * 16;
-        let mut start = 0;
-        let mut end = start + size;
-        let mut insert_index = 0;
-        for (i, allocation) in self.allocations.iter().enumerate() {
-            let allocation_end = allocation.end();
-            if (start >= allocation.start && start < allocation_end) ||
-                (end >= allocation.start && end < allocation_end) ||
-                (allocation.start >= start && allocation.start < end) ||
-                (allocation_end >= start && allocation_end < end) {
-                start = (allocation_end + align - 1) / align * align;
-                end = start + size;
-                insert_index = i + 1;
-            }
-        }
-        if end >= MEM_NUM_BYTES {
-            panic!("Out of device memory");
-        }
-        self.allocations.insert(insert_index, Allocation {
-            start,
-            size,
-        });
-        start
+        self.mem_allocator.alloc(num_words, align_words)
     }
 
-    fn mem_dealloc(&mut self, _addr: u32) {
-        todo!()
+    fn mem_dealloc(&mut self, addr: u32) {
+        self.mem_allocator.dealloc(addr);
     }
 
     fn mem_write_word(&mut self, addr: u32, data: u128) {
