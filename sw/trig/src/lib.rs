@@ -1,4 +1,4 @@
-#![feature(core_intrinsics)]
+//#![feature(core_intrinsics)]
 #![no_std]
 
 mod tab {
@@ -7,7 +7,7 @@ mod tab {
 
 use tab::*;
 
-use core::intrinsics;
+//use core::intrinsics;
 
 pub fn cos(x: f32) -> f32 {
     sin(x + core::f32::consts::PI / 2.0)
@@ -16,7 +16,7 @@ pub fn cos(x: f32) -> f32 {
 pub fn sin(x: f32) -> f32 {
     let phase_scale = 1.0 / core::f32::consts::TAU;
     let phase = x * phase_scale;
-    let phase = phase - unsafe { intrinsics::floorf32(phase) };
+    let phase = phase - (phase as u32 as f32);//unsafe { intrinsics::floorf32(phase) };
     let phase_with_offset = phase + 1.0;
     let bits = phase_with_offset.to_bits();
     const NUM_SIGNIFICAND_BITS: usize = 23;
