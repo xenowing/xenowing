@@ -29,9 +29,7 @@ impl<T: Allocator> SystemAllocator<T> {
             impl_: RefCell::new(impl_),
         }
     }
-}
 
-impl<T: Allocator> SystemAllocator<T> {
     fn init(&mut self) {
         extern "C" {
             static _sheap: u8;
