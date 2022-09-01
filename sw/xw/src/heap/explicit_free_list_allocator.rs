@@ -155,11 +155,14 @@ impl ExplicitFreeListAllocator {
             block.free_prev = None;
         } else {
             // This block is the head of the free list; remove it, and push free_next in its place
-            self.free_head = None;
-            if let Some(mut free_next_ptr) = block.free_next {
+            self.free_head = if let Some(mut free_next_ptr) = block.free_next {
                 let free_next = unsafe { free_next_ptr.as_mut() };
-                self.push_onto_free_list(free_next);
-            }
+                free_next.additional_header().free_prev = None;
+
+                Some(free_next.into())
+            } else {
+                None
+            };
         }
         block.free_next = None;
     }
