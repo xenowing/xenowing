@@ -413,7 +413,7 @@ impl ColorThrust {
                         if (comp & (1 << (COLOR_WHOLE_BITS - 1))) != 0 {
                             0
                         } else {
-                            comp & ((1 << (COLOR_WHOLE_BITS - 2)) - 1)
+                            comp & ((1 << (COLOR_WHOLE_BITS - 1)) - 1)
                         }
                     }
 
