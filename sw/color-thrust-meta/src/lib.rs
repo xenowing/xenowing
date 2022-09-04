@@ -10,7 +10,7 @@ pub const TILE_PIXELS_WORDS_BITS: u32 = TILE_PIXELS_BITS - 2;
 pub const SYSTEM_BUS_ADDR_BITS: u32 = 24;
 pub const TEX_WORD_ADDR_BITS: u32 = SYSTEM_BUS_ADDR_BITS;
 
-pub const EDGE_FRACT_BITS: u32 = 16;
+pub const EDGE_FRACT_BITS: u32 = 3;
 // 8 bit component + 1 guard bit for clamping on overflow + 1 sign bit for clamping on underflow
 pub const COLOR_WHOLE_BITS: u32 = 8 + 1 + 1;
 // 8 whole bits (minus guard/sign bits) + 8 fractional bits
