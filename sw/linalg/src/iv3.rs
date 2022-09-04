@@ -43,6 +43,19 @@ impl<const FRACT_BITS: u32> Iv3<FRACT_BITS> {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
 
+    pub fn dot_mixed<const OTHER_FRACT_BITS: u32, const OUTPUT_FRACT_BITS: u32>(self, other: Iv3<OTHER_FRACT_BITS>) -> Fixed<OUTPUT_FRACT_BITS> {
+        self.x.mul_mixed(other.x) + self.y.mul_mixed(other.y) + self.z.mul_mixed(other.z)
+    }
+
+    // TODO: Suffix for rhs type?
+    pub fn div_mixed<const OTHER_FRACT_BITS: u32, const OUTPUT_FRACT_BITS: u32>(self, other: Fixed<OTHER_FRACT_BITS>) -> Iv3<OUTPUT_FRACT_BITS> {
+        Iv3 {
+            x: self.x.div_mixed(other),
+            y: self.y.div_mixed(other),
+            z: self.z.div_mixed(other),
+        }
+    }
+
     pub fn min(self, other: Self) -> Self {
         Self {
             x: self.x.min(other.x),

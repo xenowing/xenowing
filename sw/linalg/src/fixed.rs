@@ -49,6 +49,38 @@ impl<const FRACT_BITS: u32> Fixed<FRACT_BITS> {
             self.0 >> (FRACT_BITS - target_fract_bits)
         }
     }
+
+    pub fn add_mixed<const RHS_FRACT_BITS: u32, const OUTPUT_FRACT_BITS: u32>(self, rhs: Fixed<RHS_FRACT_BITS>) -> Fixed<OUTPUT_FRACT_BITS> {
+        let inter_fract_bits = FRACT_BITS.max(RHS_FRACT_BITS);
+        let lhs = self.into_raw(inter_fract_bits);
+        let rhs = rhs.into_raw(inter_fract_bits);
+        Fixed::<OUTPUT_FRACT_BITS>::from_raw(lhs + rhs, inter_fract_bits)
+    }
+
+    pub fn mul_mixed<const OTHER_FRACT_BITS: u32, const OUTPUT_FRACT_BITS: u32>(self, other: Fixed<OTHER_FRACT_BITS>) -> Fixed<OUTPUT_FRACT_BITS> {
+        let inter_fract_bits = FRACT_BITS + OTHER_FRACT_BITS;
+        let lhs = self.0 as i64;
+        let rhs = other.0 as i64;
+        let res = lhs * rhs;
+        Fixed(if inter_fract_bits > OUTPUT_FRACT_BITS {
+            res >> (inter_fract_bits - OUTPUT_FRACT_BITS)
+        } else {
+            res << (OUTPUT_FRACT_BITS - inter_fract_bits)
+        } as _)
+    }
+
+    pub fn div_mixed<const OTHER_FRACT_BITS: u32, const OUTPUT_FRACT_BITS: u32>(self, other: Fixed<OTHER_FRACT_BITS>) -> Fixed<OUTPUT_FRACT_BITS> {
+        let lhs = self.0 as i64;
+        let temp = OTHER_FRACT_BITS + OUTPUT_FRACT_BITS;
+        let lhs = if temp > FRACT_BITS {
+            lhs << (temp - FRACT_BITS)
+        } else {
+            lhs >> (FRACT_BITS - temp)
+        };
+        let rhs = other.0 as i64;
+        let res = lhs / rhs;
+        Fixed(res as _)
+    }
 }
 
 impl<const FRACT_BITS: u32> Add for Fixed<FRACT_BITS> {
