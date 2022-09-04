@@ -28,7 +28,7 @@ fn main() {
     };
 
     let mut window = Window::new("strugl", WIDTH as _, HEIGHT as _, WindowOptions {
-        scale: Scale::X2,
+        scale: Scale::X1,
         scale_mode: ScaleMode::AspectRatioStretch,
         ..WindowOptions::default()
     }).unwrap();

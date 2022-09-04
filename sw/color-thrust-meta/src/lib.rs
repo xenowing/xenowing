@@ -1,6 +1,6 @@
 #![no_std]
 
-pub const TILE_DIM_BITS: u32 = 4;
+pub const TILE_DIM_BITS: u32 = 5;
 pub const TILE_DIM: u32 = 1 << TILE_DIM_BITS;
 pub const TILE_PIXELS_BITS: u32 = TILE_DIM_BITS * 2;
 pub const TILE_PIXELS: u32 = 1 << TILE_PIXELS_BITS;

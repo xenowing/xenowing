@@ -488,7 +488,7 @@ fn main() -> Result<(), Error> {
     let mut back_buffer = vec![0xffff00ff; PIXELS as usize];
 
     let mut window = Window::new("trim", WIDTH as _, HEIGHT as _, WindowOptions {
-        scale: Scale::X2,
+        scale: Scale::X1,
         scale_mode: ScaleMode::AspectRatioStretch,
         ..WindowOptions::default()
     }).unwrap();

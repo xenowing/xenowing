@@ -16,8 +16,8 @@ use alloc::vec::Vec;
 use core::fmt::Write;
 
 // TODO: Don't specify this here?
-pub const WIDTH: u32 = 320;
-pub const HEIGHT: u32 = 240;
+pub const WIDTH: u32 = 640;
+pub const HEIGHT: u32 = 480;
 pub const PIXELS: u32 = WIDTH * HEIGHT;
 
 const FRACT_BITS: u32 = 16;
