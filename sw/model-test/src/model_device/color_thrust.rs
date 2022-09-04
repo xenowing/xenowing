@@ -514,8 +514,6 @@ impl ColorThrust {
     }
 
     fn fetch_texel(&self, s: u32, t: u32, buffer_index: u32, mem: &[u128]) -> (u32, u32, u32, u32) {
-        //println!("texture base: 0x{:08x} (byte addr: 0x{:08x})", self.texture_base, self.texture_base << (6 + 4));
-        //println!("  s: {}, t: {}, buffer_index: {}", s, t, buffer_index);
         let texel_addr = match self.texture_dim {
             TextureDim::X16 | TextureDim::X32 | TextureDim::X128 => todo!(),
             TextureDim::X64 =>
@@ -524,7 +522,6 @@ impl ColorThrust {
                 ((t & 0x1f) << 5) |
                 (s & 0x1f),
         };
-        //println!("texel addr:   0x{:08x} (byte addr: 0x{:08x})", texel_addr, texel_addr << 2);
         let word_addr = texel_addr >> 2;
         let word = mem[word_addr as usize];
         let texel = (word >> ((texel_addr & 0x03) * 32)) as u32;
