@@ -4,6 +4,10 @@ use core::ops::{Add, AddAssign, Div, Mul, Neg, Sub};
 pub struct Fixed<const FRACT_BITS: u32>(i32);
 
 impl<const FRACT_BITS: u32> Fixed<FRACT_BITS> {
+    pub fn zero() -> Self {
+        Self(0)
+    }
+
     pub fn ceil(self) -> Self {
         if FRACT_BITS > 0 {
             Self(self.0 + (1 << (FRACT_BITS - 1))).floor()
