@@ -547,19 +547,6 @@ impl<D: Device> Context<D> {
 
         let mut triangle = Triangle::default();
 
-        // Two triangles incident an edge might calculate slightly different values for the same
-        //  edge, due to winding. To mitigate this, we calculate each edge function with respect
-        //  to a canonical order on its vertices. The (arbitrarily) chosen canonical vertex
-        //  ordering is the lexicographical order on its window space coordinates. Note, however,
-        //  that the bottom/right bias is *not* affected by this ordering, as that bias _should_
-        //  be different for two triangles incident an edge for it to be meaningful.
-        fn ordered<const FRACT_BITS: u32>(a: Iv2<FRACT_BITS>, b: Iv2<FRACT_BITS>) -> bool {
-            b.y > a.y && b.x > a.x
-        }
-        let edge_12_ordered = ordered(Iv2::new(window_verts[1].x, window_verts[1].y), Iv2::new(window_verts[2].x, window_verts[2].y));
-        let edge_20_ordered = ordered(Iv2::new(window_verts[2].x, window_verts[2].y), Iv2::new(window_verts[0].x, window_verts[0].y));
-        let edge_01_ordered = ordered(Iv2::new(window_verts[0].x, window_verts[0].y), Iv2::new(window_verts[1].x, window_verts[1].y));
-
         let w0_dx = window_verts[1].y - window_verts[2].y;
         let w1_dx = window_verts[2].y - window_verts[0].y;
         let w2_dx = window_verts[0].y - window_verts[1].y;
@@ -664,24 +651,32 @@ impl<D: Device> Context<D> {
                     Fixed::from_raw(tile_min_y, 0),
                 ) + Fixed::from(0.5); // Offset to sample pixel centers
 
-                let w0_min = if edge_12_ordered {
-                    orient2d(Iv2::new(window_verts[1].x, window_verts[1].y), Iv2::new(window_verts[2].x, window_verts[2].y), p)
-                } else {
-                    -orient2d(Iv2::new(window_verts[2].x, window_verts[2].y), Iv2::new(window_verts[1].x, window_verts[1].y), p)
-                };
-                let w1_min = if edge_20_ordered {
-                    orient2d(Iv2::new(window_verts[2].x, window_verts[2].y), Iv2::new(window_verts[0].x, window_verts[0].y), p)
-                } else {
-                    -orient2d(Iv2::new(window_verts[0].x, window_verts[0].y), Iv2::new(window_verts[2].x, window_verts[2].y), p)
-                };
-                let w2_min = if edge_01_ordered {
-                    orient2d(Iv2::new(window_verts[0].x, window_verts[0].y), Iv2::new(window_verts[1].x, window_verts[1].y), p)
-                } else {
-                    -orient2d(Iv2::new(window_verts[1].x, window_verts[1].y), Iv2::new(window_verts[0].x, window_verts[0].y), p)
-                };
-                triangle.w0_min = (w0_min.into_raw(EDGE_FRACT_BITS) + w0_min_bias) as _;
-                triangle.w1_min = (w1_min.into_raw(EDGE_FRACT_BITS) + w1_min_bias) as _;
-                triangle.w2_min = (w2_min.into_raw(EDGE_FRACT_BITS) + w2_min_bias) as _;
+                // For edge functions, we must be extra careful that we calculate the same values, regardless of edge orientation.
+                //  In particular, we must apply the fill-rule bias _before_ we shift out the extra fractional bits from the
+                //  multiplications in the determinant calculations. So, we do some of the math here with raw integers and take
+                //  extra care when packing them back up (especially for use with interpolants, where we don't want the fill rule
+                //  bias to be applied).
+                fn orient2d_raw<const FRACT_BITS: u32>(
+                    a: Iv2<FRACT_BITS>,
+                    b: Iv2<FRACT_BITS>,
+                    c: Iv2<FRACT_BITS>,
+                ) -> i64 {
+                    (b.x.into_raw(FRACT_BITS) - a.x.into_raw(FRACT_BITS)) as i64 *
+                        (c.y.into_raw(FRACT_BITS) - a.y.into_raw(FRACT_BITS)) as i64 -
+                        (b.y.into_raw(FRACT_BITS) - a.y.into_raw(FRACT_BITS)) as i64 *
+                        (c.x.into_raw(FRACT_BITS) - a.x.into_raw(FRACT_BITS)) as i64
+                }
+
+                let w0_min_raw = orient2d_raw(Iv2::new(window_verts[1].x, window_verts[1].y), Iv2::new(window_verts[2].x, window_verts[2].y), p);
+                let w1_min_raw = orient2d_raw(Iv2::new(window_verts[2].x, window_verts[2].y), Iv2::new(window_verts[0].x, window_verts[0].y), p);
+                let w2_min_raw = orient2d_raw(Iv2::new(window_verts[0].x, window_verts[0].y), Iv2::new(window_verts[1].x, window_verts[1].y), p);
+                triangle.w0_min = ((w0_min_raw + w0_min_bias) >> EDGE_FRACT_BITS) as _;
+                triangle.w1_min = ((w1_min_raw + w1_min_bias) >> EDGE_FRACT_BITS) as _;
+                triangle.w2_min = ((w2_min_raw + w2_min_bias) >> EDGE_FRACT_BITS) as _;
+
+                let w0_min: Fixed<EDGE_FRACT_BITS> = Fixed::from_raw((w0_min_raw >> EDGE_FRACT_BITS) as _, EDGE_FRACT_BITS);
+                let w1_min: Fixed<EDGE_FRACT_BITS> = Fixed::from_raw((w1_min_raw >> EDGE_FRACT_BITS) as _, EDGE_FRACT_BITS);
+                let w2_min: Fixed<EDGE_FRACT_BITS> = Fixed::from_raw((w2_min_raw >> EDGE_FRACT_BITS) as _, EDGE_FRACT_BITS);
 
                 // TODO: Don't divide, reciprocal multiply
                 let w_min: Iv3<DEFAULT_FRACT_BITS> = Iv3::new(w0_min, w1_min, w2_min).div_mixed(scaled_area);
