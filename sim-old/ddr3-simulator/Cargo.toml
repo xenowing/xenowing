@@ -1,6 +1,0 @@
-[package]
-name = "ddr3-simulator"
-version = "0.1.0"
-authors = ["ferris <yupferris@gmail.com>"]
-
-[dependencies]
