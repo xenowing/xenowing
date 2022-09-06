@@ -1,4 +1,4 @@
-use color_thrust_meta::*;
+use rtl_meta::color_thrust::*;
 
 enum TextureFilter {
     Nearest,

@@ -7,7 +7,7 @@ use crate::buster::*;
 use crate::flow_controlled_pipe::*;
 use crate::word_mem::*;
 
-use color_thrust_meta::*;
+use rtl_meta::color_thrust::*;
 
 use kaze::*;
 
