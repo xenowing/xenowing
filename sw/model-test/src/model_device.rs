@@ -1,5 +1,7 @@
+mod bit_pusher;
 mod color_thrust;
 
+use bit_pusher::*;
 use color_thrust::*;
 
 use crate::mem_allocator::*;
@@ -7,7 +9,9 @@ use crate::mem_allocator::*;
 use abstract_device::*;
 
 pub struct ModelDevice {
+    bit_pusher: BitPusher,
     color_thrust: ColorThrust,
+
     mem: Box<[u128]>,
     mem_allocator: MemAllocator,
 }
@@ -15,7 +19,9 @@ pub struct ModelDevice {
 impl ModelDevice {
     pub fn new() -> ModelDevice {
         ModelDevice {
+            bit_pusher: BitPusher::new(),
             color_thrust: ColorThrust::new(),
+
             mem: vec![0; MEM_NUM_WORDS as usize].into_boxed_slice(),
             mem_allocator: MemAllocator::new(),
         }
@@ -43,6 +49,14 @@ impl Device for ModelDevice {
             panic!("Unaligned device memory access");
         }
         self.mem[(addr / 16) as usize]
+    }
+
+    fn bit_pusher_write_reg(&mut self, addr: u32, data: u32) {
+        self.bit_pusher.write_reg(addr, data, &mut self.mem, &mut self.color_thrust);
+    }
+
+    fn bit_pusher_read_reg(&mut self, addr: u32) -> u32 {
+        self.bit_pusher.read_reg(addr)
     }
 
     fn color_thrust_write_reg(&mut self, addr: u32, data: u32) {

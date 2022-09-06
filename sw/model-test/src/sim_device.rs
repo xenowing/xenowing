@@ -80,6 +80,14 @@ impl Device for SimDevice {
         self.top.mem_bus_read_data
     }
 
+    fn bit_pusher_write_reg(&mut self, _addr: u32, _data: u32) {
+        todo!()
+    }
+
+    fn bit_pusher_read_reg(&mut self, _addr: u32) -> u32 {
+        todo!()
+    }
+
     fn color_thrust_write_reg(&mut self, addr: u32, data: u32) {
         self.top.reg_bus_addr = addr;
         self.top.reg_bus_enable = true;

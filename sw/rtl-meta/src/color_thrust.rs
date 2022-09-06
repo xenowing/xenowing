@@ -23,6 +23,7 @@ pub const ST_FRACT_BITS: u32 = 16;
 pub const ST_FILTER_FRACT_BITS: u32 = 4; // Must be less than ST_FRACT_BITS
 pub const RESTORED_W_FRACT_BITS: u32 = 8; // Must be less than W_INVERSE_FRACT_BITS and ST_FRACT_BITS
 
+// TODO: Move
 pub const REG_BUS_ADDR_BITS: u32 = 20;
 pub const REG_BUS_ADDR_BIT_WIDTH: u32 = 6;
 

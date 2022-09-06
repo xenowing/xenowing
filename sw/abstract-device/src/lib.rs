@@ -7,6 +7,9 @@ pub trait Device {
     fn mem_write_word(&mut self, addr: u32, data: u128);
     fn mem_read_word(&mut self, addr: u32) -> u128;
 
+    fn bit_pusher_write_reg(&mut self, addr: u32, data: u32);
+    fn bit_pusher_read_reg(&mut self, addr: u32) -> u32;
+
     fn color_thrust_write_reg(&mut self, addr: u32, data: u32);
     fn color_thrust_read_reg(&mut self, addr: u32) -> u32;
     fn color_thrust_write_color_buffer_word(&mut self, addr: u32, data: u128);
@@ -34,6 +37,16 @@ impl<D: Device + ?Sized> Device for &mut D {
     #[inline]
     fn mem_read_word(&mut self, addr: u32) -> u128 {
         (**self).mem_read_word(addr)
+    }
+
+    #[inline]
+    fn bit_pusher_write_reg(&mut self, addr: u32, data: u32) {
+        (**self).bit_pusher_write_reg(addr, data);
+    }
+
+    #[inline]
+    fn bit_pusher_read_reg(&mut self, addr: u32) -> u32 {
+        (**self).bit_pusher_read_reg(addr)
     }
 
     #[inline]

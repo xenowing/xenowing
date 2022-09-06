@@ -3,6 +3,10 @@
 #[macro_use]
 extern crate alloc;
 
+mod bit_pusher;
+
+use bit_pusher::*;
+
 use abstract_device::*;
 use abstract_environment::*;
 
@@ -339,21 +343,27 @@ impl<D: Device> Context<D> {
 
                 // Copy tile into rasterizer memory
                 let start_cycles = env.cycles();
-                for y in 0..TILE_DIM {
-                    for x in 0..TILE_DIM / 4 {
-                        let buffer_index = (HEIGHT - 1 - (tile_min_y + y)) * WIDTH + tile_min_x + x * 4;
-                        let word = self.device.mem_read_word(self.back_buffer_base_addr + buffer_index * 4);
-                        self.device.color_thrust_write_color_buffer_word(y * TILE_DIM / 4 + x, word);
-                    }
-                }
+                mem2sys(
+                    &mut self.device,
+                    0x04000000, // TODO: Proper constant!!!
+                    0,
+                    0,
+                    self.back_buffer_base_addr + ((HEIGHT - 1 - tile_min_y) * WIDTH + tile_min_x) * 4,
+                    TILE_DIM / 4,
+                    (-(WIDTH as i32) / 4) as _,
+                    TILE_DIM * TILE_DIM / 4,
+                );
                 if self.depth_test_enable || self.depth_write_mask_enable {
-                    for y in 0..TILE_DIM {
-                        for x in 0..TILE_DIM / 8 {
-                            let buffer_index = (HEIGHT - 1 - (tile_min_y + y)) * WIDTH + tile_min_x + x * 8;
-                            let word = self.device.mem_read_word(self.depth_buffer_base_addr + buffer_index * 2);
-                            self.device.color_thrust_write_depth_buffer_word(y * TILE_DIM / 8 + x, word);
-                        }
-                    }
+                    mem2sys(
+                        &mut self.device,
+                        0x05000000, // TODO: Proper constant!!!
+                        0,
+                        0,
+                        self.depth_buffer_base_addr + ((HEIGHT - 1 - tile_min_y) * WIDTH + tile_min_x) * 2,
+                        TILE_DIM / 8,
+                        (-(WIDTH as i32) / 8) as _,
+                        TILE_DIM * TILE_DIM / 8,
+                    );
                 }
                 total_tile_xfer_cycles += env.cycles().wrapping_sub(start_cycles);
 
@@ -409,21 +419,27 @@ impl<D: Device> Context<D> {
 
                 // Copy rasterizer memory back to tile
                 let start_cycles = env.cycles();
-                for y in 0..TILE_DIM {
-                    for x in 0..TILE_DIM / 4 {
-                        let word = self.device.color_thrust_read_color_buffer_word(y * TILE_DIM / 4 + x);
-                        let buffer_index = (HEIGHT - 1 - (tile_min_y + y)) * WIDTH + tile_min_x + x * 4;
-                        self.device.mem_write_word(self.back_buffer_base_addr + buffer_index * 4, word);
-                    }
-                }
+                sys2mem(
+                    &mut self.device,
+                    0x04000000, // TODO: Proper constant!!!
+                    0,
+                    0,
+                    self.back_buffer_base_addr + ((HEIGHT - 1 - tile_min_y) * WIDTH + tile_min_x) * 4,
+                    TILE_DIM / 4,
+                    (-(WIDTH as i32) / 4) as _,
+                    TILE_DIM * TILE_DIM / 4,
+                );
                 if self.depth_write_mask_enable {
-                    for y in 0..TILE_DIM {
-                        for x in 0..TILE_DIM / 8 {
-                            let word = self.device.color_thrust_read_depth_buffer_word(y * TILE_DIM / 8 + x);
-                            let buffer_index = (HEIGHT - 1 - (tile_min_y + y)) * WIDTH + tile_min_x + x * 8;
-                            self.device.mem_write_word(self.depth_buffer_base_addr + buffer_index * 2, word);
-                        }
-                    }
+                    sys2mem(
+                        &mut self.device,
+                        0x05000000, // TODO: Proper constant!!!
+                        0,
+                        0,
+                        self.depth_buffer_base_addr + ((HEIGHT - 1 - tile_min_y) * WIDTH + tile_min_x) * 2,
+                        TILE_DIM / 8,
+                        (-(WIDTH as i32) / 8) as _,
+                        TILE_DIM * TILE_DIM / 8,
+                    );
                 }
                 total_tile_xfer_cycles += env.cycles().wrapping_sub(start_cycles);
 
