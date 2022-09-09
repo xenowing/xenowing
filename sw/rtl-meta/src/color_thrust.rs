@@ -1,3 +1,5 @@
+use crate::xenowing::*;
+
 pub const TILE_DIM_BITS: u32 = 5;
 pub const TILE_DIM: u32 = 1 << TILE_DIM_BITS;
 pub const TILE_PIXELS_BITS: u32 = TILE_DIM_BITS * 2;
@@ -5,7 +7,6 @@ pub const TILE_PIXELS: u32 = 1 << TILE_PIXELS_BITS;
 pub const TILE_PIXELS_WORDS_BITS: u32 = TILE_PIXELS_BITS - 2;
 
 // TODO: Move
-pub const SYSTEM_BUS_ADDR_BITS: u32 = 24;
 pub const TEX_WORD_ADDR_BITS: u32 = SYSTEM_BUS_ADDR_BITS;
 
 pub const EDGE_FRACT_BITS: u32 = 3;

@@ -4,6 +4,8 @@ use super::*;
 
 use kaze::*;
 
+use rtl_meta::xenowing::*;
+
 use std::collections::HashMap;
 
 pub struct TexCache<'a> {

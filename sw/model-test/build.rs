@@ -4,7 +4,7 @@ use rtl::buster::*;
 use rtl::byte_ram::*;
 use rtl::color_thrust::*;
 
-use rtl_meta::color_thrust::*;
+use rtl_meta::xenowing::*;
 
 use std::env;
 use std::fs::File;
