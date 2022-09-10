@@ -56,23 +56,11 @@ impl BitPusher {
         }
     }
 
-    pub fn read_reg(&mut self, addr: u32) -> u32 {
-        match addr {
-            // The model always performs copies synchronously, so we'll never see a busy status here
-            REG_STATUS_ADDR => 0,
-            REG_DIRECTION_ADDR => match self.direction {
-                Direction::Mem2Sys => REG_DIRECTION_MEM2SYS,
-                Direction::Sys2Mem => REG_DIRECTION_SYS2MEM,
-            }
-            REG_NUM_WORDS_ADDR => self.num_words,
-            REG_SYS_ADDR_ADDR => self.sys_addr_unit.addr << 4,
-            REG_SYS_WORDS_PER_SPAN_ADDR => self.sys_addr_unit.words_per_span,
-            REG_SYS_SPAN_STRIDE_ADDR => self.sys_addr_unit.span_stride,
-            REG_MEM_ADDR_ADDR => self.mem_addr_unit.addr << 4,
-            REG_MEM_WORDS_PER_SPAN_ADDR => self.mem_addr_unit.words_per_span,
-            REG_MEM_SPAN_STRIDE_ADDR => self.mem_addr_unit.span_stride,
-            _ => panic!("Unrecognized addr: {}", addr)
-        }
+    pub fn read_reg(&mut self, _addr: u32) -> u32 {
+        // All regs are write-only, with the exceptoin of the status reg,
+        // which is useless here, since we always perform transfers
+        // immediately and "instantaneously."
+        0
     }
 
     fn transfer(&mut self, mem: &mut [u128], color_thrust: &mut ColorThrust) {
