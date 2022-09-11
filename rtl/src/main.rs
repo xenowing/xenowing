@@ -1,4 +1,5 @@
 mod approx_reciprocal;
+mod bit_pusher;
 mod boot_rom;
 mod byte_ram;
 mod buster;

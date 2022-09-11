@@ -11,6 +11,7 @@ High-level map (note that not all addresses within the following ranges are nece
 0x03000000 - 0x0300xxxx: TODO!!! ColorThrust regs
 0x04000000 - 0x0400xxxx: TODO!!! ColorThrust color buffer
 0x05000000 - 0x0500xxxx: TODO!!! ColorThrust depth buffer
+0x06000000 - 0x0600xxxx: TODO!!! BitPusher regs
 0x10000000 - 0x1fffffff: RAM
 
 Detailed mem map

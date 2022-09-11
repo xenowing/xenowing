@@ -40,6 +40,18 @@ impl Device for NativeDevice {
         unsafe { ptr::read_volatile(addr) }
     }
 
+    fn bit_pusher_write_reg(&mut self, addr: u32, data: u32) {
+        let base_addr = 0x06000000 as *mut u32; // TODO: Proper constant
+        unsafe {
+            ptr::write_volatile(base_addr.offset((addr * 4) as _) as _, data);
+        }
+    }
+
+    fn bit_pusher_read_reg(&mut self, addr: u32) -> u32 {
+        let base_addr = 0x06000000 as *const u32; // TODO: Proper constant
+        unsafe { ptr::read_volatile(base_addr.offset((addr * 4) as _) as *const u32) }
+    }
+
     fn color_thrust_write_reg(&mut self, addr: u32, data: u32) {
         let base_addr = 0x03000000 as *mut u32; // TODO: Proper constant
         unsafe {

@@ -1,3 +1,4 @@
+use crate::bit_pusher::*;
 use crate::boot_rom::*;
 use crate::buster::*;
 use crate::buster_mig_ui_bridge::*;
@@ -99,6 +100,8 @@ impl<'a> XenowingInner<'a> {
 
         let color_thrust = ColorThrust::new("color_thrust", m);
 
+        let bit_pusher = BitPusher::new("bit_pusher", m);
+
         let ddr3_bridge = BusterMigUiBridge::new("ddr3_bridge", 128, 24, m);
 
         // Interconnect
@@ -113,19 +116,22 @@ impl<'a> XenowingInner<'a> {
         marv.data_port.connect(&marv_data_bridge.marv_port);
         marv_data_bridge.system_port.connect(&cpu_crossbar.replica_ports[1]);
 
-        let mem_crossbar = Crossbar::new("mem_crossbar", 2, 1, 24, 0, 128, 5, m);
+        let mem_crossbar = Crossbar::new("mem_crossbar", 3, 1, 24, 0, 128, 5, m);
         cpu_crossbar.primary_ports[1].connect(&mem_crossbar.replica_ports[0]);
         color_thrust.tex_cache_system_port.connect(&mem_crossbar.replica_ports[1]);
+        bit_pusher.mem_port.connect(&mem_crossbar.replica_ports[2]);
         mem_crossbar.primary_ports[0].connect(&ddr3_bridge.client_port);
 
-        let sys_crossbar = Crossbar::new("sys_crossbar", 1, 6, 24, 4, 128, 5, m);
+        let sys_crossbar = Crossbar::new("sys_crossbar", 2, 7, 24, 4, 128, 5, m);
         cpu_crossbar.primary_ports[0].connect(&sys_crossbar.replica_ports[0]);
+        bit_pusher.sys_port.connect(&sys_crossbar.replica_ports[1]);
         sys_crossbar.primary_ports[0].connect(&boot_rom.client_port);
         sys_crossbar.primary_ports[1].connect(&led_interface.client_port);
         sys_crossbar.primary_ports[2].connect(&uart_interface.client_port);
         sys_crossbar.primary_ports[3].connect(&color_thrust.reg_port);
         sys_crossbar.primary_ports[4].connect(&color_thrust.color_buffer_port);
         sys_crossbar.primary_ports[5].connect(&color_thrust.depth_buffer_port);
+        sys_crossbar.primary_ports[6].connect(&bit_pusher.reg_port);
 
         XenowingInner {
             m,

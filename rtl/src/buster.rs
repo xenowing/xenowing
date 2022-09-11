@@ -118,7 +118,7 @@ impl<'a> Crossbar<'a> {
         }
 
         // TODO: num_primaries, num_replicas, replica_select_bit_width bounds checks
-        let primary_select_bit_width = 31 - num_primaries.leading_zeros();
+        let primary_select_bit_width = (num_primaries as f64).log2().ceil() as _; // TODO: Proper helper for clog2
         let replica_addr_bit_width = addr_bit_width - replica_select_bit_width; // TODO: Bounds checks
 
         let data_byte_width = data_bit_width / 8;
