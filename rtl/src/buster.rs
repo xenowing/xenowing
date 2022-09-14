@@ -195,7 +195,7 @@ impl<'a> Crossbar<'a> {
             primary_select_bit_width,
             m,
         );
-        let primary_ports = (0..num_primaries).map(|i| {
+        let replica_ports = (0..num_primaries).map(|i| {
             let primary_issue = &primary_issues[i as usize];
             let bus_read_data = return_arbiter.primary_bus_read_data_outputs[i as usize];
             let bus_read_data_valid = return_arbiter.primary_bus_read_data_valid_outputs[i as usize];
@@ -231,16 +231,15 @@ impl<'a> Crossbar<'a> {
             let replica_buffer = PeekBuffer::new("replica_buffer", replica_select_bit_width, m);
             replica_buffer.ingress_data.drive(replica_fifo.read_data);
             replica_fifo.read_enable.drive(replica_buffer.ingress_read_enable);
-            let replica_fifo_read_data_valid = m.reg("replica_fifo_read_data_valid", 1);
-            replica_fifo_read_data_valid.default_value(false);
-            replica_fifo_read_data_valid.drive_next(!replica_fifo.empty & replica_buffer.ingress_read_enable);
-            replica_buffer.ingress_data_valid.drive(replica_fifo_read_data_valid);
+            replica_buffer.ingress_data_valid.drive(
+                (!replica_fifo.empty & replica_buffer.ingress_read_enable)
+                .reg_next_with_default("replica_fifo_read_data_valid", false));
             return_arbiter.replica_buffer_egress_ready.unwrap().drive(replica_buffer.egress_ready);
             return_arbiter.replica_buffer_egress_data.unwrap().drive(replica_buffer.egress_data);
             replica_buffer.egress_read_enable.drive(return_arbiter.replica_buffer_egress_read_enable);
         }
 
-        let replica_ports = (0..num_replicas).map(|i| {
+        let primary_ports = (0..num_replicas).map(|i| {
             let replica_data_fifo = Fifo::new(format!("replica{}_data_fifo", i), fifo_depth_bits, data_bit_width, m);
             let bus_read_data_valid = m.input(format!("replica{}_bus_read_data_valid", i), 1);
             let bus_read_data = m.input(format!("replica{}_bus_read_data", i), data_bit_width);
@@ -264,8 +263,8 @@ impl<'a> Crossbar<'a> {
 
         Crossbar {
             m,
-            primary_ports: replica_ports,
-            replica_ports: primary_ports,
+            primary_ports,
+            replica_ports,
         }
     }
 }
