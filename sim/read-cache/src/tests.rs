@@ -5,14 +5,14 @@ use kaze::runtime::tracing::vcd::*;
 
 use std::env;
 use std::fs::File;
-use std::io;
+use std::io::{self, BufWriter};
 
 fn build_trace(test_name: &'static str) -> io::Result<impl Trace> {
     let mut path = env::temp_dir();
     path.push(format!("{}.vcd", test_name));
     println!("Writing trace to {:?}", path);
     let file = File::create(path)?;
-    VcdTrace::new(file, 10, TimeScaleUnit::Ns)
+    VcdTrace::new(BufWriter::new(file), 10, TimeScaleUnit::Ns)
 }
 
 #[test]
