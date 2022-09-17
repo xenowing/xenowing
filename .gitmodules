@@ -1,3 +1,3 @@
 [submodule "tests/riscv-compliance"]
-	path = test/riscv-compliance
+	path = test/riscv-arch-test
 	url = git@github.com:xenowing/riscv-compliance.git

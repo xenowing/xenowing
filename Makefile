@@ -174,7 +174,7 @@ read-cache-clean:
 TEST_DIR=test
 
 .PHONY: test
-test: approx-reciprocal-test buster-test buster-mig-ui-bridge-test compliance-test fifo-test flow-controlled-pipe-test peek-buffer-test read-cache-test rtl-test
+test: approx-reciprocal-test buster-test buster-mig-ui-bridge-test riscv-arch-test fifo-test flow-controlled-pipe-test peek-buffer-test read-cache-test rtl-test
 
 .PHONY: approx-reciprocal-test
 approx-reciprocal-test: approx-reciprocal
@@ -188,9 +188,9 @@ buster-test: buster
 buster-mig-ui-bridge-test: buster-mig-ui-bridge
 	cd $(BUSTER_MIG_UI_BRIDGE_DIR) && cargo test --release && cargo run --release -- 10 1000
 
-.PHONY: compliance-test
-compliance-test: marv
-	make -C $(TEST_DIR)/riscv-compliance
+.PHONY: riscv-arch-test
+riscv-arch-test: marv
+	make -C $(TEST_DIR)/riscv-arch-test
 
 .PHONY: fifo-test
 fifo-test: fifo
@@ -213,8 +213,8 @@ rtl-test: rtl
 	cd $(RTL_DIR) && cargo test --release
 
 .PHONY: test-clean
-test-clean: compliance-test-clean
+test-clean: riscv-arch-test-clean
 
-.PHONY: compliance-test-clean
-compliance-test-clean:
-	make clean -C $(TEST_DIR)/riscv-compliance
+.PHONY: riscv-arch-test-clean
+riscv-arch-test-clean:
+	make clean -C $(TEST_DIR)/riscv-arch-test
