@@ -8,6 +8,7 @@ exclude = [
 members = [
     "mimas_a7/test/ddr3/misc/ddr3-check",
     "mimas_a7/test/uart/misc/uart-check",
+    "pocket/br",
     "rtl",
     "sim/approx-reciprocal",
     "sim/buster",
