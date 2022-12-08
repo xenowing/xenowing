@@ -517,18 +517,12 @@ assign video_hs = vidout_hs;
     
     reg [9:0]   x_count;
     reg [9:0]   y_count;
-    
-    wire [9:0]  visible_x = x_count - VID_H_BPORCH;
-    wire [9:0]  visible_y = y_count - VID_V_BPORCH;
 
     reg [23:0]  vidout_rgb;
-    reg         vidout_de, vidout_de_1;
+    reg         vidout_de;
     reg         vidout_skip;
     reg         vidout_vs;
-    reg         vidout_hs, vidout_hs_1;
-    
-    reg [9:0]   square_x = 'd135;
-    reg [9:0]   square_y = 'd95;
+    reg         vidout_hs;
 
 always @(posedge clk_core_12288 or negedge reset_n) begin
 
@@ -542,9 +536,6 @@ always @(posedge clk_core_12288 or negedge reset_n) begin
         vidout_skip <= 0;
         vidout_vs <= 0;
         vidout_hs <= 0;
-        
-        vidout_hs_1 <= vidout_hs;
-        vidout_de_1 <= vidout_de;
         
         // x and y counters
         x_count <= x_count + 1'b1;
@@ -581,9 +572,9 @@ always @(posedge clk_core_12288 or negedge reset_n) begin
                 // data enable. this is the active region of the line
                 vidout_de <= 1;
                 
-                vidout_rgb[23:16] <= 8'd60;
-                vidout_rgb[15:8]  <= 8'd60;
-                vidout_rgb[7:0]   <= 8'd60;
+                vidout_rgb[23:16] <= test_pattern_r;
+                vidout_rgb[15:8]  <= test_pattern_g;
+                vidout_rgb[7:0]   <= test_pattern_b;
                 
             end 
         end
@@ -591,6 +582,28 @@ always @(posedge clk_core_12288 or negedge reset_n) begin
 end
 
 
+    // video test pattern generator
+    // currently on the output pixel clock, but should ideally happen in another domain with line buffer fifo(s) in between
+    reg [8:0] test_pattern_x;
+    reg [7:0] test_pattern_y;
+
+    always @(posedge clk_core_12288) begin
+        if (vidout_vs) begin
+            test_pattern_x <= 9'd0;
+            test_pattern_y <= 8'd0;
+        end
+        else if (x_count >= VID_H_BPORCH && x_count < VID_H_ACTIVE + VID_H_BPORCH - 1) begin
+            test_pattern_x <= test_pattern_x + 9'd1;
+        end
+        else if (x_count == VID_H_ACTIVE + VID_H_BPORCH - 1) begin
+            test_pattern_x <= 9'd0;
+            test_pattern_y <= test_pattern_y + 8'd1;
+        end
+    end
+
+    wire [7:0] test_pattern_r = test_pattern_x[7:0];
+    wire [7:0] test_pattern_g = test_pattern_y;
+    wire [7:0] test_pattern_b = 8'd64;
 
 
 //
