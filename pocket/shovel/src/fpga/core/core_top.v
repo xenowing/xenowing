@@ -500,6 +500,23 @@ core_bridge_cmd icb (
 // this pixel clock is fairly high for the relatively low resolution, but that's fine.
 // PLL output has a minimum output frequency anyway.
 
+// To ship video data from the system clock domain to the video output domain, we use a FIFO line buffer.
+//  The line buffer is large enough to store two lines' worth of pixel data. While the line stored in the first
+//   half is displayed, the following line's data can be written to the second half, and the halves are swapped
+//   after each line.
+//  When a vsync pulse is generated, both read and write pointers are reset to point to the beginning of the line
+//   buffer.
+//  When each line prior to a line which will be displayed begins, a pulse is generated and synchronized into the
+//   system clock domain which triggers writing one line's worth of video data into the line buffer. The write
+//   address is incremented modulo the full line buffer size after each pixel is written. Writes are disabled at
+//   all other times.
+//  For each pixel prior to a pixel which will be displayed on each line to be displayed, a read is issued to the
+//   line buffer such that the pixel data will be ready on the following cycle when it will be displayed. The read
+//   address is incremented modulo the full line buffer size after each pixel is read. Reads are disabled at all
+//   other times.
+//  As long as writing a line's worth of video data into the buffer always takes less time than reading/displaying
+//   a line, the active read/write regions will never overlap, and all potential metastability errors are avoided.
+
 
 assign video_rgb_clock = clk_core_12288;
 assign video_rgb_clock_90 = clk_core_12288_90deg;
@@ -525,12 +542,22 @@ assign video_hs = vidout_hs;
     reg         vidout_vs;
     reg         vidout_hs;
 
+    reg vidout_write_line_pulse;
+
+    reg video_line_buffer_read_enable;
+    reg [9:0] video_line_buffer_read_addr;
+    wire [23:0] video_line_buffer_read_data;
+
 always @(posedge clk_core_12288 or negedge reset_n) begin
 
     if(~reset_n) begin
     
         x_count <= 0;
         y_count <= 0;
+
+        vidout_write_line_pulse <= 1'b0;
+
+        video_line_buffer_read_enable <= 1'b0;
         
     end else begin
         vidout_de <= 0;
@@ -554,6 +581,8 @@ always @(posedge clk_core_12288 or negedge reset_n) begin
             // sync signal in back porch
             // new frame
             vidout_vs <= 1;
+
+            video_line_buffer_read_addr <= 10'd0;
         end
         
         // we want HS to occur a bit after VS, not on the same cycle
@@ -561,6 +590,33 @@ always @(posedge clk_core_12288 or negedge reset_n) begin
             // sync signal in back porch
             // new line
             vidout_hs <= 1;
+        end
+
+        // issue line buffer write pulses
+        //  These should occur on the beginning of every line that's prior to a line that will be displayed
+        if (x_count == 0 && y_count >= VID_V_BPORCH - 1 && y_count < VID_V_ACTIVE+VID_V_BPORCH - 1) begin
+            vidout_write_line_pulse <= 1'b1;
+        end
+        else begin
+            vidout_write_line_pulse <= 1'b0;
+        end
+
+        // issue line buffer reads
+        //  These need to occur one cycle before each displayed pixel
+        video_line_buffer_read_enable <= 1'b0;
+        if (y_count >= VID_V_BPORCH && y_count < VID_V_ACTIVE+VID_V_BPORCH) begin
+            // Remember that we're setting up signals for the following cycle, so we offset x by 2 instead of 1.
+            //  In other words, we want to issue reads a cycle early on the following cycle.
+            if (x_count >= VID_H_BPORCH - 2 && x_count < VID_H_ACTIVE+VID_H_BPORCH - 2) begin
+                video_line_buffer_read_enable <= 1'b1;
+            end
+        end
+        // Next address should only increment if we actually performed a read this cycle
+        if (video_line_buffer_read_enable) begin
+            video_line_buffer_read_addr <= video_line_buffer_read_addr + 10'd1;
+            if (video_line_buffer_read_addr == VID_H_ACTIVE * 2 - 1) begin
+                video_line_buffer_read_addr <= 10'd0;
+            end
         end
 
         // inactive screen areas are black
@@ -572,9 +628,7 @@ always @(posedge clk_core_12288 or negedge reset_n) begin
                 // data enable. this is the active region of the line
                 vidout_de <= 1;
                 
-                vidout_rgb[23:16] <= test_pattern_r;
-                vidout_rgb[15:8]  <= test_pattern_g;
-                vidout_rgb[7:0]   <= test_pattern_b;
+                vidout_rgb <= video_line_buffer_read_data;
                 
             end 
         end
@@ -582,28 +636,95 @@ always @(posedge clk_core_12288 or negedge reset_n) begin
 end
 
 
+    // Synchronize control pulses from video output domain to system domain
+    wire system_write_reset_pulse;
+    CdcPulse p0 (
+        .reset_n(reset_n),
+
+        .src_clk(clk_core_12288),
+        .src_pulse(vidout_vs),
+
+        .dst_clk(clk_74a),
+        .dst_pulse(system_write_reset_pulse)
+    );
+
+    wire system_write_line_pulse;
+    CdcPulse p1 (
+        .reset_n(reset_n),
+
+        .src_clk(clk_core_12288),
+        .src_pulse(vidout_write_line_pulse),
+
+        .dst_clk(clk_74a),
+        .dst_pulse(system_write_line_pulse)
+    );
+
     // video test pattern generator
-    // currently on the output pixel clock, but should ideally happen in another domain with line buffer fifo(s) in between
     reg [8:0] test_pattern_x;
     reg [7:0] test_pattern_y;
 
-    always @(posedge clk_core_12288) begin
-        if (vidout_vs) begin
-            test_pattern_x <= 9'd0;
-            test_pattern_y <= 8'd0;
-        end
-        else if (x_count >= VID_H_BPORCH && x_count < VID_H_ACTIVE + VID_H_BPORCH - 1) begin
-            test_pattern_x <= test_pattern_x + 9'd1;
-        end
-        else if (x_count == VID_H_ACTIVE + VID_H_BPORCH - 1) begin
-            test_pattern_x <= 9'd0;
-            test_pattern_y <= test_pattern_y + 8'd1;
+    reg video_line_buffer_write_enable;
+    reg [9:0] video_line_buffer_write_addr;
+    reg [23:0] video_line_buffer_write_data;
+
+    always @(*) begin
+        video_line_buffer_write_data = {test_pattern_x[7:0], test_pattern_y, 8'd64};
+        if (test_pattern_x == 9'd0 || test_pattern_x == VID_H_ACTIVE - 1 || test_pattern_y == 8'd0 || test_pattern_y == VID_V_ACTIVE - 1) begin
+            video_line_buffer_write_data = {3{8'hff}};
         end
     end
 
-    wire [7:0] test_pattern_r = test_pattern_x[7:0];
-    wire [7:0] test_pattern_g = test_pattern_y;
-    wire [7:0] test_pattern_b = 8'd64;
+    always @(posedge clk_74a or negedge reset_n) begin
+        if (~reset_n) begin
+            video_line_buffer_write_enable <= 1'b0;
+        end
+        else begin
+            if (system_write_reset_pulse) begin
+                test_pattern_y <= 8'd0;
+
+                video_line_buffer_write_enable <= 1'b0;
+                video_line_buffer_write_addr <= 10'd0;
+            end
+
+            if (system_write_line_pulse) begin
+                test_pattern_x <= 9'd0;
+
+                video_line_buffer_write_enable <= 1'b1;
+            end
+
+            if (video_line_buffer_write_enable) begin
+                test_pattern_x <= test_pattern_x + 9'd1;
+
+                video_line_buffer_write_addr <= video_line_buffer_write_addr + 10'd1;
+                if (video_line_buffer_write_addr == VID_H_ACTIVE * 2 - 1) begin
+                    video_line_buffer_write_addr <= 10'd0;
+                end
+
+                if (test_pattern_x == VID_H_ACTIVE - 1) begin
+                    test_pattern_y <= test_pattern_y + 8'd1;
+
+                    video_line_buffer_write_enable <= 1'b0;
+                end
+            end
+        end
+    end
+
+    // video line buffer
+    UnidirectionalDualPortBram #(
+        .DATA(24),
+        .ADDR(10),
+        .DEPTH(VID_H_ACTIVE * 2)
+    ) video_line_buffer (
+        .write_clk(clk_74a),
+        .write_enable(video_line_buffer_write_enable),
+        .write_addr(video_line_buffer_write_addr),
+        .write_data(video_line_buffer_write_data),
+
+        .read_clk(clk_core_12288),
+        .read_enable(video_line_buffer_read_enable),
+        .read_addr(video_line_buffer_read_addr),
+        .read_data(video_line_buffer_read_data)
+    );
 
 
 //
