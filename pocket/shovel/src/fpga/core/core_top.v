@@ -515,8 +515,6 @@ assign video_hs = vidout_hs;
     localparam  VID_H_BPORCH = 'd10;
     localparam  VID_H_ACTIVE = 'd320;
     localparam  VID_H_TOTAL = 'd400;
-
-    reg [15:0]  frame_count;
     
     reg [9:0]   x_count;
     reg [9:0]   y_count;
@@ -556,7 +554,6 @@ always @(posedge clk_core_12288 or negedge reset_n) begin
             // sync signal in back porch
             // new frame
             vidout_vs <= 1;
-            frame_count <= frame_count + 1'b1;
         end
         
         // we want HS to occur a bit after VS, not on the same cycle
