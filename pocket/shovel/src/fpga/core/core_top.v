@@ -644,7 +644,7 @@ end
         .src_clk(clk_core_12288),
         .src_pulse(vidout_vs),
 
-        .dst_clk(clk_74a),
+        .dst_clk(clk_sdram),
         .dst_pulse(system_write_reset_pulse)
     );
 
@@ -655,7 +655,7 @@ end
         .src_clk(clk_core_12288),
         .src_pulse(vidout_write_line_pulse),
 
-        .dst_clk(clk_74a),
+        .dst_clk(clk_sdram),
         .dst_pulse(system_write_line_pulse)
     );
 
@@ -674,7 +674,7 @@ end
         end
     end
 
-    always @(posedge clk_74a or negedge reset_n) begin
+    always @(posedge clk_sdram or negedge reset_n) begin
         if (~reset_n) begin
             video_line_buffer_write_enable <= 1'b0;
         end
@@ -715,7 +715,7 @@ end
         .ADDR(10),
         .DEPTH(VID_H_ACTIVE * 2)
     ) video_line_buffer (
-        .write_clk(clk_74a),
+        .write_clk(clk_sdram),
         .write_enable(video_line_buffer_write_enable),
         .write_addr(video_line_buffer_write_addr),
         .write_data(video_line_buffer_write_data),
@@ -779,6 +779,7 @@ end
 
     wire    clk_core_12288;
     wire    clk_core_12288_90deg;
+    wire clk_sdram;
     
     wire    pll_core_locked;
     
@@ -788,6 +789,7 @@ mf_pllbase mp1 (
     
     .outclk_0       ( clk_core_12288 ),
     .outclk_1       ( clk_core_12288_90deg ),
+    .outclk_2(clk_sdram),
     
     .locked         ( pll_core_locked )
 );
