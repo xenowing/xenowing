@@ -1,4 +1,3 @@
-#![feature(default_alloc_error_handler)]
 #![no_main]
 #![no_std]
 
