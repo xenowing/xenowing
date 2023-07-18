@@ -29,3 +29,5 @@ members = [
     "sw/xw",
     "sw/xw-blaster",
 ]
+
+resolver = "2"
