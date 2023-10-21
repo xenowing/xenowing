@@ -659,55 +659,20 @@ end
         .dst_pulse(system_write_line_pulse)
     );
 
-    // video test pattern generator
-    reg [8:0] test_pattern_x;
-    reg [7:0] test_pattern_y;
+    wire video_line_buffer_write_enable;
+    wire [9:0] video_line_buffer_write_addr;
+    wire [23:0] video_line_buffer_write_data;
+    VideoTestPatternGenerator video_test_pattern_generator(
+        .reset_n(reset_n),
+        .clk(clk_sdram),
 
-    reg video_line_buffer_write_enable;
-    reg [9:0] video_line_buffer_write_addr;
-    reg [23:0] video_line_buffer_write_data;
+        .system_write_reset_pulse(system_write_reset_pulse),
+        .system_write_line_pulse(system_write_line_pulse),
 
-    always @(*) begin
-        video_line_buffer_write_data = {test_pattern_x[7:0], test_pattern_y, 8'd64};
-        if (test_pattern_x == 9'd0 || test_pattern_x == VID_H_ACTIVE - 1 || test_pattern_y == 8'd0 || test_pattern_y == VID_V_ACTIVE - 1) begin
-            video_line_buffer_write_data = {3{8'hff}};
-        end
-    end
-
-    always @(posedge clk_sdram or negedge reset_n) begin
-        if (~reset_n) begin
-            video_line_buffer_write_enable <= 1'b0;
-        end
-        else begin
-            if (system_write_reset_pulse) begin
-                test_pattern_y <= 8'd0;
-
-                video_line_buffer_write_enable <= 1'b0;
-                video_line_buffer_write_addr <= 10'd0;
-            end
-
-            if (system_write_line_pulse) begin
-                test_pattern_x <= 9'd0;
-
-                video_line_buffer_write_enable <= 1'b1;
-            end
-
-            if (video_line_buffer_write_enable) begin
-                test_pattern_x <= test_pattern_x + 9'd1;
-
-                video_line_buffer_write_addr <= video_line_buffer_write_addr + 10'd1;
-                if (video_line_buffer_write_addr == VID_H_ACTIVE * 2 - 1) begin
-                    video_line_buffer_write_addr <= 10'd0;
-                end
-
-                if (test_pattern_x == VID_H_ACTIVE - 1) begin
-                    test_pattern_y <= test_pattern_y + 8'd1;
-
-                    video_line_buffer_write_enable <= 1'b0;
-                end
-            end
-        end
-    end
+        .video_line_buffer_write_enable(video_line_buffer_write_enable),
+        .video_line_buffer_write_addr(video_line_buffer_write_addr),
+        .video_line_buffer_write_data(video_line_buffer_write_data),
+    );
 
     // video line buffer
     UnidirectionalDualPortBram #(
