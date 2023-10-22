@@ -1,4 +1,5 @@
 use kaze::*;
+use rtl_meta::shovel::video_test_pattern_generator::*;
 
 pub struct VideoTestPatternGenerator<'a> {
     pub m: &'a Module<'a>,
@@ -18,16 +19,13 @@ impl<'a> VideoTestPatternGenerator<'a> {
     ) -> VideoTestPatternGenerator<'a> {
         let m = p.module(instance_name, "VideoTestPatternGenerator");
 
-        let video_width = 320u32;
-        let video_height = 240u32;
-
         let test_pattern_x = m.reg("test_pattern_x", 9);
         let test_pattern_y = m.reg("test_pattern_y", 8);
 
         let test_pattern_x_start = test_pattern_x.eq(m.lit(0u32, 9));
-        let test_pattern_x_end = test_pattern_x.eq(m.lit(video_width - 1, 9));
+        let test_pattern_x_end = test_pattern_x.eq(m.lit(WIDTH - 1, 9));
         let test_pattern_y_start = test_pattern_y.eq(m.lit(0u32, 8));
-        let test_pattern_y_end = test_pattern_y.eq(m.lit(video_height - 1, 8));
+        let test_pattern_y_end = test_pattern_y.eq(m.lit(HEIGHT - 1, 8));
 
         let system_write_reset_pulse = m.input("system_write_reset_pulse", 1);
         let system_write_line_pulse = m.input("system_write_line_pulse", 1);
@@ -70,7 +68,7 @@ impl<'a> VideoTestPatternGenerator<'a> {
                 .else_if(
                     video_line_buffer_write_enable_reg,
                     if_(
-                        video_line_buffer_write_addr_reg.eq(m.lit(video_width * 2 - 1, 10)),
+                        video_line_buffer_write_addr_reg.eq(m.lit(WIDTH * 2 - 1, 10)),
                         m.lit(0u32, 10),
                     )
                     .else_(video_line_buffer_write_addr_reg + m.lit(1u32, 10)),
