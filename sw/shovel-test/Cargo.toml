@@ -1,0 +1,14 @@
+[package]
+name = "shovel-test"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+kaze = { path = "../../../kaze/kaze" }
+rtl = { path = "../../rtl" }
+
+[dependencies]
+minifb = "0.25"
+rtl-meta = { path = "../rtl-meta" }

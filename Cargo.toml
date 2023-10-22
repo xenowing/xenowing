@@ -24,6 +24,7 @@ members = [
     "sw/model-test",
     "sw/qoi",
     "sw/rtl-meta",
+    "sw/shovel-test",
     "sw/strugl",
     "sw/strugl-test",
     "sw/trig",
