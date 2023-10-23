@@ -22,9 +22,9 @@ impl<'a> VideoTestPatternGenerator<'a> {
         let test_pattern_y = m.reg("test_pattern_y", 8);
 
         let test_pattern_x_start = test_pattern_x.eq(m.lit(0u32, 9));
-        let test_pattern_x_end = test_pattern_x.eq(m.lit(WIDTH - 1, 9));
+        let test_pattern_x_end = test_pattern_x.eq(m.lit(ACTIVE_WIDTH - 1, 9));
         let test_pattern_y_start = test_pattern_y.eq(m.lit(0u32, 8));
-        let test_pattern_y_end = test_pattern_y.eq(m.lit(HEIGHT - 1, 8));
+        let test_pattern_y_end = test_pattern_y.eq(m.lit(ACTIVE_HEIGHT - 1, 8));
 
         let system_write_vsync_pulse = m.input("system_write_vsync_pulse", 1);
         let system_write_line_pulse = m.input("system_write_line_pulse", 1);

@@ -6,11 +6,56 @@ use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 use modules::*;
 use rtl_meta::shovel::video_test_pattern_generator::*;
 
+#[derive(Default)]
+struct VideoTimingGenerator {
+    x: u32,
+    y: u32,
+
+    fractional_cycles: u16,
+}
+
+impl VideoTimingGenerator {
+    fn posedge_clk(&mut self) -> (bool, bool) {
+        let mut vsync_pulse = false;
+        let mut line_pulse = false;
+
+        let (res, wrap) = self
+            .fractional_cycles
+            .overflowing_add(((1u64 << 16) * 12288 / 160000) as _);
+        self.fractional_cycles = res;
+        if wrap {
+            if self.x == 0 {
+                if self.y == 0 {
+                    vsync_pulse = true;
+                }
+
+                if self.y >= VERTICAL_BACK_PORCH - 1
+                    && self.y < ACTIVE_HEIGHT + VERTICAL_BACK_PORCH - 1
+                {
+                    line_pulse = true;
+                }
+            }
+
+            self.x += 1;
+            if self.x == TOTAL_WIDTH {
+                self.x = 0;
+
+                self.y += 1;
+                if self.y == TOTAL_HEIGHT {
+                    self.y = 0;
+                }
+            }
+        }
+
+        (vsync_pulse, line_pulse)
+    }
+}
+
 fn main() {
     let mut window = Window::new(
         "strugl",
-        WIDTH as _,
-        HEIGHT as _,
+        ACTIVE_WIDTH as _,
+        ACTIVE_HEIGHT as _,
         WindowOptions {
             scale: Scale::X2,
             scale_mode: ScaleMode::AspectRatioStretch,
@@ -19,45 +64,39 @@ fn main() {
     )
     .unwrap();
 
-    let mut buffer = vec![0; (WIDTH * HEIGHT) as usize];
+    let mut buffer = vec![0; (ACTIVE_WIDTH * ACTIVE_HEIGHT) as usize];
+
+    let mut video_timing_generator = VideoTimingGenerator::default();
 
     let mut video_test_pattern_generator = VideoTestPatternGenerator::new();
     video_test_pattern_generator.reset();
-    video_test_pattern_generator.system_write_vsync_pulse = false;
-    video_test_pattern_generator.system_write_line_pulse = false;
-
-    let cycle_period_ns = 6u64;
-    let frames_per_s = 60u64;
-    let ns_per_s = 1_000_000_000u64;
-    let ns_per_frame = ns_per_s / frames_per_s;
-    let cycles_per_frame = ns_per_frame / cycle_period_ns;
-    println!("cycles per frame: {}", cycles_per_frame);
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        // Vsync pulse
-        video_test_pattern_generator.system_write_vsync_pulse = true;
-        video_test_pattern_generator.prop();
-        video_test_pattern_generator.posedge_clk();
-        video_test_pattern_generator.system_write_vsync_pulse = false;
+        let mut buffer_pos = 0;
 
-        for y in 0..HEIGHT {
-            // Line pulse
-            video_test_pattern_generator.system_write_line_pulse = true;
+        loop {
+            let (vsync_pulse, line_pulse) = video_timing_generator.posedge_clk();
+
+            video_test_pattern_generator.system_write_vsync_pulse = vsync_pulse;
+            video_test_pattern_generator.system_write_line_pulse = line_pulse;
+
             video_test_pattern_generator.prop();
-            video_test_pattern_generator.posedge_clk();
-            video_test_pattern_generator.system_write_line_pulse = false;
 
-            for x in 0..WIDTH {
-                video_test_pattern_generator.prop();
-                assert!(video_test_pattern_generator.video_line_buffer_write_enable);
-                buffer[(y * WIDTH + x) as usize] =
+            if video_test_pattern_generator.video_line_buffer_write_enable {
+                buffer[buffer_pos] =
                     video_test_pattern_generator.video_line_buffer_write_data & 0x00f8fcf8;
-                video_test_pattern_generator.posedge_clk();
+                buffer_pos += 1;
+            }
+
+            video_test_pattern_generator.posedge_clk();
+
+            if vsync_pulse {
+                break;
             }
         }
 
         window
-            .update_with_buffer(&buffer, WIDTH as _, HEIGHT as _)
+            .update_with_buffer(&buffer, ACTIVE_WIDTH as _, ACTIVE_HEIGHT as _)
             .unwrap();
     }
 }
