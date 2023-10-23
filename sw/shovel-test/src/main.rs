@@ -23,7 +23,7 @@ fn main() {
 
     let mut video_test_pattern_generator = VideoTestPatternGenerator::new();
     video_test_pattern_generator.reset();
-    video_test_pattern_generator.system_write_reset_pulse = false;
+    video_test_pattern_generator.system_write_vsync_pulse = false;
     video_test_pattern_generator.system_write_line_pulse = false;
 
     let cycle_period_ns = 6u64;
@@ -34,11 +34,11 @@ fn main() {
     println!("cycles per frame: {}", cycles_per_frame);
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        // Reset pulse
-        video_test_pattern_generator.system_write_reset_pulse = true;
+        // Vsync pulse
+        video_test_pattern_generator.system_write_vsync_pulse = true;
         video_test_pattern_generator.prop();
         video_test_pattern_generator.posedge_clk();
-        video_test_pattern_generator.system_write_reset_pulse = false;
+        video_test_pattern_generator.system_write_vsync_pulse = false;
 
         for y in 0..HEIGHT {
             // Line pulse

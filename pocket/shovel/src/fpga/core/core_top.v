@@ -637,7 +637,7 @@ end
 
 
     // Synchronize control pulses from video output domain to system domain
-    wire system_write_reset_pulse;
+    wire system_write_vsync_pulse;
     CdcPulse p0 (
         .reset_n(reset_n),
 
@@ -645,7 +645,7 @@ end
         .src_pulse(vidout_vs),
 
         .dst_clk(clk_sdram),
-        .dst_pulse(system_write_reset_pulse)
+        .dst_pulse(system_write_vsync_pulse)
     );
 
     wire system_write_line_pulse;
@@ -659,22 +659,10 @@ end
         .dst_pulse(system_write_line_pulse)
     );
 
+    // Video line buffer
     wire video_line_buffer_write_enable;
     wire [9:0] video_line_buffer_write_addr;
     wire [23:0] video_line_buffer_write_data;
-    VideoTestPatternGenerator video_test_pattern_generator(
-        .reset_n(reset_n),
-        .clk(clk_sdram),
-
-        .system_write_reset_pulse(system_write_reset_pulse),
-        .system_write_line_pulse(system_write_line_pulse),
-
-        .video_line_buffer_write_enable(video_line_buffer_write_enable),
-        .video_line_buffer_write_addr(video_line_buffer_write_addr),
-        .video_line_buffer_write_data(video_line_buffer_write_data),
-    );
-
-    // video line buffer
     UnidirectionalDualPortBram #(
         .DATA(24),
         .ADDR(10),
@@ -689,6 +677,30 @@ end
         .read_enable(video_line_buffer_read_enable),
         .read_addr(video_line_buffer_read_addr),
         .read_data(video_line_buffer_read_data)
+    );
+
+    always @(posedge clk_sdram) begin
+        if (system_write_vsync_pulse) begin
+            video_line_buffer_write_addr <= 10'd0;
+        end
+        else if (video_line_buffer_write_enable) begin
+            video_line_buffer_write_addr <= video_line_buffer_write_addr + 10'd1;
+            if (video_line_buffer_write_addr == VID_H_ACTIVE * 2 - 1) begin
+                video_line_buffer_write_addr <= 10'd0;
+            end
+        end
+    end
+
+    // Video generation
+    VideoTestPatternGenerator video_test_pattern_generator(
+        .reset_n(reset_n),
+        .clk(clk_sdram),
+
+        .system_write_vsync_pulse(system_write_vsync_pulse),
+        .system_write_line_pulse(system_write_line_pulse),
+
+        .video_line_buffer_write_enable(video_line_buffer_write_enable),
+        .video_line_buffer_write_data(video_line_buffer_write_data),
     );
 
 
