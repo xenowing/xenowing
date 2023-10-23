@@ -661,7 +661,7 @@ end
 
     // Video line buffer
     wire video_line_buffer_write_enable;
-    wire [9:0] video_line_buffer_write_addr;
+    reg [9:0] video_line_buffer_write_addr;
     wire [23:0] video_line_buffer_write_data;
     UnidirectionalDualPortBram #(
         .DATA(24),
