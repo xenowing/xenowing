@@ -64,18 +64,38 @@ fn main() {
     )
     .unwrap();
 
+    let mut char_buffer = vec![0; (ACTIVE_WIDTH * ACTIVE_HEIGHT) as usize];
+    let mut test_pattern_buffer = vec![0; (ACTIVE_WIDTH * ACTIVE_HEIGHT) as usize];
+
     let mut buffer = vec![0; (ACTIVE_WIDTH * ACTIVE_HEIGHT) as usize];
 
     let mut video_timing_generator = VideoTimingGenerator::default();
+
+    let mut char_display = CharDisplay::new();
+    char_display.reset();
 
     let mut video_test_pattern_generator = VideoTestPatternGenerator::new();
     video_test_pattern_generator.reset();
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        let mut buffer_pos = 0;
+        let mut char_buffer_pos = 0;
+        let mut test_pattern_buffer_pos = 0;
 
         loop {
             let (vsync_pulse, line_pulse) = video_timing_generator.posedge_clk();
+
+            char_display.system_write_vsync_pulse = vsync_pulse;
+            char_display.system_write_line_pulse = line_pulse;
+
+            char_display.prop();
+
+            if char_display.video_line_buffer_write_enable {
+                char_buffer[char_buffer_pos] =
+                    char_display.video_line_buffer_write_data & 0x00f8fcf8;
+                char_buffer_pos += 1;
+            }
+
+            char_display.posedge_clk();
 
             video_test_pattern_generator.system_write_vsync_pulse = vsync_pulse;
             video_test_pattern_generator.system_write_line_pulse = line_pulse;
@@ -83,9 +103,9 @@ fn main() {
             video_test_pattern_generator.prop();
 
             if video_test_pattern_generator.video_line_buffer_write_enable {
-                buffer[buffer_pos] =
+                test_pattern_buffer[test_pattern_buffer_pos] =
                     video_test_pattern_generator.video_line_buffer_write_data & 0x00f8fcf8;
-                buffer_pos += 1;
+                test_pattern_buffer_pos += 1;
             }
 
             video_test_pattern_generator.posedge_clk();
@@ -93,6 +113,18 @@ fn main() {
             if vsync_pulse {
                 break;
             }
+        }
+
+        for ((&char_pixel, &test_pattern_pixel), pixel) in char_buffer
+            .iter()
+            .zip(test_pattern_buffer.iter())
+            .zip(buffer.iter_mut())
+        {
+            *pixel = if char_pixel & 0x80 != 0 {
+                char_pixel
+            } else {
+                test_pattern_pixel
+            };
         }
 
         window
