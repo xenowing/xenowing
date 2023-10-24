@@ -64,7 +64,7 @@ fn main() {
     )
     .unwrap();
 
-    let mut char_buffer = vec![0; (ACTIVE_WIDTH * ACTIVE_HEIGHT) as usize];
+    let mut char_display_buffer = vec![false; (ACTIVE_WIDTH * ACTIVE_HEIGHT) as usize];
     let mut test_pattern_buffer = vec![0; (ACTIVE_WIDTH * ACTIVE_HEIGHT) as usize];
 
     let mut buffer = vec![0; (ACTIVE_WIDTH * ACTIVE_HEIGHT) as usize];
@@ -78,7 +78,7 @@ fn main() {
     video_test_pattern_generator.reset();
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        let mut char_buffer_pos = 0;
+        let mut char_display_buffer_pos = 0;
         let mut test_pattern_buffer_pos = 0;
 
         loop {
@@ -90,9 +90,9 @@ fn main() {
             char_display.prop();
 
             if char_display.video_line_buffer_write_enable {
-                char_buffer[char_buffer_pos] =
-                    char_display.video_line_buffer_write_data & 0x00f8fcf8;
-                char_buffer_pos += 1;
+                char_display_buffer[char_display_buffer_pos] =
+                    char_display.video_line_buffer_write_data;
+                char_display_buffer_pos += 1;
             }
 
             char_display.posedge_clk();
@@ -115,13 +115,13 @@ fn main() {
             }
         }
 
-        for ((&char_pixel, &test_pattern_pixel), pixel) in char_buffer
+        for ((&char_display_pixel, &test_pattern_pixel), pixel) in char_display_buffer
             .iter()
             .zip(test_pattern_buffer.iter())
             .zip(buffer.iter_mut())
         {
-            *pixel = if char_pixel & 0x80 != 0 {
-                char_pixel
+            *pixel = if char_display_pixel {
+                0xffffff
             } else {
                 test_pattern_pixel
             };

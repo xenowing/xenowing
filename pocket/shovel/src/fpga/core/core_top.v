@@ -546,7 +546,8 @@ assign video_hs = vidout_hs;
 
     reg video_line_buffer_read_enable;
     reg [9:0] video_line_buffer_read_addr;
-    wire [23:0] video_line_buffer_read_data;
+    wire char_display_line_buffer_read_data;
+    wire [23:0] test_pattern_line_buffer_read_data;
 
 always @(posedge clk_core_12288 or negedge reset_n) begin
 
@@ -628,7 +629,7 @@ always @(posedge clk_core_12288 or negedge reset_n) begin
                 // data enable. this is the active region of the line
                 vidout_de <= 1;
                 
-                vidout_rgb <= video_line_buffer_read_data;
+                vidout_rgb <= char_display_line_buffer_read_data ? 24'hffffff : test_pattern_line_buffer_read_data;
                 
             end 
         end
@@ -659,48 +660,92 @@ end
         .dst_pulse(system_write_line_pulse)
     );
 
-    // Video line buffer
-    wire video_line_buffer_write_enable;
-    reg [9:0] video_line_buffer_write_addr;
-    wire [23:0] video_line_buffer_write_data;
+    // Char display line buffer
+    wire char_display_line_buffer_write_enable;
+    reg [9:0] char_display_line_buffer_write_addr;
+    wire char_display_line_buffer_write_data;
     UnidirectionalDualPortBram #(
-        .DATA(24),
+        .DATA(1),
         .ADDR(10),
         .DEPTH(VID_H_ACTIVE * 2)
-    ) video_line_buffer (
+    ) char_display_line_buffer (
         .write_clk(clk_sdram),
-        .write_enable(video_line_buffer_write_enable),
-        .write_addr(video_line_buffer_write_addr),
-        .write_data(video_line_buffer_write_data),
+        .write_enable(char_display_line_buffer_write_enable),
+        .write_addr(char_display_line_buffer_write_addr),
+        .write_data(char_display_line_buffer_write_data),
 
         .read_clk(clk_core_12288),
         .read_enable(video_line_buffer_read_enable),
         .read_addr(video_line_buffer_read_addr),
-        .read_data(video_line_buffer_read_data)
+        .read_data(char_display_line_buffer_read_data)
     );
 
     always @(posedge clk_sdram) begin
         if (system_write_vsync_pulse) begin
-            video_line_buffer_write_addr <= 10'd0;
+            char_display_line_buffer_write_addr <= 10'd0;
         end
-        else if (video_line_buffer_write_enable) begin
-            video_line_buffer_write_addr <= video_line_buffer_write_addr + 10'd1;
-            if (video_line_buffer_write_addr == VID_H_ACTIVE * 2 - 1) begin
-                video_line_buffer_write_addr <= 10'd0;
+        else if (char_display_line_buffer_write_enable) begin
+            char_display_line_buffer_write_addr <= char_display_line_buffer_write_addr + 10'd1;
+            if (char_display_line_buffer_write_addr == VID_H_ACTIVE * 2 - 1) begin
+                char_display_line_buffer_write_addr <= 10'd0;
             end
         end
     end
 
-    // Video generation
-    VideoTestPatternGenerator video_test_pattern_generator(
+    // Char display
+    CharDisplay char_display_generator(
         .reset_n(reset_n),
         .clk(clk_sdram),
 
         .system_write_vsync_pulse(system_write_vsync_pulse),
         .system_write_line_pulse(system_write_line_pulse),
 
-        .video_line_buffer_write_enable(video_line_buffer_write_enable),
-        .video_line_buffer_write_data(video_line_buffer_write_data),
+        .video_line_buffer_write_enable(char_display_line_buffer_write_enable),
+        .video_line_buffer_write_data(char_display_line_buffer_write_data),
+    );
+
+    // Test pattern line buffer
+    wire test_pattern_line_buffer_write_enable;
+    reg [9:0] test_pattern_line_buffer_write_addr;
+    wire [23:0] test_pattern_line_buffer_write_data;
+    UnidirectionalDualPortBram #(
+        .DATA(24),
+        .ADDR(10),
+        .DEPTH(VID_H_ACTIVE * 2)
+    ) test_pattern_line_buffer (
+        .write_clk(clk_sdram),
+        .write_enable(test_pattern_line_buffer_write_enable),
+        .write_addr(test_pattern_line_buffer_write_addr),
+        .write_data(test_pattern_line_buffer_write_data),
+
+        .read_clk(clk_core_12288),
+        .read_enable(video_line_buffer_read_enable),
+        .read_addr(video_line_buffer_read_addr),
+        .read_data(test_pattern_line_buffer_read_data)
+    );
+
+    always @(posedge clk_sdram) begin
+        if (system_write_vsync_pulse) begin
+            test_pattern_line_buffer_write_addr <= 10'd0;
+        end
+        else if (test_pattern_line_buffer_write_enable) begin
+            test_pattern_line_buffer_write_addr <= test_pattern_line_buffer_write_addr + 10'd1;
+            if (test_pattern_line_buffer_write_addr == VID_H_ACTIVE * 2 - 1) begin
+                test_pattern_line_buffer_write_addr <= 10'd0;
+            end
+        end
+    end
+
+    // Test pattern generator
+    VideoTestPatternGenerator test_pattern_generator(
+        .reset_n(reset_n),
+        .clk(clk_sdram),
+
+        .system_write_vsync_pulse(system_write_vsync_pulse),
+        .system_write_line_pulse(system_write_line_pulse),
+
+        .video_line_buffer_write_enable(test_pattern_line_buffer_write_enable),
+        .video_line_buffer_write_data(test_pattern_line_buffer_write_data),
     );
 
 

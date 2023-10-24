@@ -116,8 +116,7 @@ impl<'a> CharDisplay<'a> {
             .else_(pixel_buffer),
         );
 
-        let video_line_buffer_write_data =
-            if_(pixel_buffer.bit(7), m.lit(0xffffffu32, 24)).else_(m.lit(0x000000u32, 24));
+        let video_line_buffer_write_data = pixel_buffer.bit(7);
 
         CharDisplay {
             m,
