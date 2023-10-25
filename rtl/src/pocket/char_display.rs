@@ -51,12 +51,22 @@ impl<'a> CharDisplay<'a> {
             }
         }
 
-        // TODO: Just use max here, and fill from software instead
-        let char_mem_address_bit_width = (font_data.len() as f64).log2().ceil() as u32;
+        // TODO: Fill from software instead
+        // TODO: Get rid of magic numbers and move these to constants
+        let char_mem_address_bit_width = 7 + 3;
         let char_mem = m.mem("char_mem", char_mem_address_bit_width, 8);
         let mut char_mem_initial_contents = vec![0; 1 << char_mem_address_bit_width];
         char_mem_initial_contents[0..font_data.len()].copy_from_slice(&font_data);
         char_mem.initial_contents(&char_mem_initial_contents);
+
+        // TODO: Fill from software instead
+        let map_mem_address_bit_width = ((CHARS_WIDTH * CHARS_HEIGHT) as f64).log2().ceil() as u32;
+        let map_mem = m.mem("map_mem", map_mem_address_bit_width, 7);
+        let mut map_mem_initial_contents = vec![0; 1 << map_mem_address_bit_width];
+        let map_data_str = "Hello from char mem ROM! ...need to replace this with RAM ofc and fill it from CPU and whatever but this is cool for now.";
+        let map_data_bytes = map_data_str.bytes().map(|x| x - 32).collect::<Vec<_>>();
+        map_mem_initial_contents[0..map_data_bytes.len()].copy_from_slice(&map_data_bytes);
+        map_mem.initial_contents(&map_mem_initial_contents);
 
         let x = m.reg("x", 9);
         let y = m.reg("y", 8);
@@ -65,9 +75,6 @@ impl<'a> CharDisplay<'a> {
 
         let line_active = m.reg("line_active", 1);
         line_active.default_value(false);
-
-        let pixel_buffer_addr = m.reg("pixel_buffer_addr", char_mem_address_bit_width);
-        let pixel_buffer = m.reg("pixel_buffer", 8);
 
         x.drive_next(
             if_(system_write_line_pulse, m.lit(0u32, 9))
@@ -87,36 +94,52 @@ impl<'a> CharDisplay<'a> {
                 .else_(line_active),
         );
 
-        pixel_buffer_addr.drive_next(
+        let map_line_addr = m.reg("map_line_addr", map_mem_address_bit_width);
+        map_line_addr.drive_next(
             if_(
-                system_write_line_pulse,
-                m.lit(0u32, char_mem_address_bit_width - 3)
-                    .concat(y.bits(2, 0)),
+                system_write_vsync_pulse,
+                m.lit(0u32, map_mem_address_bit_width),
             )
             .else_if(
-                line_active & x.bits(2, 0).eq(m.lit(0u32, 3)),
-                pixel_buffer_addr + m.lit(8u32, char_mem_address_bit_width),
+                line_active & x_end & y.bits(2, 0).eq(m.lit(7u32, 3)),
+                map_line_addr + m.lit(CHARS_WIDTH, map_mem_address_bit_width),
             )
-            .else_(pixel_buffer_addr),
+            .else_(map_line_addr),
+        );
+
+        let map_addr = m.reg("map_addr", map_mem_address_bit_width);
+        map_addr.drive_next(
+            if_(system_write_line_pulse, map_line_addr.into())
+                .else_if(
+                    line_active & x.bits(2, 0).eq(m.lit(7u32, 3)),
+                    map_addr + m.lit(1u32, map_mem_address_bit_width),
+                )
+                .else_(map_addr),
         );
 
         let x_1 = x.reg_next("x_1");
+        let x_2 = x_1.reg_next("x_2");
+        let y_1 = y.reg_next("y_1");
         let line_active_1 = line_active.reg_next_with_default("line_active_1", false);
         let line_active_2 = line_active_1.reg_next_with_default("line_active_2", false);
+        let line_active_3 = line_active_2.reg_next_with_default("line_active_3", false);
 
-        pixel_buffer.drive_next(
+        let read_map = line_active & x.bits(2, 0).eq(m.lit(0u32, 3));
+        let map_1 = map_mem.read_port(map_addr, read_map);
+        let read_char_1 = line_active_1 & x_1.bits(2, 0).eq(m.lit(0u32, 3));
+        let char_2 = char_mem.read_port(map_1.concat(y_1.bits(2, 0)), read_char_1);
+
+        let pixel_buffer_3 = m.reg("pixel_buffer", 8);
+        pixel_buffer_3.drive_next(
             if_(
-                line_active_1,
-                if_(
-                    x_1.bits(2, 0).eq(m.lit(0u32, 3)),
-                    char_mem.read_port(pixel_buffer_addr, line_active),
-                )
-                .else_(pixel_buffer.bits(6, 0).concat(m.lit(false, 1))),
+                line_active_2,
+                if_(x_2.bits(2, 0).eq(m.lit(0u32, 3)), char_2)
+                    .else_(pixel_buffer_3.bits(6, 0).concat(m.lit(false, 1))),
             )
-            .else_(pixel_buffer),
+            .else_(pixel_buffer_3),
         );
 
-        let video_line_buffer_write_data = pixel_buffer.bit(7);
+        let video_line_buffer_write_data_3 = pixel_buffer_3.bit(7);
 
         CharDisplay {
             m,
@@ -125,9 +148,11 @@ impl<'a> CharDisplay<'a> {
             system_write_line_pulse,
 
             video_line_buffer_write_enable: m
-                .output("video_line_buffer_write_enable", line_active_2),
-            video_line_buffer_write_data: m
-                .output("video_line_buffer_write_data", video_line_buffer_write_data),
+                .output("video_line_buffer_write_enable", line_active_3),
+            video_line_buffer_write_data: m.output(
+                "video_line_buffer_write_data",
+                video_line_buffer_write_data_3,
+            ),
         }
     }
 }
