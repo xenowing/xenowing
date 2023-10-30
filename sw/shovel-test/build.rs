@@ -1,6 +1,6 @@
 use kaze::*;
 
-use rtl::pocket::char_display::*;
+use rtl::pocket::shovel::*;
 use rtl::pocket::video_test_pattern_generator::*;
 
 use std::env;
@@ -15,12 +15,12 @@ fn main() -> Result<()> {
 
     let c = Context::new();
 
-    let char_display = CharDisplay::new("char_display", &c);
+    let shovel = Shovel::new("shovel", &c);
 
     let video_test_pattern_generator =
         VideoTestPatternGenerator::new("video_test_pattern_generator", &c);
 
-    sim::generate(char_display.m, sim::GenerationOptions::default(), &mut file)?;
+    sim::generate(shovel.m, sim::GenerationOptions::default(), &mut file)?;
 
     sim::generate(
         video_test_pattern_generator.m,

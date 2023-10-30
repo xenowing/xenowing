@@ -1,14 +1,40 @@
-use crate::uart::*;
+use rtl_meta::shovel::char_display::*;
 
 use core::fmt::{Result, Write};
+use core::ptr;
 
-// TODO: This is specific to xw-blaster, and may have a better home
-const COMMAND_PUTC: u8 = 0x00;
+const MAP: *mut u8 = 0x01000000 as _;
+
+static mut MAP_OFFSET: u32 = 0;
 
 pub fn putc(c: char) {
-    write_u8(COMMAND_PUTC);
-    // TODO: This shouldn't actually be safe... :)
-    write_u8(c as _);
+    unsafe {
+        if c == '\n' {
+            MAP_OFFSET += CHARS_WIDTH;
+            while (MAP_OFFSET % CHARS_WIDTH) != 0 {
+                MAP_OFFSET -= 1;
+            }
+        } else {
+            // TODO: This shouldn't actually be safe... :)
+            let c = (c as u8) - 32;
+            ptr::write_volatile(MAP.offset((MAP_OFFSET * 16) as _), c);
+            MAP_OFFSET += 1;
+        }
+
+        while MAP_OFFSET == CHARS_WIDTH * CHARS_HEIGHT {
+            for y in 0..CHARS_HEIGHT - 1 {
+                for x in 0..CHARS_WIDTH {
+                    let c = ptr::read_volatile(MAP.offset((((y + 1) * CHARS_WIDTH + x) * 16) as _));
+                    ptr::write_volatile(MAP.offset(((y * CHARS_WIDTH + x) * 16) as _), c);
+                }
+            }
+            for x in 0..CHARS_WIDTH {
+                ptr::write_volatile(MAP.offset((x * 16) as _), 0);
+            }
+
+            MAP_OFFSET -= CHARS_WIDTH;
+        }
+    }
 }
 
 pub fn puts(s: &str) {

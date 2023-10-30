@@ -64,38 +64,37 @@ fn main() {
     )
     .unwrap();
 
-    let mut char_display_buffer = vec![false; (ACTIVE_WIDTH * ACTIVE_HEIGHT) as usize];
+    let mut shovel_buffer = vec![false; (ACTIVE_WIDTH * ACTIVE_HEIGHT) as usize];
     let mut test_pattern_buffer = vec![0; (ACTIVE_WIDTH * ACTIVE_HEIGHT) as usize];
 
     let mut buffer = vec![0; (ACTIVE_WIDTH * ACTIVE_HEIGHT) as usize];
 
     let mut video_timing_generator = VideoTimingGenerator::default();
 
-    let mut char_display = CharDisplay::new();
-    char_display.reset();
+    let mut shovel = Shovel::new();
+    shovel.reset();
 
     let mut video_test_pattern_generator = VideoTestPatternGenerator::new();
     video_test_pattern_generator.reset();
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        let mut char_display_buffer_pos = 0;
+        let mut shovel_buffer_pos = 0;
         let mut test_pattern_buffer_pos = 0;
 
         loop {
             let (vsync_pulse, line_pulse) = video_timing_generator.posedge_clk();
 
-            char_display.system_write_vsync_pulse = vsync_pulse;
-            char_display.system_write_line_pulse = line_pulse;
+            shovel.system_write_vsync_pulse = vsync_pulse;
+            shovel.system_write_line_pulse = line_pulse;
 
-            char_display.prop();
+            shovel.prop();
 
-            if char_display.video_line_buffer_write_enable {
-                char_display_buffer[char_display_buffer_pos] =
-                    char_display.video_line_buffer_write_data;
-                char_display_buffer_pos += 1;
+            if shovel.video_line_buffer_write_enable {
+                shovel_buffer[shovel_buffer_pos] = shovel.video_line_buffer_write_data;
+                shovel_buffer_pos += 1;
             }
 
-            char_display.posedge_clk();
+            shovel.posedge_clk();
 
             video_test_pattern_generator.system_write_vsync_pulse = vsync_pulse;
             video_test_pattern_generator.system_write_line_pulse = line_pulse;
@@ -115,12 +114,12 @@ fn main() {
             }
         }
 
-        for ((&char_display_pixel, &test_pattern_pixel), pixel) in char_display_buffer
+        for ((&shovel_pixel, &test_pattern_pixel), pixel) in shovel_buffer
             .iter()
             .zip(test_pattern_buffer.iter())
             .zip(buffer.iter_mut())
         {
-            *pixel = if char_display_pixel {
+            *pixel = if shovel_pixel {
                 0xffffff
             } else {
                 test_pattern_pixel
