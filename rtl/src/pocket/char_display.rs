@@ -1,16 +1,16 @@
+use crate::buster::*;
+
 use image::GenericImageView;
 use kaze::*;
+use rtl_meta::shovel::char_display::*;
 use rtl_meta::shovel::video_test_pattern_generator::*;
 
 use std::io::Cursor;
 
-const CHAR_DIM: u32 = 8;
-
-const CHARS_WIDTH: u32 = ACTIVE_WIDTH / CHAR_DIM;
-const CHARS_HEIGHT: u32 = ACTIVE_HEIGHT / CHAR_DIM;
-
 pub struct CharDisplay<'a> {
     pub m: &'a Module<'a>,
+
+    pub client_port: ReplicaPort<'a>,
 
     pub system_write_vsync_pulse: &'a Input<'a>,
     pub system_write_line_pulse: &'a Input<'a>,
@@ -25,8 +25,6 @@ impl<'a> CharDisplay<'a> {
 
         let system_write_vsync_pulse = m.input("system_write_vsync_pulse", 1);
         let system_write_line_pulse = m.input("system_write_line_pulse", 1);
-
-        // TODO: Expose read/write ports to make char and map data dynamic
 
         let font_image = image::io::Reader::new(Cursor::new(include_bytes!("font.png")))
             .with_guessed_format()
@@ -51,7 +49,6 @@ impl<'a> CharDisplay<'a> {
             }
         }
 
-        // TODO: Fill from software instead
         // TODO: Get rid of magic numbers and move these to constants
         let char_mem_address_bit_width = 7 + 3;
         let char_mem = m.mem("char_mem", char_mem_address_bit_width, 8);
@@ -59,14 +56,18 @@ impl<'a> CharDisplay<'a> {
         char_mem_initial_contents[0..font_data.len()].copy_from_slice(&font_data);
         char_mem.initial_contents(&char_mem_initial_contents);
 
-        // TODO: Fill from software instead
         let map_mem_address_bit_width = ((CHARS_WIDTH * CHARS_HEIGHT) as f64).log2().ceil() as u32;
         let map_mem = m.mem("map_mem", map_mem_address_bit_width, 7);
-        let mut map_mem_initial_contents = vec![0; 1 << map_mem_address_bit_width];
-        let map_data_str = "Hello from char mem ROM! ...need to replace this with RAM ofc and fill it from CPU and whatever but this is cool for now.";
-        let map_data_bytes = map_data_str.bytes().map(|x| x - 32).collect::<Vec<_>>();
-        map_mem_initial_contents[0..map_data_bytes.len()].copy_from_slice(&map_data_bytes);
-        map_mem.initial_contents(&map_mem_initial_contents);
+
+        let bus_enable = m.input("bus_enable", 1);
+        let bus_addr = m.input("bus_addr", 20);
+        let bus_write = m.input("bus_write", 1);
+        let bus_write_data = m.input("bus_write_data", 128);
+        let bus_write_byte_enable = m.input("bus_write_byte_enable", 16);
+
+        let client_map_addr = bus_addr.bits(map_mem_address_bit_width - 1, 0);
+        let client_write_map = bus_enable & bus_write & bus_write_byte_enable.bit(0);
+        map_mem.write_port(client_map_addr, bus_write_data.bits(6, 0), client_write_map);
 
         let x = m.reg("x", 9);
         let y = m.reg("y", 8);
@@ -124,8 +125,14 @@ impl<'a> CharDisplay<'a> {
         let line_active_2 = line_active_1.reg_next_with_default("line_active_2", false);
         let line_active_3 = line_active_2.reg_next_with_default("line_active_3", false);
 
-        let read_map = line_active & x.bits(2, 0).eq(m.lit(0u32, 3));
-        let map_1 = map_mem.read_port(map_addr, read_map);
+        let display_read_map = line_active & x.bits(2, 0).eq(m.lit(0u32, 3));
+        let bus_ready = bus_write | !display_read_map;
+        let client_read_map = bus_enable & !bus_write & bus_ready;
+
+        let map_1 = map_mem.read_port(
+            if_(display_read_map, map_addr).else_(client_map_addr),
+            display_read_map | client_read_map,
+        );
         let read_char_1 = line_active_1 & x_1.bits(2, 0).eq(m.lit(0u32, 3));
         let char_2 = char_mem.read_port(map_1.concat(y_1.bits(2, 0)), read_char_1);
 
@@ -143,6 +150,20 @@ impl<'a> CharDisplay<'a> {
 
         CharDisplay {
             m,
+
+            client_port: ReplicaPort {
+                bus_enable,
+                bus_addr,
+                bus_write,
+                bus_write_data,
+                bus_write_byte_enable,
+                bus_ready: m.output("bus_ready", bus_ready),
+                bus_read_data: m.output("bus_read_data", m.lit(0u32, 121).concat(map_1)),
+                bus_read_data_valid: m.output(
+                    "bus_read_data_valid",
+                    client_read_map.reg_next_with_default("client_read_map_reg", false),
+                ),
+            },
 
             system_write_vsync_pulse,
             system_write_line_pulse,

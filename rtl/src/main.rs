@@ -23,7 +23,7 @@ mod xenowing;
 use buster_mig_ui_bridge::*;
 use mimas_a7::test::lfsr::*;
 use mimas_a7::test::uart::*;
-use pocket::char_display;
+use pocket::shovel;
 use pocket::video_test_pattern_generator;
 use uart::*;
 use xenowing::*;
@@ -48,10 +48,7 @@ fn main() -> Result<()> {
     verilog::generate(uart.m, stdout())?;
     verilog::generate(uart_tx.m, stdout())?;
     verilog::generate(buster_mig_ui_bridge.m, stdout())?;
-    verilog::generate(
-        char_display::CharDisplay::new("char_display", &c).m,
-        stdout(),
-    )?;
+    verilog::generate(shovel::Shovel::new("shovel", &c).m, stdout())?;
     verilog::generate(
         video_test_pattern_generator::VideoTestPatternGenerator::new(
             "video_test_pattern_generator",
