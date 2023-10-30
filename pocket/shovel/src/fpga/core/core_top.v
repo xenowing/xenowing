@@ -546,7 +546,7 @@ assign video_hs = vidout_hs;
 
     reg video_line_buffer_read_enable;
     reg [9:0] video_line_buffer_read_addr;
-    wire char_display_line_buffer_read_data;
+    wire shovel_line_buffer_read_data;
     wire [23:0] test_pattern_line_buffer_read_data;
 
 always @(posedge clk_core_12288 or negedge reset_n) begin
@@ -629,7 +629,7 @@ always @(posedge clk_core_12288 or negedge reset_n) begin
                 // data enable. this is the active region of the line
                 vidout_de <= 1;
                 
-                vidout_rgb <= char_display_line_buffer_read_data ? 24'hffffff : test_pattern_line_buffer_read_data;
+                vidout_rgb <= shovel_line_buffer_read_data ? 24'hffffff : test_pattern_line_buffer_read_data;
                 
             end 
         end
@@ -660,48 +660,48 @@ end
         .dst_pulse(system_write_line_pulse)
     );
 
-    // Char display line buffer
-    wire char_display_line_buffer_write_enable;
-    reg [9:0] char_display_line_buffer_write_addr;
-    wire char_display_line_buffer_write_data;
+    // Shovel line buffer
+    wire shovel_line_buffer_write_enable;
+    reg [9:0] shovel_line_buffer_write_addr;
+    wire shovel_line_buffer_write_data;
     UnidirectionalDualPortBram #(
         .DATA(1),
         .ADDR(10),
         .DEPTH(VID_H_ACTIVE * 2)
-    ) char_display_line_buffer (
+    ) shovel_line_buffer (
         .write_clk(clk_sdram),
-        .write_enable(char_display_line_buffer_write_enable),
-        .write_addr(char_display_line_buffer_write_addr),
-        .write_data(char_display_line_buffer_write_data),
+        .write_enable(shovel_line_buffer_write_enable),
+        .write_addr(shovel_line_buffer_write_addr),
+        .write_data(shovel_line_buffer_write_data),
 
         .read_clk(clk_core_12288),
         .read_enable(video_line_buffer_read_enable),
         .read_addr(video_line_buffer_read_addr),
-        .read_data(char_display_line_buffer_read_data)
+        .read_data(shovel_line_buffer_read_data)
     );
 
     always @(posedge clk_sdram) begin
         if (system_write_vsync_pulse) begin
-            char_display_line_buffer_write_addr <= 10'd0;
+            shovel_line_buffer_write_addr <= 10'd0;
         end
-        else if (char_display_line_buffer_write_enable) begin
-            char_display_line_buffer_write_addr <= char_display_line_buffer_write_addr + 10'd1;
-            if (char_display_line_buffer_write_addr == VID_H_ACTIVE * 2 - 1) begin
-                char_display_line_buffer_write_addr <= 10'd0;
+        else if (shovel_line_buffer_write_enable) begin
+            shovel_line_buffer_write_addr <= shovel_line_buffer_write_addr + 10'd1;
+            if (shovel_line_buffer_write_addr == VID_H_ACTIVE * 2 - 1) begin
+                shovel_line_buffer_write_addr <= 10'd0;
             end
         end
     end
 
-    // Char display
-    CharDisplay char_display_generator(
+    // Shovel
+    Shovel shovel(
         .reset_n(reset_n),
         .clk(clk_sdram),
 
         .system_write_vsync_pulse(system_write_vsync_pulse),
         .system_write_line_pulse(system_write_line_pulse),
 
-        .video_line_buffer_write_enable(char_display_line_buffer_write_enable),
-        .video_line_buffer_write_data(char_display_line_buffer_write_data),
+        .video_line_buffer_write_enable(shovel_line_buffer_write_enable),
+        .video_line_buffer_write_data(shovel_line_buffer_write_data),
     );
 
     // Test pattern line buffer
