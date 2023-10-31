@@ -179,7 +179,7 @@ impl<'a> Crossbar<'a> {
                 let name = format!("primary{}", i);
 
                 // TODO: Consider some kind of "multi-lane-fifo" or something to reduce boilerplate and explicitly share control logic
-                let issue_fifo_depth_bits = 3; // Totally arbitrary :)
+                let issue_fifo_depth_bits = 2; // Totally arbitrary :)
 
                 let bus_addr_issue_fifo = Fifo::new(
                     format!("{}_bus_addr_issue_fifo", name),

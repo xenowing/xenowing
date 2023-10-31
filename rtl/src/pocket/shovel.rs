@@ -39,7 +39,7 @@ impl<'a> Shovel<'a> {
         let byte_ram = ByteRam::new("byte_ram", 14 - 4, 24, m);
 
         // Interconnect
-        let cpu_crossbar = Crossbar::new("cpu_crossbar", 2, 2, 28, 4, 128, 5, m);
+        let cpu_crossbar = Crossbar::new("cpu_crossbar", 2, 2, 28, 4, 128, 2, m);
         let marv_instruction_bridge = MarvSystemBridge::new("marv_instruction_bridge", m);
         marv.instruction_port
             .connect(&marv_instruction_bridge.marv_port);
@@ -57,11 +57,11 @@ impl<'a> Shovel<'a> {
             .system_port
             .connect(&cpu_crossbar.replica_ports[1]);
 
-        let mem_crossbar = Crossbar::new("mem_crossbar", 1, 1, 24, 0, 128, 5, m);
+        let mem_crossbar = Crossbar::new("mem_crossbar", 1, 1, 24, 0, 128, 2, m);
         cpu_crossbar.primary_ports[1].connect(&mem_crossbar.replica_ports[0]);
         mem_crossbar.primary_ports[0].connect(&byte_ram.client_port);
 
-        let sys_crossbar = Crossbar::new("sys_crossbar", 1, 2, 24, 4, 128, 5, m);
+        let sys_crossbar = Crossbar::new("sys_crossbar", 1, 2, 24, 4, 128, 2, m);
         cpu_crossbar.primary_ports[0].connect(&sys_crossbar.replica_ports[0]);
         sys_crossbar.primary_ports[0].connect(&boot_rom.client_port);
         sys_crossbar.primary_ports[1].connect(&char_display.client_port);
