@@ -12,9 +12,7 @@ impl<'a> Instruction<'a> {
             panic!("value bit width must be 32");
         }
 
-        Instruction {
-            value,
-        }
+        Instruction { value }
     }
 
     fn opcode(&self) -> &'a dyn Signal<'a> {
@@ -38,23 +36,45 @@ impl<'a> Instruction<'a> {
     }
 
     fn load_offset(&self) -> &'a dyn Signal<'a> {
-        self.value.bit(31).repeat(21).concat(self.value.bits(30, 20))
+        self.value
+            .bit(31)
+            .repeat(21)
+            .concat(self.value.bits(30, 20))
     }
 
     fn store_offset(&self) -> &'a dyn Signal<'a> {
-        self.value.bit(31).repeat(21).concat(self.value.bits(30, 25)).concat(self.value.bits(11, 7))
+        self.value
+            .bit(31)
+            .repeat(21)
+            .concat(self.value.bits(30, 25))
+            .concat(self.value.bits(11, 7))
     }
 
     fn jump_offset(&self, m: &'a Module<'a>) -> &'a dyn Signal<'a> {
-        self.value.bit(31).repeat(12).concat(self.value.bits(19, 12)).concat(self.value.bit(20)).concat(self.value.bits(30, 21)).concat(m.low())
+        self.value
+            .bit(31)
+            .repeat(12)
+            .concat(self.value.bits(19, 12))
+            .concat(self.value.bit(20))
+            .concat(self.value.bits(30, 21))
+            .concat(m.low())
     }
 
     fn branch_offset(&self, m: &'a Module<'a>) -> &'a dyn Signal<'a> {
-        self.value.bit(31).repeat(20).concat(self.value.bit(7)).concat(self.value.bits(30, 25)).concat(self.value.bits(11, 8)).concat(m.low())
+        self.value
+            .bit(31)
+            .repeat(20)
+            .concat(self.value.bit(7))
+            .concat(self.value.bits(30, 25))
+            .concat(self.value.bits(11, 8))
+            .concat(m.low())
     }
 
     fn i_immediate(&self) -> &'a dyn Signal<'a> {
-        self.value.bit(31).repeat(21).concat(self.value.bits(30, 20))
+        self.value
+            .bit(31)
+            .repeat(21)
+            .concat(self.value.bits(30, 20))
     }
 
     fn u_immediate(&self, m: &'a Module<'a>) -> &'a dyn Signal<'a> {
@@ -97,20 +117,30 @@ impl<'a> Marv<'a> {
         let instruction_bus_read_data_valid = m.input("instruction_bus_read_data_valid", 1);
 
         let instruction_fetch = InstructionFetch::new("instruction_fetch", m);
-        control.instruction_fetch_ready.drive(instruction_fetch.ready);
-        instruction_fetch.enable.drive(control.instruction_fetch_enable);
+        control
+            .instruction_fetch_ready
+            .drive(instruction_fetch.ready);
+        instruction_fetch
+            .enable
+            .drive(control.instruction_fetch_enable);
         instruction_fetch.pc.drive(pc.bits(31, 2));
         instruction_fetch.bus_ready.drive(instruction_bus_ready);
 
         let decode = Decode::new("decode", m);
         control.decode_ready.drive(decode.ready);
         decode.bus_read_data.drive(instruction_bus_read_data);
-        decode.bus_read_data_valid.drive(instruction_bus_read_data_valid);
+        decode
+            .bus_read_data_valid
+            .drive(instruction_bus_read_data_valid);
 
         let decode_instruction = Instruction::new(decode.instruction);
 
         let instruction = m.reg("instruction", 32);
-        instruction.drive_next(control.decode_enable.mux(decode_instruction.value, instruction));
+        instruction.drive_next(
+            control
+                .decode_enable
+                .mux(decode_instruction.value, instruction),
+        );
         let instruction = Instruction::new(instruction);
 
         let alu = Alu::new("alu", m);
@@ -118,15 +148,21 @@ impl<'a> Marv<'a> {
         let execute = Execute::new("execute", m);
         execute.pc.drive(pc);
         execute.instruction.drive(instruction.value);
-        execute.reg1.drive(register_file.read_port(decode_instruction.rs1(), control.decode_enable));
-        execute.reg2.drive(register_file.read_port(decode_instruction.rs2(), control.decode_enable));
+        execute
+            .reg1
+            .drive(register_file.read_port(decode_instruction.rs1(), control.decode_enable));
+        execute
+            .reg2
+            .drive(register_file.read_port(decode_instruction.rs2(), control.decode_enable));
         alu.op.drive(execute.alu_op);
         alu.op_mod.drive(execute.alu_op_mod);
         alu.lhs.drive(execute.alu_lhs);
         alu.rhs.drive(execute.alu_rhs);
         execute.alu_res.drive(alu.res);
         execute.cycle_counter_value.drive(cycle_counter);
-        execute.instructions_retired_counter_value.drive(instructions_retired_counter);
+        execute
+            .instructions_retired_counter_value
+            .drive(instructions_retired_counter);
 
         let data_bus_ready = m.input("data_bus_ready", 1);
         let data_bus_read_data = m.input("data_bus_read_data", 32);
@@ -139,7 +175,8 @@ impl<'a> Marv<'a> {
         mem.bus_enable_in.drive(execute.bus_enable);
         mem.bus_addr_in.drive(execute.bus_addr);
         mem.bus_write_data_in.drive(execute.bus_write_data);
-        mem.bus_write_byte_enable_in.drive(execute.bus_write_byte_enable);
+        mem.bus_write_byte_enable_in
+            .drive(execute.bus_write_byte_enable);
         mem.bus_write_in.drive(execute.bus_write);
 
         let writeback = Writeback::new("writeback", m);
@@ -148,19 +185,28 @@ impl<'a> Marv<'a> {
         writeback.instruction.drive(instruction.value);
         writeback.bus_addr_low.drive(mem.bus_addr_out.bits(1, 0));
         writeback.next_pc.drive(execute.next_pc);
-        writeback.rd_value_write_enable.drive(execute.rd_value_write_enable);
-        writeback.rd_value_write_data.drive(execute.rd_value_write_data);
+        writeback
+            .rd_value_write_enable
+            .drive(execute.rd_value_write_enable);
+        writeback
+            .rd_value_write_data
+            .drive(execute.rd_value_write_data);
         pc.drive_next(writeback.pc_write_enable.mux(writeback.pc_write_data, pc));
         instructions_retired_counter.drive_next(
             writeback.instructions_retired_counter_increment_enable.mux(
                 instructions_retired_counter + m.lit(1u64, 64),
-                instructions_retired_counter));
+                instructions_retired_counter,
+            ),
+        );
         register_file.write_port(
             writeback.register_file_write_addr,
             writeback.register_file_write_data,
-            writeback.register_file_write_enable);
+            writeback.register_file_write_enable,
+        );
         writeback.bus_read_data.drive(data_bus_read_data);
-        writeback.bus_read_data_valid.drive(data_bus_read_data_valid);
+        writeback
+            .bus_read_data_valid
+            .drive(data_bus_read_data_valid);
 
         Marv {
             m,
@@ -170,7 +216,8 @@ impl<'a> Marv<'a> {
                 bus_addr: m.output("instruction_bus_addr", instruction_fetch.bus_addr),
                 bus_write: m.output("instruction_bus_write", m.low()),
                 bus_write_data: m.output("instruction_bus_write_data", m.lit(0u32, 32)),
-                bus_write_byte_enable: m.output("instruction_bus_write_byte_enable", m.lit(0u32, 4)),
+                bus_write_byte_enable: m
+                    .output("instruction_bus_write_byte_enable", m.lit(0u32, 4)),
                 bus_ready: instruction_bus_ready,
                 bus_read_data: instruction_bus_read_data,
                 bus_read_data_valid: instruction_bus_read_data_valid,
@@ -180,7 +227,8 @@ impl<'a> Marv<'a> {
                 bus_addr: m.output("data_bus_addr", mem.bus_addr_out.bits(31, 2)),
                 bus_write: m.output("data_bus_write", mem.bus_write_out),
                 bus_write_data: m.output("data_bus_write_data", mem.bus_write_data_out),
-                bus_write_byte_enable: m.output("data_bus_write_byte_enable", mem.bus_write_byte_enable_out),
+                bus_write_byte_enable: m
+                    .output("data_bus_write_byte_enable", mem.bus_write_byte_enable_out),
                 bus_ready: data_bus_ready,
                 bus_read_data: data_bus_read_data,
                 bus_read_data_valid: data_bus_read_data_valid,
@@ -222,24 +270,41 @@ impl<'a> Control<'a> {
         let state = m.reg("state", state_bit_width);
         state.default_value(state_instruction_fetch);
         // TODO: (Enum) matching sugar
-        state.drive_next(if_(state.eq(m.lit(state_instruction_fetch, state_bit_width)) & instruction_fetch_ready, {
-            m.lit(state_decode, state_bit_width)
-        }).else_if(state.eq(m.lit(state_decode, state_bit_width)) & decode_ready, {
-            m.lit(state_execute, state_bit_width)
-        }).else_if(state.eq(m.lit(state_execute, state_bit_width)), {
-            m.lit(state_mem, state_bit_width)
-        }).else_if(state.eq(m.lit(state_mem, state_bit_width)) & mem_ready, {
-            m.lit(state_writeback, state_bit_width)
-        }).else_if(state.eq(m.lit(state_writeback, state_bit_width)) & writeback_ready, {
-            m.lit(state_instruction_fetch, state_bit_width)
-        }).else_({
-            state
-        }));
+        state.drive_next(
+            if_(
+                state.eq(m.lit(state_instruction_fetch, state_bit_width)) & instruction_fetch_ready,
+                m.lit(state_decode, state_bit_width),
+            )
+            .else_if(
+                state.eq(m.lit(state_decode, state_bit_width)) & decode_ready,
+                m.lit(state_execute, state_bit_width),
+            )
+            .else_if(state.eq(m.lit(state_execute, state_bit_width)), {
+                m.lit(state_mem, state_bit_width)
+            })
+            .else_if(state.eq(m.lit(state_mem, state_bit_width)) & mem_ready, {
+                m.lit(state_writeback, state_bit_width)
+            })
+            .else_if(
+                state.eq(m.lit(state_writeback, state_bit_width)) & writeback_ready,
+                m.lit(state_instruction_fetch, state_bit_width),
+            )
+            .else_(state),
+        );
 
-        let instruction_fetch_enable = m.output("instruction_fetch_enable", state.eq(m.lit(state_instruction_fetch, state_bit_width)));
-        let decode_enable = m.output("decode_enable", state.eq(m.lit(state_decode, state_bit_width)));
+        let instruction_fetch_enable = m.output(
+            "instruction_fetch_enable",
+            state.eq(m.lit(state_instruction_fetch, state_bit_width)),
+        );
+        let decode_enable = m.output(
+            "decode_enable",
+            state.eq(m.lit(state_decode, state_bit_width)),
+        );
         let mem_enable = m.output("mem_enable", state.eq(m.lit(state_mem, state_bit_width)));
-        let writeback_enable = m.output("writeback_enable", state.eq(m.lit(state_writeback, state_bit_width)));
+        let writeback_enable = m.output(
+            "writeback_enable",
+            state.eq(m.lit(state_writeback, state_bit_width)),
+        );
 
         Control {
             m,
@@ -270,7 +335,10 @@ pub struct InstructionFetch<'a> {
 }
 
 impl<'a> InstructionFetch<'a> {
-    pub fn new(instance_name: impl Into<String>, p: &'a impl ModuleParent<'a>) -> InstructionFetch<'a> {
+    pub fn new(
+        instance_name: impl Into<String>,
+        p: &'a impl ModuleParent<'a>,
+    ) -> InstructionFetch<'a> {
         let m = p.module(instance_name, "InstructionFetch");
 
         let bus_ready = m.input("bus_ready", 1);
@@ -346,41 +414,53 @@ impl<'a> Alu<'a> {
 
         let shift_amt = rhs.bits(4, 0);
 
-        let res = m.output("res", if_(op.eq(m.lit(0b000u32, 3)), {
-            if_(!op_mod, {
-                // add
-                lhs + rhs
-            }).else_({
-                // sub
-                lhs - rhs
+        let res = m.output(
+            "res",
+            if_(op.eq(m.lit(0b000u32, 3)), {
+                if_(!op_mod, {
+                    // add
+                    lhs + rhs
+                })
+                .else_({
+                    // sub
+                    lhs - rhs
+                })
             })
-        }).else_if(op.eq(m.lit(0b001u32, 3)), {
-            // sll
-            lhs << shift_amt
-        }).else_if(op.eq(m.lit(0b010u32, 3)), {
-            // lt
-            m.lit(0u32, 31).concat(lhs.lt_signed(rhs))
-        }).else_if(op.eq(m.lit(0b011u32, 3)), {
-            // ltu
-            m.lit(0u32, 31).concat(lhs.lt(rhs))
-        }).else_if(op.eq(m.lit(0b100u32, 3)), {
-            // xor
-            lhs ^ rhs
-        }).else_if(op.eq(m.lit(0b101u32, 3)), {
-            if_(!op_mod, {
-                // srl
-                lhs >> shift_amt
-            }).else_({
-                // sra
-                lhs.shr_arithmetic(shift_amt)
+            .else_if(op.eq(m.lit(0b001u32, 3)), {
+                // sll
+                lhs << shift_amt
             })
-        }).else_if(op.eq(m.lit(0b110u32, 3)), {
-            // or
-            lhs | rhs
-        }).else_({
-            // and
-            lhs & rhs
-        }));
+            .else_if(op.eq(m.lit(0b010u32, 3)), {
+                // lt
+                m.lit(0u32, 31).concat(lhs.lt_signed(rhs))
+            })
+            .else_if(op.eq(m.lit(0b011u32, 3)), {
+                // ltu
+                m.lit(0u32, 31).concat(lhs.lt(rhs))
+            })
+            .else_if(op.eq(m.lit(0b100u32, 3)), {
+                // xor
+                lhs ^ rhs
+            })
+            .else_if(op.eq(m.lit(0b101u32, 3)), {
+                if_(!op_mod, {
+                    // srl
+                    lhs >> shift_amt
+                })
+                .else_({
+                    // sra
+                    lhs.shr_arithmetic(shift_amt)
+                })
+            })
+            .else_if(op.eq(m.lit(0b110u32, 3)), {
+                // or
+                lhs | rhs
+            })
+            .else_({
+                // and
+                lhs & rhs
+            }),
+        );
 
         Alu {
             m,
@@ -436,10 +516,14 @@ impl<'a> Execute<'a> {
         let (alu_rhs, alu_op_mod) = if_(instruction.opcode().bit(3), {
             // Register computation
             (reg2, alu_op_mod)
-        }).else_({
+        })
+        .else_({
             // Immediate computation
             //  These use the alu_op_mod bit as part of the immediate operand except for SRAI
-            (instruction.i_immediate(), instruction.funct3().eq(m.lit(0b101u32, 3)) & alu_op_mod)
+            (
+                instruction.i_immediate(),
+                instruction.funct3().eq(m.lit(0b101u32, 3)) & alu_op_mod,
+            )
         });
 
         let alu_rhs = m.output("alu_rhs", alu_rhs);
@@ -452,18 +536,20 @@ impl<'a> Execute<'a> {
         let (next_pc, rd_value_write_data) = if_(instruction.opcode().eq(m.lit(0b01101u32, 5)), {
             // lui
             (link_pc, instruction.u_immediate(m))
-        }).else_if(instruction.opcode().eq(m.lit(0b00101u32, 5)), {
+        })
+        .else_if(instruction.opcode().eq(m.lit(0b00101u32, 5)), {
             // auipc
             (link_pc, instruction.u_immediate(m) + pc)
-        }).else_if(instruction.opcode().eq(m.lit(0b11011u32, 5)), {
+        })
+        .else_if(instruction.opcode().eq(m.lit(0b11011u32, 5)), {
             // jal
             (pc + instruction.jump_offset(m), link_pc)
-        }).else_if(instruction.opcode().eq(m.lit(0b11001u32, 5)), {
+        })
+        .else_if(instruction.opcode().eq(m.lit(0b11001u32, 5)), {
             // jalr
             (reg1 + instruction.i_immediate(), link_pc)
-        }).else_({
-            (link_pc, alu_res)
-        });
+        })
+        .else_((link_pc, alu_res));
 
         // Loads
         let bus_enable = instruction.opcode().eq(m.lit(0b00000u32, 5));
@@ -471,42 +557,57 @@ impl<'a> Execute<'a> {
         let bus_addr_offset = instruction.load_offset();
 
         // Stores
-        let (rd_value_write_enable, bus_addr_offset, bus_enable, bus_write) = if_(instruction.opcode().eq(m.lit(0b01000u32, 5)), {
-            (m.low(), instruction.store_offset(), m.high(), m.high())
-        }).else_({
-            (m.high(), bus_addr_offset, bus_enable, m.low())
-        });
+        let (rd_value_write_enable, bus_addr_offset, bus_enable, bus_write) =
+            if_(instruction.opcode().eq(m.lit(0b01000u32, 5)), {
+                (m.low(), instruction.store_offset(), m.high(), m.high())
+            })
+            .else_((m.high(), bus_addr_offset, bus_enable, m.low()));
 
         let bus_enable = m.output("bus_enable", bus_enable);
         let bus_write = m.output("bus_write", bus_write);
 
         let bus_addr = reg1 + bus_addr_offset;
 
-        let (bus_write_data, bus_write_byte_enable) = if_(instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2)), {
-            // sb
-            let bus_addr_low = bus_addr.bits(1, 0);
-            // TODO: Express with shift?
-            if_(bus_addr_low.eq(m.lit(0b00u32, 2)), {
-                (reg2.into(), m.lit(0b0001u32, 4))
-            }).else_if(bus_addr_low.eq(m.lit(0b01u32, 2)), {
-                (m.lit(0u32, 16).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 8)), m.lit(0b0010u32, 4))
-            }).else_if(bus_addr_low.eq(m.lit(0b10u32, 2)), {
-                (m.lit(0u32, 8).concat(reg2.bits(7, 0)).concat(m.lit(0u32, 16)), m.lit(0b0100u32, 4))
-            }).else_({
-                (reg2.bits(7, 0).concat(m.lit(0u32, 24)), m.lit(0b1000u32, 4))
+        let (bus_write_data, bus_write_byte_enable) =
+            if_(instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2)), {
+                // sb
+                let bus_addr_low = bus_addr.bits(1, 0);
+                // TODO: Express with shift?
+                if_(bus_addr_low.eq(m.lit(0b00u32, 2)), {
+                    (reg2.into(), m.lit(0b0001u32, 4))
+                })
+                .else_if(bus_addr_low.eq(m.lit(0b01u32, 2)), {
+                    (
+                        m.lit(0u32, 16)
+                            .concat(reg2.bits(7, 0))
+                            .concat(m.lit(0u32, 8)),
+                        m.lit(0b0010u32, 4),
+                    )
+                })
+                .else_if(bus_addr_low.eq(m.lit(0b10u32, 2)), {
+                    (
+                        m.lit(0u32, 8)
+                            .concat(reg2.bits(7, 0))
+                            .concat(m.lit(0u32, 16)),
+                        m.lit(0b0100u32, 4),
+                    )
+                })
+                .else_((reg2.bits(7, 0).concat(m.lit(0u32, 24)), m.lit(0b1000u32, 4)))
             })
-        }).else_if(instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2)), {
-            // sh
-            // TODO: Express with shift?
-            if_(!bus_addr.bit(1), {
-                (reg2, m.lit(0b0011u32, 4))
-            }).else_({
-                (reg2.bits(15, 0).concat(m.lit(0u32, 16)), m.lit(0b1100u32, 4))
+            .else_if(instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2)), {
+                // sh
+                // TODO: Express with shift?
+                if_(!bus_addr.bit(1), (reg2, m.lit(0b0011u32, 4))).else_({
+                    (
+                        reg2.bits(15, 0).concat(m.lit(0u32, 16)),
+                        m.lit(0b1100u32, 4),
+                    )
+                })
             })
-        }).else_({
-            // sw
-            (reg2, m.lit(0b1111u32, 4))
-        });
+            .else_({
+                // sw
+                (reg2, m.lit(0b1111u32, 4))
+            });
 
         let bus_write_data = m.output("bus_write_data", bus_write_data);
         let bus_write_byte_enable = m.output("bus_write_byte_enable", bus_write_byte_enable);
@@ -514,26 +615,20 @@ impl<'a> Execute<'a> {
         // Branch instructions
         let funct3_low = instruction.funct3().bits(2, 1);
         // TODO: switch/case construct?
-        let branch_taken = if_(funct3_low.eq(m.lit(0b00u32, 2)), {
-            reg1.eq(reg2)
-        }).else_if(funct3_low.eq(m.lit(0b01u32, 2)), {
-            m.low()
-        }).else_if(funct3_low.eq(m.lit(0b10u32, 2)), {
-            reg1.lt_signed(reg2)
-        }).else_({
-            reg1.lt(reg2)
-        });
+        let branch_taken = if_(funct3_low.eq(m.lit(0b00u32, 2)), reg1.eq(reg2))
+            .else_if(funct3_low.eq(m.lit(0b01u32, 2)), m.low())
+            .else_if(funct3_low.eq(m.lit(0b10u32, 2)), reg1.lt_signed(reg2))
+            .else_(reg1.lt(reg2));
         // TODO: Conditional invert construct?
         let branch_taken = instruction.funct3().bit(0).mux(!branch_taken, branch_taken);
-        let (rd_value_write_enable, next_pc) = if_(instruction.opcode().eq(m.lit(0b11000u32, 5)), {
-            (m.low(), if_(branch_taken, {
-                pc + instruction.branch_offset(m)
-            }).else_({
-                next_pc
-            }))
-        }).else_({
-            (rd_value_write_enable, next_pc)
-        });
+        let (rd_value_write_enable, next_pc) =
+            if_(instruction.opcode().eq(m.lit(0b11000u32, 5)), {
+                (
+                    m.low(),
+                    if_(branch_taken, pc + instruction.branch_offset(m)).else_(next_pc),
+                )
+            })
+            .else_((rd_value_write_enable, next_pc));
 
         let next_pc = m.output("next_pc", next_pc);
 
@@ -541,52 +636,55 @@ impl<'a> Execute<'a> {
         let rd_value_write_enable = if_(instruction.opcode().eq(m.lit(0b00011u32, 5)), {
             // Do nothing (nop)
             m.low()
-        }).else_({
-            rd_value_write_enable
-        });
+        })
+        .else_(rd_value_write_enable);
 
         let cycle_counter_value = m.input("cycle_counter_value", 64);
         let instructions_retired_counter_value = m.input("instructions_retired_counter_value", 64);
 
         // System instructions
-        let (rd_value_write_enable, rd_value_write_data) = if_(instruction.opcode().eq(m.lit(0b11100u32, 5)), {
-            let rd_value_write_enable = if_(instruction.funct3().eq(m.lit(0b000u32, 3)), {
-                // ecall/ebreak: do nothing (nop)
-                m.low()
-            }).else_({
-                rd_value_write_enable
-            });
-
-            let rd_value_write_data = if_(instruction.funct3().bits(1, 0).ne(m.lit(0b00u32, 2)), {
-                // csrrw, csrrs, csrrc, csrrwi, csrrsi, csrrci
-                let csr_low = instruction.csr().bits(1, 0);
-                if_(csr_low.eq(m.lit(0b00u32, 2)) | csr_low.eq(m.lit(0b01u32, 2)), {
-                    // cycle, time
-                    if_(!instruction.csr().bit(7), {
-                        cycle_counter_value.bits(31, 0)
-                    }).else_({
-                        // cycleh, timeh
-                        cycle_counter_value.bits(63, 32)
-                    })
-                }).else_if(csr_low.eq(m.lit(0b10u32, 2)), {
-                    // instret
-                    if_(!instruction.csr().bit(7), {
-                        instructions_retired_counter_value.bits(31, 0)
-                    }).else_({
-                        // instreth
-                        instructions_retired_counter_value.bits(63, 32)
-                    })
-                }).else_({
-                    rd_value_write_data
+        let (rd_value_write_enable, rd_value_write_data) =
+            if_(instruction.opcode().eq(m.lit(0b11100u32, 5)), {
+                let rd_value_write_enable = if_(instruction.funct3().eq(m.lit(0b000u32, 3)), {
+                    // ecall/ebreak: do nothing (nop)
+                    m.low()
                 })
-            }).else_({
-                rd_value_write_data
-            });
+                .else_(rd_value_write_enable);
 
-            (rd_value_write_enable, rd_value_write_data)
-        }).else_({
-            (rd_value_write_enable, rd_value_write_data)
-        });
+                let rd_value_write_data =
+                    if_(instruction.funct3().bits(1, 0).ne(m.lit(0b00u32, 2)), {
+                        // csrrw, csrrs, csrrc, csrrwi, csrrsi, csrrci
+                        let csr_low = instruction.csr().bits(1, 0);
+                        if_(
+                            csr_low.eq(m.lit(0b00u32, 2)) | csr_low.eq(m.lit(0b01u32, 2)),
+                            {
+                                // cycle, time
+                                if_(!instruction.csr().bit(7), {
+                                    cycle_counter_value.bits(31, 0)
+                                })
+                                .else_({
+                                    // cycleh, timeh
+                                    cycle_counter_value.bits(63, 32)
+                                })
+                            },
+                        )
+                        .else_if(csr_low.eq(m.lit(0b10u32, 2)), {
+                            // instret
+                            if_(!instruction.csr().bit(7), {
+                                instructions_retired_counter_value.bits(31, 0)
+                            })
+                            .else_({
+                                // instreth
+                                instructions_retired_counter_value.bits(63, 32)
+                            })
+                        })
+                        .else_(rd_value_write_data)
+                    })
+                    .else_(rd_value_write_data);
+
+                (rd_value_write_enable, rd_value_write_data)
+            })
+            .else_((rd_value_write_enable, rd_value_write_data));
 
         let rd_value_write_enable = m.output("rd_value_write_enable", rd_value_write_enable);
         let rd_value_write_data = m.output("rd_value_write_data", rd_value_write_data);
@@ -655,8 +753,14 @@ impl<'a> Mem<'a> {
         let bus_enable = bus_enable_in.reg_next_with_default("bus_enable", false);
         let bus_enable_out = m.output("bus_enable_out", enable & bus_enable);
         let bus_addr_out = m.output("bus_addr_out", bus_addr_in.reg_next("bus_addr"));
-        let bus_write_data_out = m.output("bus_write_data_out", bus_write_data_in.reg_next("bus_write_data"));
-        let bus_write_byte_enable_out = m.output("bus_write_byte_enable_out", bus_write_byte_enable_in.reg_next("bus_write_byte_enable"));
+        let bus_write_data_out = m.output(
+            "bus_write_data_out",
+            bus_write_data_in.reg_next("bus_write_data"),
+        );
+        let bus_write_byte_enable_out = m.output(
+            "bus_write_byte_enable_out",
+            bus_write_byte_enable_in.reg_next("bus_write_byte_enable"),
+        );
         let bus_write_out = m.output("bus_write_out", bus_write_in.reg_next("bus_write"));
 
         let ready = m.output("ready", bus_enable.mux(bus_ready_in, m.high()));
@@ -718,57 +822,87 @@ impl<'a> Writeback<'a> {
         let rd_value_write_data = m.input("rd_value_write_data", 32);
         let rd_value_write_enable = m.input("rd_value_write_enable", 1);
 
-        let (ready, register_file_write_data) = if_(instruction.opcode().eq(m.lit(0b00000u32, 5)), {
-            // Loads
-            let register_file_write_data = if_(instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2)), {
-                // lb/lbu
-                let register_file_write_data = if_(bus_addr_low.eq(m.lit(0b00u32, 2)), {
-                    bus_read_data.bit(7).repeat(24).concat(bus_read_data.bits(7, 0))
-                }).else_if(bus_addr_low.eq(m.lit(0b01u32, 2)), {
-                    bus_read_data.bit(15).repeat(24).concat(bus_read_data.bits(15, 8))
-                }).else_if(bus_addr_low.eq(m.lit(0b10u32, 2)), {
-                    bus_read_data.bit(23).repeat(24).concat(bus_read_data.bits(23, 16))
-                }).else_({
-                    bus_read_data.bit(31).repeat(24).concat(bus_read_data.bits(31, 24))
-                });
+        let (ready, register_file_write_data) =
+            if_(instruction.opcode().eq(m.lit(0b00000u32, 5)), {
+                // Loads
+                let register_file_write_data =
+                    if_(instruction.funct3().bits(1, 0).eq(m.lit(0b00u32, 2)), {
+                        // lb/lbu
+                        let register_file_write_data = if_(bus_addr_low.eq(m.lit(0b00u32, 2)), {
+                            bus_read_data
+                                .bit(7)
+                                .repeat(24)
+                                .concat(bus_read_data.bits(7, 0))
+                        })
+                        .else_if(bus_addr_low.eq(m.lit(0b01u32, 2)), {
+                            bus_read_data
+                                .bit(15)
+                                .repeat(24)
+                                .concat(bus_read_data.bits(15, 8))
+                        })
+                        .else_if(bus_addr_low.eq(m.lit(0b10u32, 2)), {
+                            bus_read_data
+                                .bit(23)
+                                .repeat(24)
+                                .concat(bus_read_data.bits(23, 16))
+                        })
+                        .else_({
+                            bus_read_data
+                                .bit(31)
+                                .repeat(24)
+                                .concat(bus_read_data.bits(31, 24))
+                        });
 
-                if_(instruction.funct3().bit(2), {
-                    m.lit(0u32, 24).concat(register_file_write_data.bits(7, 0))
-                }).else_({
-                    register_file_write_data
-                })
-            }).else_if(instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2)), {
-                // lh/lhu
-                let register_file_write_data = if_(!bus_addr_low.bit(1), {
-                    bus_read_data.bit(15).repeat(16).concat(bus_read_data.bits(15, 0))
-                }).else_({
-                    bus_read_data.bit(31).repeat(16).concat(bus_read_data.bits(31, 16))
-                });
+                        if_(instruction.funct3().bit(2), {
+                            m.lit(0u32, 24).concat(register_file_write_data.bits(7, 0))
+                        })
+                        .else_(register_file_write_data)
+                    })
+                    .else_if(instruction.funct3().bits(1, 0).eq(m.lit(0b01u32, 2)), {
+                        // lh/lhu
+                        let register_file_write_data = if_(!bus_addr_low.bit(1), {
+                            bus_read_data
+                                .bit(15)
+                                .repeat(16)
+                                .concat(bus_read_data.bits(15, 0))
+                        })
+                        .else_({
+                            bus_read_data
+                                .bit(31)
+                                .repeat(16)
+                                .concat(bus_read_data.bits(31, 16))
+                        });
 
-                if_(instruction.funct3().bit(2), {
-                    m.lit(0u32, 16).concat(register_file_write_data.bits(15, 0))
-                }).else_({
-                    register_file_write_data
-                })
-            }).else_({
-                // lw
-                bus_read_data
-            });
+                        if_(instruction.funct3().bit(2), {
+                            m.lit(0u32, 16).concat(register_file_write_data.bits(15, 0))
+                        })
+                        .else_(register_file_write_data)
+                    })
+                    .else_({
+                        // lw
+                        bus_read_data
+                    });
 
-            (bus_read_data_valid, register_file_write_data)
-        }).else_({
-            (m.high(), rd_value_write_data)
-        });
+                (bus_read_data_valid, register_file_write_data)
+            })
+            .else_((m.high(), rd_value_write_data));
 
         let next_pc = m.input("next_pc", 32);
         let pc_write_data = m.output("pc_write_data", next_pc);
         let pc_write_enable = m.output("pc_write_enable", enable & ready);
 
-        let instructions_retired_counter_increment_enable = m.output("instructions_retired_counter_increment_enable", enable & ready);
+        let instructions_retired_counter_increment_enable = m.output(
+            "instructions_retired_counter_increment_enable",
+            enable & ready,
+        );
 
         let register_file_write_addr = m.output("register_file_write_addr", instruction.rd());
-        let register_file_write_data = m.output("register_file_write_data", register_file_write_data);
-        let register_file_write_enable = m.output("register_file_write_enable", enable & ready & rd_value_write_enable & instruction.rd().ne(m.lit(0u32, 5)));
+        let register_file_write_data =
+            m.output("register_file_write_data", register_file_write_data);
+        let register_file_write_enable = m.output(
+            "register_file_write_enable",
+            enable & ready & rd_value_write_enable & instruction.rd().ne(m.lit(0u32, 5)),
+        );
 
         Writeback {
             m,
