@@ -135,19 +135,19 @@ impl<'a> Marv<'a> {
 
         let decode_instruction = Instruction::new(decode.instruction);
 
-        let instruction = m.reg("instruction", 32);
-        instruction.drive_next(
+        let execute_instruction = m.reg("execute_instruction", 32);
+        execute_instruction.drive_next(
             control
                 .decode_enable
-                .mux(decode_instruction.value, instruction),
+                .mux(decode_instruction.value, execute_instruction),
         );
-        let instruction = Instruction::new(instruction);
+        let execute_instruction = Instruction::new(execute_instruction);
 
         let alu = Alu::new("alu", m);
 
         let execute = Execute::new("execute", m);
         execute.pc.drive(pc);
-        execute.instruction.drive(instruction.value);
+        execute.instruction.drive(execute_instruction.value);
         execute
             .reg1
             .drive(register_file.read_port(decode_instruction.rs1(), control.decode_enable));
@@ -182,15 +182,31 @@ impl<'a> Marv<'a> {
         let writeback = Writeback::new("writeback", m);
         control.writeback_ready.drive(writeback.ready);
         writeback.enable.drive(control.writeback_enable);
-        writeback.instruction.drive(instruction.value);
+        writeback.instruction.drive(
+            execute_instruction
+                .value
+                .reg_next("mem_instruction")
+                .reg_next("writeback_instruction"),
+        );
         writeback.bus_addr_low.drive(mem.bus_addr_out.bits(1, 0));
-        writeback.next_pc.drive(execute.next_pc);
-        writeback
-            .rd_value_write_enable
-            .drive(execute.rd_value_write_enable);
-        writeback
-            .rd_value_write_data
-            .drive(execute.rd_value_write_data);
+        writeback.next_pc.drive(
+            execute
+                .next_pc
+                .reg_next("mem_next_pc")
+                .reg_next("writeback_next_pc"),
+        );
+        writeback.rd_value_write_enable.drive(
+            execute
+                .rd_value_write_enable
+                .reg_next_with_default("mem_rd_value_write_enable", false)
+                .reg_next_with_default("writeback_rd_value_write_enable", false),
+        );
+        writeback.rd_value_write_data.drive(
+            execute
+                .rd_value_write_data
+                .reg_next("mem_rd_value_write_data")
+                .reg_next("writeback_rd_value_write_data"),
+        );
         pc.drive_next(writeback.pc_write_enable.mux(writeback.pc_write_data, pc));
         instructions_retired_counter.drive_next(
             writeback.instructions_retired_counter_increment_enable.mux(
