@@ -198,8 +198,8 @@ impl<'a> Marv<'a> {
         writeback.rd_value_write_enable.drive(
             execute
                 .rd_value_write_enable
-                .reg_next_with_default("mem_rd_value_write_enable", false)
-                .reg_next_with_default("writeback_rd_value_write_enable", false),
+                .reg_next("mem_rd_value_write_enable")
+                .reg_next("writeback_rd_value_write_enable"),
         );
         writeback.rd_value_write_data.drive(
             execute
