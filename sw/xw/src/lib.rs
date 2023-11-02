@@ -6,8 +6,8 @@ extern crate alloc;
 #[macro_use]
 extern crate static_assertions;
 
-pub mod leds;
 mod heap;
+pub mod leds;
 pub mod marv;
 pub mod stdio;
 pub mod uart;
@@ -30,6 +30,8 @@ extern "C" fn _rust_entry() -> ! {
 
     // Reset hw state for soft resets
     leds::set(0x00);
+    stdio::stdout().clear();
+
     heap::init();
 
     unsafe {
