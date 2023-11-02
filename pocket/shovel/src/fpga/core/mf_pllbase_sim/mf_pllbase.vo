@@ -241,7 +241,7 @@ module  mf_pllbase
 		mf_pllbase_altera_pll_altera_pll_i_1557.output_clock_frequency15 = "0 MHz",
 		mf_pllbase_altera_pll_altera_pll_i_1557.output_clock_frequency16 = "0 MHz",
 		mf_pllbase_altera_pll_altera_pll_i_1557.output_clock_frequency17 = "0 MHz",
-		mf_pllbase_altera_pll_altera_pll_i_1557.output_clock_frequency2 = "109.474900 MHz",
+		mf_pllbase_altera_pll_altera_pll_i_1557.output_clock_frequency2 = "120.149323 MHz",
 		mf_pllbase_altera_pll_altera_pll_i_1557.output_clock_frequency3 = "0 MHz",
 		mf_pllbase_altera_pll_altera_pll_i_1557.output_clock_frequency4 = "0 MHz",
 		mf_pllbase_altera_pll_altera_pll_i_1557.output_clock_frequency5 = "0 MHz",
