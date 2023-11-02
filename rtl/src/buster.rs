@@ -411,9 +411,11 @@ impl<'a> Crossbar<'a> {
         let replica_ports = (0..num_primaries)
             .map(|i| {
                 let primary_issue = &primary_issues[i as usize];
-                let bus_read_data = return_arbiter.primary_bus_read_data_outputs[i as usize];
-                let bus_read_data_valid =
-                    return_arbiter.primary_bus_read_data_valid_outputs[i as usize];
+                let bus_read_data = return_arbiter.primary_bus_read_data_outputs[i as usize]
+                    .reg_next(format!("primary{}_bus_read_data_reg", i));
+                let bus_read_data_valid = return_arbiter.primary_bus_read_data_valid_outputs
+                    [i as usize]
+                    .reg_next_with_default(format!("primary{}_bus_read_data_valid_reg", i), false);
                 ReplicaPort {
                     bus_enable: primary_issue.bus_enable,
                     bus_addr: primary_issue.bus_addr,
