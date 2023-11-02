@@ -50,6 +50,17 @@ pub fn puts_nn(s: &str) {
 
 pub struct Stdout;
 
+impl Stdout {
+    pub fn clear(&mut self) {
+        unsafe {
+            MAP_OFFSET = 0;
+            for i in 0..CHARS_WIDTH * CHARS_HEIGHT {
+                ptr::write_volatile(MAP.offset((i * 16) as _), 0);
+            }
+        }
+    }
+}
+
 impl Write for Stdout {
     fn write_str(&mut self, s: &str) -> Result {
         puts_nn(s);
