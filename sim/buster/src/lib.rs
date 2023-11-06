@@ -25,28 +25,13 @@ mod tests {
         m.prop();
 
         assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary0_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
         assert_eq!(m.replica0_bus_enable, true);
         assert_eq!(m.replica1_bus_enable, false);
         assert_eq!(m.replica0_bus_addr, 0xbabe);
 
         m.posedge_clk();
 
+        m.primary0_bus_enable = false;
         m.replica0_bus_read_data = 0xfadebabe;
         m.replica0_bus_read_data_valid = true;
 
@@ -81,22 +66,6 @@ mod tests {
         m.prop();
 
         assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary0_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
         assert_eq!(m.replica0_bus_enable, true);
         assert_eq!(m.replica1_bus_enable, false);
         assert_eq!(m.replica0_bus_addr, 0xbabe);
@@ -125,27 +94,12 @@ mod tests {
 
         assert_eq!(m.primary0_bus_ready, true);
         assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary0_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
         assert_eq!(m.replica1_bus_enable, true);
         assert_eq!(m.replica1_bus_addr, 0xbabe);
 
         m.posedge_clk();
 
+        m.primary0_bus_enable = false;
         m.replica1_bus_read_data = 0xfadebabe;
         m.replica1_bus_read_data_valid = true;
 
@@ -177,22 +131,6 @@ mod tests {
         m.replica1_bus_read_data = 0xffffffff;
         m.replica1_bus_read_data_valid = false;
 
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary0_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
         m.prop();
 
         assert_eq!(m.primary0_bus_ready, true);
@@ -336,25 +274,13 @@ mod tests {
         m.prop();
 
         assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary0_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-
-        m.posedge_clk();
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
+        assert_eq!(m.primary1_bus_ready, false);
         assert_eq!(m.replica0_bus_enable, true);
         assert_eq!(m.replica0_bus_addr, 0xbabe);
 
         m.posedge_clk();
 
+        m.primary0_bus_enable = false;
         m.replica0_bus_read_data = 0xdeadbeef;
         m.replica0_bus_read_data_valid = true;
 
@@ -390,20 +316,6 @@ mod tests {
         m.prop();
 
         assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary0_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-
-        m.posedge_clk();
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
         assert_eq!(m.replica0_bus_enable, true);
         assert_eq!(m.replica0_bus_addr, 0xbabe);
         assert_eq!(m.replica0_bus_write, true);
@@ -426,20 +338,6 @@ mod tests {
         m.replica0_bus_read_data = 0xffffffff;
         m.replica0_bus_read_data_valid = false;
 
-        m.prop();
-
-        assert_eq!(m.primary1_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary1_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary1_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-
-        m.posedge_clk();
         m.prop();
 
         assert_eq!(m.primary0_bus_ready, true);
@@ -483,20 +381,6 @@ mod tests {
         m.replica0_bus_read_data = 0xffffffff;
         m.replica0_bus_read_data_valid = false;
 
-        m.prop();
-
-        assert_eq!(m.primary1_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary1_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary1_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-
-        m.posedge_clk();
         m.prop();
 
         assert_eq!(m.primary1_bus_ready, true);
@@ -650,23 +534,7 @@ mod tests {
         m.prop();
 
         assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary0_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.primary1_bus_ready, true);
+        assert_eq!(m.primary1_bus_ready, false);
         assert_eq!(m.replica0_bus_enable, true);
         assert_eq!(m.replica1_bus_enable, false);
         assert_eq!(m.replica0_bus_addr, 0xbabe);
@@ -709,23 +577,7 @@ mod tests {
         m.prop();
 
         assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary0_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.primary1_bus_ready, true);
+        assert_eq!(m.primary1_bus_ready, false);
         assert_eq!(m.replica0_bus_enable, true);
         assert_eq!(m.replica0_bus_addr, 0xbabe);
         assert_eq!(m.replica0_bus_write, true);
@@ -755,23 +607,7 @@ mod tests {
         m.prop();
 
         assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary0_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.primary1_bus_ready, true);
+        assert_eq!(m.primary1_bus_ready, false);
         assert_eq!(m.replica0_bus_enable, false);
         assert_eq!(m.replica1_bus_enable, true);
         assert_eq!(m.replica1_bus_addr, 0xbabe);
@@ -814,23 +650,7 @@ mod tests {
         m.prop();
 
         assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary0_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.primary1_bus_ready, true);
+        assert_eq!(m.primary1_bus_ready, false);
         assert_eq!(m.replica1_bus_enable, true);
         assert_eq!(m.replica1_bus_addr, 0xbabe);
         assert_eq!(m.replica1_bus_write, true);
@@ -857,22 +677,6 @@ mod tests {
         m.replica1_bus_read_data = 0xffffffffffffffffffffffffffffffff;
         m.replica1_bus_read_data_valid = false;
 
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary1_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
         m.prop();
 
         assert_eq!(m.primary0_bus_ready, true);
@@ -918,22 +722,6 @@ mod tests {
 
         m.prop();
 
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary1_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.prop();
-
         assert_eq!(m.primary1_bus_ready, true);
         assert_eq!(m.primary0_bus_ready, true);
         assert_eq!(m.replica0_bus_enable, true);
@@ -962,22 +750,6 @@ mod tests {
         m.replica1_bus_read_data = 0xffffffffffffffffffffffffffffffff;
         m.replica1_bus_read_data_valid = false;
 
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary1_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
         m.prop();
 
         assert_eq!(m.primary0_bus_ready, true);
@@ -1021,22 +793,6 @@ mod tests {
         m.replica1_bus_read_data = 0xffffffff;
         m.replica1_bus_read_data_valid = false;
 
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
-        m.primary1_bus_enable = false;
-
-        m.prop();
-
-        assert_eq!(m.primary0_bus_ready, true);
-        assert_eq!(m.replica0_bus_enable, false);
-        assert_eq!(m.replica1_bus_enable, false);
-
-        m.posedge_clk();
         m.prop();
 
         assert_eq!(m.primary1_bus_ready, true);
