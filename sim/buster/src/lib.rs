@@ -228,7 +228,6 @@ mod tests {
                 }
             }
 
-
             if let Some(addr) = replica_read_addr {
                 m.replica0_bus_read_data = data[addr as usize];
                 m.replica0_bus_read_data_valid = true;
@@ -1292,5 +1291,113 @@ mod tests {
             m.prop();
             m.posedge_clk();
         }
+    }
+
+    #[test]
+    fn skid_buffer_single_read() {
+        let mut m = SkidBuffer::new();
+
+        m.reset();
+
+        m.replica_bus_enable = false;
+        m.primary_bus_ready = true;
+
+        m.prop();
+
+        assert_eq!(m.replica_bus_ready, true);
+        assert_eq!(m.replica_bus_read_data_valid, false);
+        assert_eq!(m.primary_bus_enable, false);
+
+        m.posedge_clk();
+        m.replica_bus_enable = true;
+        m.replica_bus_addr = 0xaa;
+        m.replica_bus_write = false;
+
+        m.prop();
+
+        assert_eq!(m.replica_bus_ready, true);
+        assert_eq!(m.replica_bus_read_data_valid, false);
+        assert_eq!(m.primary_bus_enable, false);
+
+        m.posedge_clk();
+        m.replica_bus_enable = false;
+        m.primary_bus_ready = false;
+        m.primary_bus_read_data = 0x55;
+        m.primary_bus_read_data_valid = true;
+
+        m.prop();
+
+        assert_eq!(m.replica_bus_ready, true);
+        assert_eq!(m.replica_bus_read_data_valid, false);
+        assert_eq!(m.primary_bus_enable, true);
+        assert_eq!(m.primary_bus_addr, 0xaa);
+        assert_eq!(m.primary_bus_write, false);
+
+        m.posedge_clk();
+        m.primary_bus_read_data_valid = false;
+
+        m.prop();
+
+        assert_eq!(m.replica_bus_ready, true);
+        assert_eq!(m.replica_bus_read_data_valid, true);
+        assert_eq!(m.replica_bus_read_data, 0x55);
+        assert_eq!(m.primary_bus_enable, false);
+
+        m.posedge_clk();
+        m.prop();
+
+        assert_eq!(m.replica_bus_ready, true);
+        assert_eq!(m.replica_bus_read_data_valid, false);
+        assert_eq!(m.primary_bus_enable, false);
+    }
+
+    #[test]
+    fn skid_buffer_single_write() {
+        let mut m = SkidBuffer::new();
+
+        m.reset();
+
+        m.replica_bus_enable = false;
+        m.primary_bus_ready = true;
+
+        m.prop();
+
+        assert_eq!(m.replica_bus_ready, true);
+        assert_eq!(m.replica_bus_read_data_valid, false);
+        assert_eq!(m.primary_bus_enable, false);
+
+        m.posedge_clk();
+        m.replica_bus_enable = true;
+        m.replica_bus_addr = 0xaa;
+        m.replica_bus_write = true;
+        m.replica_bus_write_data = 0x55;
+        m.replica_bus_write_byte_enable = true;
+
+        m.prop();
+
+        assert_eq!(m.replica_bus_ready, true);
+        assert_eq!(m.replica_bus_read_data_valid, false);
+        assert_eq!(m.primary_bus_enable, false);
+
+        m.posedge_clk();
+        m.replica_bus_enable = false;
+        m.primary_bus_ready = false;
+
+        m.prop();
+
+        assert_eq!(m.replica_bus_ready, true);
+        assert_eq!(m.replica_bus_read_data_valid, false);
+        assert_eq!(m.primary_bus_enable, true);
+        assert_eq!(m.primary_bus_addr, 0xaa);
+        assert_eq!(m.primary_bus_write, true);
+        assert_eq!(m.primary_bus_write_data, 0x55);
+        assert_eq!(m.primary_bus_write_byte_enable, true);
+
+        m.posedge_clk();
+        m.prop();
+
+        assert_eq!(m.replica_bus_ready, true);
+        assert_eq!(m.replica_bus_read_data_valid, false);
+        assert_eq!(m.primary_bus_enable, false);
     }
 }

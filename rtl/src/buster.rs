@@ -132,6 +132,114 @@ impl<'a> ReplicaPort<'a> {
     }
 }
 
+pub struct SkidBuffer<'a> {
+    pub m: &'a Module<'a>,
+    pub primary_port: PrimaryPort<'a>,
+    pub replica_port: ReplicaPort<'a>,
+}
+
+impl<'a> SkidBuffer<'a> {
+    pub fn new(
+        instance_name: impl Into<String>,
+        addr_bit_width: u32,
+        data_bit_width: u32,
+        p: &'a impl ModuleParent<'a>,
+    ) -> SkidBuffer<'a> {
+        let m = p.module(instance_name, "SkidBuffer");
+
+        let primary_bus_ready = m.input("primary_bus_ready", 1);
+        let primary_bus_ready_reg =
+            primary_bus_ready.reg_next_with_default("primary_bus_ready_reg", false);
+        let primary_bus_read_data = m.input("primary_bus_read_data", data_bit_width);
+        let primary_bus_read_data_valid = m.input("primary_bus_read_data_valid", 1);
+
+        let replica_bus_enable = m.input("replica_bus_enable", 1);
+        let replica_bus_addr = m.input("replica_bus_addr", addr_bit_width);
+        let replica_bus_write = m.input("replica_bus_write", 1);
+        let replica_bus_write_data = m.input("replica_bus_write_data", data_bit_width);
+        let replica_bus_write_byte_enable =
+            m.input("replica_bus_write_byte_enable", data_bit_width / 8);
+
+        let skid_buffer_valid = m.reg("skid_buffer_valid", 1);
+        skid_buffer_valid.default_value(false);
+        let skid_buffer_addr = m.reg("skid_buffer_addr", addr_bit_width);
+        let skid_buffer_write = m.reg("skid_buffer_write", 1);
+        let skid_buffer_write_data = m.reg("skid_buffer_write_data", data_bit_width);
+        let skid_buffer_write_byte_enable =
+            m.reg("skid_buffer_write_byte_enable", data_bit_width / 8);
+
+        let skid_buffer_load = replica_bus_enable & !skid_buffer_valid & !primary_bus_ready_reg;
+        skid_buffer_valid
+            .drive_next(skid_buffer_load | (skid_buffer_valid & primary_bus_ready_reg));
+        skid_buffer_addr
+            .drive_next(if_(skid_buffer_load, replica_bus_addr).else_(skid_buffer_addr));
+        skid_buffer_write
+            .drive_next(if_(skid_buffer_load, replica_bus_write).else_(skid_buffer_write));
+        skid_buffer_write_data.drive_next(
+            if_(skid_buffer_load, replica_bus_write_data).else_(skid_buffer_write_data),
+        );
+        skid_buffer_write_byte_enable.drive_next(
+            if_(skid_buffer_load, replica_bus_write_byte_enable)
+                .else_(skid_buffer_write_byte_enable),
+        );
+
+        let output_buffer_valid = m.reg("output_buffer_valid", 1);
+        output_buffer_valid.default_value(false);
+        let output_buffer_addr = m.reg("output_buffer_addr", addr_bit_width);
+        let output_buffer_write = m.reg("output_buffer_write", 1);
+        let output_buffer_write_data = m.reg("output_buffer_write_data", data_bit_width);
+        let output_buffer_write_byte_enable =
+            m.reg("output_buffer_write_byte_enable", data_bit_width / 8);
+
+        output_buffer_valid.drive_next(replica_bus_enable | skid_buffer_valid);
+        output_buffer_addr
+            .drive_next(if_(skid_buffer_valid, skid_buffer_addr).else_(replica_bus_addr));
+        output_buffer_write
+            .drive_next(if_(skid_buffer_valid, skid_buffer_write).else_(replica_bus_write));
+        output_buffer_write_data.drive_next(
+            if_(skid_buffer_valid, skid_buffer_write_data).else_(replica_bus_write_data),
+        );
+        output_buffer_write_byte_enable.drive_next(
+            if_(skid_buffer_valid, skid_buffer_write_byte_enable)
+                .else_(replica_bus_write_byte_enable),
+        );
+
+        SkidBuffer {
+            m,
+            primary_port: PrimaryPort {
+                bus_enable: m.output("primary_bus_enable", output_buffer_valid),
+                bus_addr: m.output("primary_bus_addr", output_buffer_addr),
+                bus_write: m.output("primary_bus_write", output_buffer_write),
+                bus_write_data: m.output("primary_bus_write_data", output_buffer_write_data),
+                bus_write_byte_enable: m.output(
+                    "primary_bus_write_byte_enable",
+                    output_buffer_write_byte_enable,
+                ),
+                bus_ready: primary_bus_ready,
+                bus_read_data: primary_bus_read_data,
+                bus_read_data_valid: primary_bus_read_data_valid,
+            },
+            replica_port: ReplicaPort {
+                bus_enable: replica_bus_enable,
+                bus_addr: replica_bus_addr,
+                bus_write: replica_bus_write,
+                bus_write_data: replica_bus_write_data,
+                bus_write_byte_enable: replica_bus_write_byte_enable,
+                bus_ready: m.output("replica_bus_ready", !skid_buffer_valid),
+                bus_read_data: m.output(
+                    "replica_bus_read_data",
+                    primary_bus_read_data.reg_next("primary_bus_read_data_reg"),
+                ),
+                bus_read_data_valid: m.output(
+                    "replica_bus_read_data_valid",
+                    primary_bus_read_data_valid
+                        .reg_next_with_default("primary_bus_read_data_valid_reg", false),
+                ),
+            },
+        }
+    }
+}
+
 pub struct Crossbar<'a> {
     pub m: &'a Module<'a>,
     pub primary_ports: Vec<PrimaryPort<'a>>,
