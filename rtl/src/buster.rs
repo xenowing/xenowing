@@ -148,8 +148,6 @@ impl<'a> SkidBuffer<'a> {
         let m = p.module(instance_name, "SkidBuffer");
 
         let primary_bus_ready = m.input("primary_bus_ready", 1);
-        let primary_bus_ready_reg =
-            primary_bus_ready.reg_next_with_default("primary_bus_ready_reg", false);
         let primary_bus_read_data = m.input("primary_bus_read_data", data_bit_width);
         let primary_bus_read_data_valid = m.input("primary_bus_read_data_valid", 1);
 
@@ -168,21 +166,6 @@ impl<'a> SkidBuffer<'a> {
         let skid_buffer_write_byte_enable =
             m.reg("skid_buffer_write_byte_enable", data_bit_width / 8);
 
-        let skid_buffer_load = replica_bus_enable & !skid_buffer_valid & !primary_bus_ready_reg;
-        skid_buffer_valid
-            .drive_next(skid_buffer_load | (skid_buffer_valid & primary_bus_ready_reg));
-        skid_buffer_addr
-            .drive_next(if_(skid_buffer_load, replica_bus_addr).else_(skid_buffer_addr));
-        skid_buffer_write
-            .drive_next(if_(skid_buffer_load, replica_bus_write).else_(skid_buffer_write));
-        skid_buffer_write_data.drive_next(
-            if_(skid_buffer_load, replica_bus_write_data).else_(skid_buffer_write_data),
-        );
-        skid_buffer_write_byte_enable.drive_next(
-            if_(skid_buffer_load, replica_bus_write_byte_enable)
-                .else_(skid_buffer_write_byte_enable),
-        );
-
         let output_buffer_valid = m.reg("output_buffer_valid", 1);
         output_buffer_valid.default_value(false);
         let output_buffer_addr = m.reg("output_buffer_addr", addr_bit_width);
@@ -191,17 +174,63 @@ impl<'a> SkidBuffer<'a> {
         let output_buffer_write_byte_enable =
             m.reg("output_buffer_write_byte_enable", data_bit_width / 8);
 
-        output_buffer_valid.drive_next(replica_bus_enable | skid_buffer_valid);
-        output_buffer_addr
-            .drive_next(if_(skid_buffer_valid, skid_buffer_addr).else_(replica_bus_addr));
-        output_buffer_write
-            .drive_next(if_(skid_buffer_valid, skid_buffer_write).else_(replica_bus_write));
+        let primary_bus_handshake = output_buffer_valid & primary_bus_ready;
+        let replica_bus_handshake = replica_bus_enable & !skid_buffer_valid;
+
+        let output_buffer_fill = !output_buffer_valid | primary_bus_handshake;
+
+        let skid_buffer_fill = !output_buffer_fill & replica_bus_handshake;
+        let skid_buffer_drain = skid_buffer_valid & primary_bus_handshake;
+
+        skid_buffer_valid.drive_next(
+            if_(skid_buffer_fill, m.high())
+                .else_if(skid_buffer_drain, m.low())
+                .else_(skid_buffer_valid),
+        );
+        skid_buffer_addr
+            .drive_next(if_(skid_buffer_fill, replica_bus_addr).else_(skid_buffer_addr));
+        skid_buffer_write
+            .drive_next(if_(skid_buffer_fill, replica_bus_write).else_(skid_buffer_write));
+        skid_buffer_write_data.drive_next(
+            if_(skid_buffer_fill, replica_bus_write_data).else_(skid_buffer_write_data),
+        );
+        skid_buffer_write_byte_enable.drive_next(
+            if_(skid_buffer_fill, replica_bus_write_byte_enable)
+                .else_(skid_buffer_write_byte_enable),
+        );
+
+        output_buffer_valid.drive_next(
+            if_(output_buffer_fill, replica_bus_enable | skid_buffer_valid)
+                .else_(output_buffer_valid),
+        );
+        output_buffer_addr.drive_next(
+            if_(
+                output_buffer_fill,
+                if_(skid_buffer_valid, skid_buffer_addr).else_(replica_bus_addr),
+            )
+            .else_(output_buffer_addr),
+        );
+        output_buffer_write.drive_next(
+            if_(
+                output_buffer_fill,
+                if_(skid_buffer_valid, skid_buffer_write).else_(replica_bus_write),
+            )
+            .else_(output_buffer_write),
+        );
         output_buffer_write_data.drive_next(
-            if_(skid_buffer_valid, skid_buffer_write_data).else_(replica_bus_write_data),
+            if_(
+                output_buffer_fill,
+                if_(skid_buffer_valid, skid_buffer_write_data).else_(replica_bus_write_data),
+            )
+            .else_(output_buffer_write_data),
         );
         output_buffer_write_byte_enable.drive_next(
-            if_(skid_buffer_valid, skid_buffer_write_byte_enable)
-                .else_(replica_bus_write_byte_enable),
+            if_(
+                output_buffer_fill,
+                if_(skid_buffer_valid, skid_buffer_write_byte_enable)
+                    .else_(replica_bus_write_byte_enable),
+            )
+            .else_(output_buffer_write_byte_enable),
         );
 
         SkidBuffer {
