@@ -48,21 +48,35 @@ impl<'a> Shovel<'a> {
         marv_instruction_bridge
             .system_port
             .connect(&marv_instruction_cache.client_port);
-        marv_instruction_cache
-            .system_port
-            .connect(&cpu_crossbar.replica_ports[0]);
+        marv_instruction_cache.system_port.connect(
+            &cpu_crossbar.replica_ports[0]
+                .skid_buffer("instruction_cache_to_cpu_crossbar_0", m)
+                .skid_buffer("instruction_cache_to_cpu_crossbar_1", m)
+                .skid_buffer("instruction_cache_to_cpu_crossbar_2", m),
+        );
         let marv_data_bridge = MarvSystemBridge::new("marv_data_bridge", m);
         marv.data_port.connect(&marv_data_bridge.marv_port);
-        marv_data_bridge
-            .system_port
-            .connect(&cpu_crossbar.replica_ports[1]);
+        marv_data_bridge.system_port.connect(
+            &cpu_crossbar.replica_ports[1]
+                .skid_buffer("data_port_to_cpu_crossbar_0", m)
+                .skid_buffer("data_port_to_cpu_crossbar_1", m)
+                .skid_buffer("data_port_to_cpu_crossbar_2", m),
+        );
 
         let mem_crossbar = Crossbar::new("mem_crossbar", 1, 1, 24, 0, 128, 2, m);
-        cpu_crossbar.primary_ports[1].connect(&mem_crossbar.replica_ports[0]);
+        cpu_crossbar.primary_ports[1].connect(
+            &mem_crossbar.replica_ports[0]
+                .skid_buffer("cpu_crossbar_to_mem_crossbar_0", m)
+                .skid_buffer("cpu_crossbar_to_mem_crossbar_1", m),
+        );
         mem_crossbar.primary_ports[0].connect(&byte_ram.client_port);
 
         let sys_crossbar = Crossbar::new("sys_crossbar", 1, 2, 24, 4, 128, 2, m);
-        cpu_crossbar.primary_ports[0].connect(&sys_crossbar.replica_ports[0]);
+        cpu_crossbar.primary_ports[0].connect(
+            &sys_crossbar.replica_ports[0]
+                .skid_buffer("cpu_crossbar_to_sys_crossbar_0", m)
+                .skid_buffer("cpu_crossbar_to_sys_crossbar_1", m),
+        );
         sys_crossbar.primary_ports[0].connect(&boot_rom.client_port);
         sys_crossbar.primary_ports[1].connect(&char_display.client_port);
 
