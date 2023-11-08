@@ -130,6 +130,21 @@ impl<'a> ReplicaPort<'a> {
             ),
         }
     }
+
+    pub fn skid_buffer(
+        &self,
+        instance_name: impl Into<String>,
+        m: &'a Module<'a>,
+    ) -> ReplicaPort<'a> {
+        let skid_buffer = SkidBuffer::new(
+            instance_name,
+            self.bus_addr.bit_width(),
+            self.bus_write_data.bit_width(),
+            m,
+        );
+        skid_buffer.primary_port.connect(self);
+        skid_buffer.replica_port
+    }
 }
 
 pub struct SkidBuffer<'a> {
