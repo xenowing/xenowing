@@ -330,20 +330,6 @@ impl<'a> Crossbar<'a> {
                 let issue_arbiter_primary_issue = &issue_arbiter.primary_issues[i as usize];
                 let name = format!("primary{}", i);
 
-                // TODO: Consider some kind of "multi-lane-fifo" or something to reduce boilerplate and explicitly share control logic
-                let issue_fifo_depth_bits = 2; // Totally arbitrary :)
-
-                let bus_addr_issue_fifo = Fifo::new(
-                    format!("{}_bus_addr_issue_fifo", name),
-                    issue_fifo_depth_bits,
-                    addr_bit_width,
-                    m,
-                );
-                let bus_addr_issue_buffer =
-                    PeekBuffer::new(format!("{}_bus_addr_issue_buffer", name), addr_bit_width, m);
-
-                let bus_ready = !bus_addr_issue_fifo.full;
-
                 let ret = PrimaryIssue {
                     bus_enable: m.input(format!("{}_bus_enable", name), 1),
                     bus_addr: m.input(format!("{}_bus_addr", name), addr_bit_width),
@@ -351,146 +337,20 @@ impl<'a> Crossbar<'a> {
                     bus_write_data: m.input(format!("{}_bus_write_data", name), data_bit_width),
                     bus_write_byte_enable: m
                         .input(format!("{}_bus_write_byte_enable", name), data_byte_width),
-                    bus_ready: m.output(format!("{}_bus_ready", name), bus_ready),
+                    bus_ready: m.output(
+                        format!("{}_bus_ready", name),
+                        issue_arbiter_primary_issue.bus_ready,
+                    ),
                 };
-
-                let external_handshake = ret.bus_enable & bus_ready;
-                let internal_handshake =
-                    bus_addr_issue_buffer.egress_ready & issue_arbiter_primary_issue.bus_ready;
-
-                bus_addr_issue_fifo.write_data.drive(ret.bus_addr);
-                bus_addr_issue_fifo.write_enable.drive(external_handshake);
-                bus_addr_issue_buffer
-                    .ingress_data
-                    .drive(bus_addr_issue_fifo.read_data);
-                bus_addr_issue_fifo
-                    .read_enable
-                    .drive(bus_addr_issue_buffer.ingress_read_enable);
-                bus_addr_issue_buffer.ingress_data_valid.drive(
-                    (!bus_addr_issue_fifo.empty & bus_addr_issue_buffer.ingress_read_enable)
-                        .reg_next_with_default(
-                            format!("{}_bus_addr_issue_buffer_read_data_valid", name),
-                            false,
-                        ),
-                );
-                issue_arbiter_primary_issue
-                    .bus_enable
-                    .drive(bus_addr_issue_buffer.egress_ready);
-                issue_arbiter_primary_issue
-                    .bus_addr
-                    .drive(bus_addr_issue_buffer.egress_data);
-                bus_addr_issue_buffer
-                    .egress_read_enable
-                    .drive(internal_handshake);
-
-                let bus_write_issue_fifo = Fifo::new(
-                    format!("{}_bus_write_issue_fifo", name),
-                    issue_fifo_depth_bits,
-                    1,
-                    m,
-                );
-                bus_write_issue_fifo.write_data.drive(ret.bus_write);
-                bus_write_issue_fifo.write_enable.drive(external_handshake);
-                let bus_write_issue_buffer =
-                    PeekBuffer::new(format!("{}_bus_write_issue_buffer", name), 1, m);
-                bus_write_issue_buffer
-                    .ingress_data
-                    .drive(bus_write_issue_fifo.read_data);
-                bus_write_issue_fifo
-                    .read_enable
-                    .drive(bus_write_issue_buffer.ingress_read_enable);
-                bus_write_issue_buffer.ingress_data_valid.drive(
-                    (!bus_write_issue_fifo.empty & bus_write_issue_buffer.ingress_read_enable)
-                        .reg_next_with_default(
-                            format!("{}_bus_write_issue_buffer_read_data_valid", name),
-                            false,
-                        ),
-                );
-                issue_arbiter_primary_issue
-                    .bus_write
-                    .drive(bus_write_issue_buffer.egress_data);
-                bus_write_issue_buffer
-                    .egress_read_enable
-                    .drive(internal_handshake);
-
-                let bus_write_data_issue_fifo = Fifo::new(
-                    format!("{}_bus_write_data_issue_fifo", name),
-                    issue_fifo_depth_bits,
-                    data_bit_width,
-                    m,
-                );
-                bus_write_data_issue_fifo
-                    .write_data
-                    .drive(ret.bus_write_data);
-                bus_write_data_issue_fifo
-                    .write_enable
-                    .drive(external_handshake);
-                let bus_write_data_issue_buffer = PeekBuffer::new(
-                    format!("{}_bus_write_data_issue_buffer", name),
-                    data_bit_width,
-                    m,
-                );
-                bus_write_data_issue_buffer
-                    .ingress_data
-                    .drive(bus_write_data_issue_fifo.read_data);
-                bus_write_data_issue_fifo
-                    .read_enable
-                    .drive(bus_write_data_issue_buffer.ingress_read_enable);
-                bus_write_data_issue_buffer.ingress_data_valid.drive(
-                    (!bus_write_data_issue_fifo.empty
-                        & bus_write_data_issue_buffer.ingress_read_enable)
-                        .reg_next_with_default(
-                            format!("{}_bus_write_data_issue_buffer_read_data_valid", name),
-                            false,
-                        ),
-                );
+                issue_arbiter_primary_issue.bus_enable.drive(ret.bus_enable);
+                issue_arbiter_primary_issue.bus_addr.drive(ret.bus_addr);
+                issue_arbiter_primary_issue.bus_write.drive(ret.bus_write);
                 issue_arbiter_primary_issue
                     .bus_write_data
-                    .drive(bus_write_data_issue_buffer.egress_data);
-                bus_write_data_issue_buffer
-                    .egress_read_enable
-                    .drive(internal_handshake);
-
-                let bus_write_byte_enable_issue_fifo = Fifo::new(
-                    format!("{}_bus_write_byte_enable_issue_fifo", name),
-                    issue_fifo_depth_bits,
-                    data_byte_width,
-                    m,
-                );
-                bus_write_byte_enable_issue_fifo
-                    .write_data
-                    .drive(ret.bus_write_byte_enable);
-                bus_write_byte_enable_issue_fifo
-                    .write_enable
-                    .drive(external_handshake);
-                let bus_write_byte_enable_issue_buffer = PeekBuffer::new(
-                    format!("{}_bus_write_byte_enable_issue_buffer", name),
-                    data_byte_width,
-                    m,
-                );
-                bus_write_byte_enable_issue_buffer
-                    .ingress_data
-                    .drive(bus_write_byte_enable_issue_fifo.read_data);
-                bus_write_byte_enable_issue_fifo
-                    .read_enable
-                    .drive(bus_write_byte_enable_issue_buffer.ingress_read_enable);
-                bus_write_byte_enable_issue_buffer.ingress_data_valid.drive(
-                    (!bus_write_byte_enable_issue_fifo.empty
-                        & bus_write_byte_enable_issue_buffer.ingress_read_enable)
-                        .reg_next_with_default(
-                            format!(
-                                "{}_bus_write_byte_enable_issue_buffer_read_data_valid",
-                                name
-                            ),
-                            false,
-                        ),
-                );
+                    .drive(ret.bus_write_data);
                 issue_arbiter_primary_issue
                     .bus_write_byte_enable
-                    .drive(bus_write_byte_enable_issue_buffer.egress_data);
-                bus_write_byte_enable_issue_buffer
-                    .egress_read_enable
-                    .drive(internal_handshake);
+                    .drive(ret.bus_write_byte_enable);
 
                 ret
             })
