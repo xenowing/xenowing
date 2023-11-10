@@ -21,7 +21,7 @@ impl VideoTimingGenerator {
 
         let (res, wrap) = self
             .fractional_cycles
-            .overflowing_add(((1u64 << 16) * 12288 / 160000) as _);
+            .overflowing_add(((1u64 << 16) * 12288 / 120000) as _);
         self.fractional_cycles = res;
         if wrap {
             if self.x == 0 {
