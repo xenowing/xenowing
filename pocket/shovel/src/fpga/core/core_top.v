@@ -334,12 +334,9 @@ end
     wire            reset_n;                // driven by host commands, can be used as core-wide reset
     wire    [31:0]  cmd_bridge_rd_data;
     
-    wire            pll_core_locked_s;
-synch_3 s01(pll_core_locked, pll_core_locked_s, clk_74a);
-
 // bridge host commands
 // synchronous to clk_74a
-    wire            status_boot_done = pll_core_locked_s;
+    wire            status_boot_done = pll_core_locked_s; 
     wire            status_setup_done = pll_core_locked_s; // rising edge triggers a target command
     wire            status_running = reset_n; // we are running as soon as reset_n goes high
 
@@ -389,7 +386,9 @@ synch_3 s01(pll_core_locked, pll_core_locked_s, clk_74a);
 
     reg             target_dataslot_read;       
     reg             target_dataslot_write;
-
+    reg             target_dataslot_getfile;    // require additional param/resp structs to be mapped
+    reg             target_dataslot_openfile;   // require additional param/resp structs to be mapped
+    
     wire            target_dataslot_ack;        
     wire            target_dataslot_done;
     wire    [2:0]   target_dataslot_err;
@@ -398,6 +397,9 @@ synch_3 s01(pll_core_locked, pll_core_locked_s, clk_74a);
     reg     [31:0]  target_dataslot_slotoffset;
     reg     [31:0]  target_dataslot_bridgeaddr;
     reg     [31:0]  target_dataslot_length;
+    
+    wire    [31:0]  target_buffer_param_struct; // to be mapped/implemented when using some Target commands
+    wire    [31:0]  target_buffer_resp_struct;  // to be mapped/implemented when using some Target commands
     
 // bridge data slot access
 // synchronous to clk_74a
@@ -466,7 +468,9 @@ core_bridge_cmd icb (
     
     .target_dataslot_read       ( target_dataslot_read ),
     .target_dataslot_write      ( target_dataslot_write ),
-
+    .target_dataslot_getfile    ( target_dataslot_getfile ),
+    .target_dataslot_openfile   ( target_dataslot_openfile ),
+    
     .target_dataslot_ack        ( target_dataslot_ack ),
     .target_dataslot_done       ( target_dataslot_done ),
     .target_dataslot_err        ( target_dataslot_err ),
@@ -476,6 +480,9 @@ core_bridge_cmd icb (
     .target_dataslot_bridgeaddr ( target_dataslot_bridgeaddr ),
     .target_dataslot_length     ( target_dataslot_length ),
 
+    .target_buffer_param_struct ( target_buffer_param_struct ),
+    .target_buffer_resp_struct  ( target_buffer_resp_struct ),
+    
     .datatable_addr         ( datatable_addr ),
     .datatable_wren         ( datatable_wren ),
     .datatable_data         ( datatable_data ),
@@ -804,7 +811,9 @@ end
     wire clk_sdram;
     
     wire    pll_core_locked;
-    
+    wire    pll_core_locked_s;
+synch_3 s01(pll_core_locked, pll_core_locked_s, clk_74a);
+
 mf_pllbase mp1 (
     .refclk         ( clk_74a ),
     .rst            ( 0 ),
