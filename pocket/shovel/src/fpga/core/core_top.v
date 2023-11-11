@@ -331,14 +331,14 @@ end
 //
 // host/target command handler
 //
-    wire            reset_n;                // driven by host commands, can be used as core-wide reset
+    wire            clk_74a_reset_n;                // driven by host commands, can be used as core-wide reset
     wire    [31:0]  cmd_bridge_rd_data;
     
 // bridge host commands
 // synchronous to clk_74a
     wire            status_boot_done = pll_core_locked_s; 
     wire            status_setup_done = pll_core_locked_s; // rising edge triggers a target command
-    wire            status_running = reset_n; // we are running as soon as reset_n goes high
+    wire            status_running = clk_74a_reset_n; // we are running as soon as reset_n goes high
 
     wire            dataslot_requestread;
     wire    [15:0]  dataslot_requestread_id;
@@ -412,7 +412,7 @@ end
 core_bridge_cmd icb (
 
     .clk                ( clk_74a ),
-    .reset_n            ( reset_n ),
+    .reset_n            ( clk_74a_reset_n ),
 
     .bridge_endian_little   ( bridge_endian_little ),
     .bridge_addr            ( bridge_addr ),
@@ -524,6 +524,18 @@ core_bridge_cmd icb (
 //  As long as writing a line's worth of video data into the buffer always takes less time than reading/displaying
 //   a line, the active read/write regions will never overlap, and all potential metastability errors are avoided.
 
+    // Synchronize reset into video clock domain
+    wire clk_core_12288_reset_n;
+    SyncChain #(
+        .STAGES(3)
+    ) clk_core_12288_reset_n_sync_chain (
+        .reset_n(clk_74a_reset_n),
+        .clk(clk_core_12288),
+
+        .x(clk_74a_reset_n),
+
+        .x_sync(clk_core_12288_reset_n)
+    );
 
 assign video_rgb_clock = clk_core_12288;
 assign video_rgb_clock_90 = clk_core_12288_90deg;
@@ -556,9 +568,9 @@ assign video_hs = vidout_hs;
     wire shovel_line_buffer_read_data;
     wire [23:0] test_pattern_line_buffer_read_data;
 
-always @(posedge clk_core_12288 or negedge reset_n) begin
+always @(posedge clk_core_12288 or negedge clk_core_12288_reset_n) begin
 
-    if(~reset_n) begin
+    if(~clk_core_12288_reset_n) begin
     
         x_count <= 0;
         y_count <= 0;
@@ -643,26 +655,38 @@ always @(posedge clk_core_12288 or negedge reset_n) begin
     end
 end
 
+    // Synchronize reset into sdram clock domain
+    wire clk_sdram_reset_n;
+    SyncChain #(
+        .STAGES(3)
+    ) clk_sdram_reset_n_sync_chain (
+        .reset_n(clk_74a_reset_n),
+        .clk(clk_sdram),
+
+        .x(clk_74a_reset_n),
+
+        .x_sync(clk_sdram_reset_n)
+    );
 
     // Synchronize control pulses from video output domain to system domain
     wire system_write_vsync_pulse;
     CdcPulse p0 (
-        .reset_n(reset_n),
-
+        .src_reset_n(clk_core_12288_reset_n),
         .src_clk(clk_core_12288),
         .src_pulse(vidout_vs),
 
+        .dst_reset_n(clk_sdram_reset_n),
         .dst_clk(clk_sdram),
         .dst_pulse(system_write_vsync_pulse)
     );
 
     wire system_write_line_pulse;
     CdcPulse p1 (
-        .reset_n(reset_n),
-
+        .src_reset_n(clk_core_12288_reset_n),
         .src_clk(clk_core_12288),
         .src_pulse(vidout_write_line_pulse),
 
+        .dst_reset_n(clk_sdram_reset_n),
         .dst_clk(clk_sdram),
         .dst_pulse(system_write_line_pulse)
     );
@@ -701,7 +725,7 @@ end
 
     // Shovel
     Shovel shovel(
-        .reset_n(reset_n),
+        .reset_n(clk_sdram_reset_n),
         .clk(clk_sdram),
 
         .system_write_vsync_pulse(system_write_vsync_pulse),
@@ -745,7 +769,7 @@ end
 
     // Test pattern generator
     VideoTestPatternGenerator test_pattern_generator(
-        .reset_n(reset_n),
+        .reset_n(clk_sdram_reset_n),
         .clk(clk_sdram),
 
         .system_write_vsync_pulse(system_write_vsync_pulse),
