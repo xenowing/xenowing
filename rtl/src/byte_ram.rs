@@ -26,10 +26,10 @@ impl<'a> ByteRam<'a> {
         let bus_enable = m.input("bus_enable", 1);
         let bus_write = m.input("bus_write", 1);
         let bus_addr = m.input("bus_addr", port_addr_bit_width);
-        let bus_write_data = m.input("bus_write_data", 128);
-        let bus_write_byte_enable = m.input("bus_write_byte_enable", 128 / 8);
+        let bus_write_data = m.input("bus_write_data", 32);
+        let bus_write_byte_enable = m.input("bus_write_byte_enable", 32 / 8);
         let bus_ready = m.output("bus_ready", m.high());
-        let mem = WordMem::new(m, "mem", addr_bit_width, 8, 128 / 8);
+        let mem = WordMem::new(m, "mem", addr_bit_width, 8, 32 / 8);
         // TODO: Consider a way to make port connection adapters to match widths instead of handling that ad-hoc for every port
         let truncated_bus_addr = bus_addr.bits(addr_bit_width - 1, 0);
         mem.write_port(
@@ -89,9 +89,9 @@ impl<'a> CheekyByteRam<'a> {
         byte_ram.client_port.bus_write.drive(bus_write);
         let bus_addr = m.input("bus_addr", port_addr_bit_width);
         byte_ram.client_port.bus_addr.drive(bus_addr);
-        let bus_write_data = m.input("bus_write_data", 128);
+        let bus_write_data = m.input("bus_write_data", 32);
         byte_ram.client_port.bus_write_data.drive(bus_write_data);
-        let bus_write_byte_enable = m.input("bus_write_byte_enable", 128 / 8);
+        let bus_write_byte_enable = m.input("bus_write_byte_enable", 32 / 8);
         byte_ram
             .client_port
             .bus_write_byte_enable

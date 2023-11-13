@@ -17,19 +17,19 @@ pub fn putc(c: char) {
         } else {
             // TODO: This shouldn't actually be safe... :)
             let c = (c as u8) - 32;
-            ptr::write_volatile(MAP.offset((MAP_OFFSET * 16) as _), c);
+            ptr::write_volatile(MAP.offset((MAP_OFFSET * 4) as _), c);
             MAP_OFFSET += 1;
         }
 
         while MAP_OFFSET == CHARS_WIDTH * CHARS_HEIGHT {
             for y in 0..CHARS_HEIGHT - 1 {
                 for x in 0..CHARS_WIDTH {
-                    let c = ptr::read_volatile(MAP.offset((((y + 1) * CHARS_WIDTH + x) * 16) as _));
-                    ptr::write_volatile(MAP.offset(((y * CHARS_WIDTH + x) * 16) as _), c);
+                    let c = ptr::read_volatile(MAP.offset((((y + 1) * CHARS_WIDTH + x) * 4) as _));
+                    ptr::write_volatile(MAP.offset(((y * CHARS_WIDTH + x) * 4) as _), c);
                 }
             }
             for x in 0..CHARS_WIDTH {
-                ptr::write_volatile(MAP.offset((x * 16) as _), 0);
+                ptr::write_volatile(MAP.offset((x * 4) as _), 0);
             }
 
             MAP_OFFSET -= CHARS_WIDTH;
@@ -55,7 +55,7 @@ impl Stdout {
         unsafe {
             MAP_OFFSET = 0;
             for i in 0..CHARS_WIDTH * CHARS_HEIGHT {
-                ptr::write_volatile(MAP.offset((i * 16) as _), 0);
+                ptr::write_volatile(MAP.offset((i * 4) as _), 0);
             }
         }
     }

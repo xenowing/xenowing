@@ -2,7 +2,6 @@ use crate::boot_rom::*;
 use crate::buster::*;
 use crate::byte_ram::*;
 use crate::marv::*;
-use crate::marv_system_bridge::*;
 use crate::pocket::char_display::*;
 use crate::read_cache::*;
 
@@ -36,33 +35,26 @@ impl<'a> Shovel<'a> {
             .system_write_line_pulse
             .drive(system_write_line_pulse);
 
-        let byte_ram = ByteRam::new("byte_ram", 14 - 4, 24, m);
+        let byte_ram = ByteRam::new("byte_ram", 14 - 2, 26, m);
 
         // Interconnect
-        let cpu_crossbar = Crossbar::new("cpu_crossbar", 2, 2, 28, 4, 128, 2, m);
-        let marv_instruction_bridge = MarvSystemBridge::new("marv_instruction_bridge", m);
+        let cpu_crossbar = Crossbar::new("cpu_crossbar", 2, 2, 30, 4, 32, 2, m);
+        let marv_instruction_cache = ReadCache::new("marv_instruction_cache", 32, 30, 12 - 2, m);
         marv.instruction_port
-            .connect(&marv_instruction_bridge.marv_port);
-        let marv_instruction_cache = ReadCache::new("marv_instruction_cache", 128, 28, 12 - 4, m);
-        marv_instruction_cache.invalidate.drive(m.low()); // TODO: Expose this to the CPU somehow
-        marv_instruction_bridge
-            .system_port
             .connect(&marv_instruction_cache.client_port);
+        marv_instruction_cache.invalidate.drive(m.low()); // TODO: Expose this to the CPU somehow
         marv_instruction_cache.system_port.connect(
             &cpu_crossbar.replica_ports[0].skid_buffer("instruction_cache_to_cpu_crossbar", m),
         );
-        let marv_data_bridge = MarvSystemBridge::new("marv_data_bridge", m);
-        marv.data_port.connect(&marv_data_bridge.marv_port);
-        marv_data_bridge
-            .system_port
+        marv.data_port
             .connect(&cpu_crossbar.replica_ports[1].skid_buffer("data_port_to_cpu_crossbar", m));
 
-        let mem_crossbar = Crossbar::new("mem_crossbar", 1, 1, 24, 0, 128, 2, m);
+        let mem_crossbar = Crossbar::new("mem_crossbar", 1, 1, 26, 0, 32, 2, m);
         cpu_crossbar.primary_ports[1]
             .connect(&mem_crossbar.replica_ports[0].skid_buffer("cpu_crossbar_to_mem_crossbar", m));
         mem_crossbar.primary_ports[0].connect(&byte_ram.client_port);
 
-        let sys_crossbar = Crossbar::new("sys_crossbar", 1, 2, 24, 4, 128, 2, m);
+        let sys_crossbar = Crossbar::new("sys_crossbar", 1, 2, 26, 4, 32, 2, m);
         cpu_crossbar.primary_ports[0]
             .connect(&sys_crossbar.replica_ports[0].skid_buffer("cpu_crossbar_to_sys_crossbar", m));
         sys_crossbar.primary_ports[0].connect(&boot_rom.client_port);

@@ -60,10 +60,10 @@ impl<'a> CharDisplay<'a> {
         let map_mem = m.mem("map_mem", map_mem_address_bit_width, 7);
 
         let bus_enable = m.input("bus_enable", 1);
-        let bus_addr = m.input("bus_addr", 20);
+        let bus_addr = m.input("bus_addr", 22);
         let bus_write = m.input("bus_write", 1);
-        let bus_write_data = m.input("bus_write_data", 128);
-        let bus_write_byte_enable = m.input("bus_write_byte_enable", 16);
+        let bus_write_data = m.input("bus_write_data", 32);
+        let bus_write_byte_enable = m.input("bus_write_byte_enable", 32 / 8);
 
         let client_map_addr = bus_addr.bits(map_mem_address_bit_width - 1, 0);
         let client_write_map = bus_enable & bus_write & bus_write_byte_enable.bit(0);
@@ -158,7 +158,7 @@ impl<'a> CharDisplay<'a> {
                 bus_write_data,
                 bus_write_byte_enable,
                 bus_ready: m.output("bus_ready", bus_ready),
-                bus_read_data: m.output("bus_read_data", m.lit(0u32, 121).concat(map_1)),
+                bus_read_data: m.output("bus_read_data", m.lit(0u32, 32 - 7).concat(map_1)),
                 bus_read_data_valid: m.output(
                     "bus_read_data_valid",
                     client_read_map.reg_next_with_default("client_read_map_reg", false),
