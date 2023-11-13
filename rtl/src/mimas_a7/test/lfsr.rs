@@ -16,12 +16,13 @@ impl<'a> Lfsr<'a> {
         state.default_value(0xace1u32);
         let value = m.output("value", state.bits(7, 0));
 
-        state.drive_next(if_(shift_enable, {
-            let feedback_bit = state.bit(0) ^ state.bit(2) ^ state.bit(3) ^ state.bit(5);
-            feedback_bit.concat(state.bits(15, 1))
-        }).else_({
-            state
-        }));
+        state.drive_next(
+            if_(shift_enable, {
+                let feedback_bit = state.bit(0) ^ state.bit(2) ^ state.bit(3) ^ state.bit(5);
+                feedback_bit.concat(state.bits(15, 1))
+            })
+            .else_(state),
+        );
 
         Lfsr {
             m,

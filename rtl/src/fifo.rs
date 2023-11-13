@@ -15,7 +15,12 @@ pub struct Fifo<'a> {
 }
 
 impl<'a> Fifo<'a> {
-    pub fn new(instance_name: impl Into<String>, depth_bit_width: u32, element_bit_width: u32, p: &'a impl ModuleParent<'a>) -> Fifo<'a> {
+    pub fn new(
+        instance_name: impl Into<String>,
+        depth_bit_width: u32,
+        element_bit_width: u32,
+        p: &'a impl ModuleParent<'a>,
+    ) -> Fifo<'a> {
         let m = p.module(instance_name, "Fifo");
 
         let mem = m.mem("mem", depth_bit_width, element_bit_width);
@@ -39,10 +44,12 @@ impl<'a> Fifo<'a> {
         mem.write_port(mem_write_addr, write_data, write_accept);
 
         let (next_count, next_mem_write_addr) = if_(write_accept, {
-            (next_count + m.lit(1u32, count_bits), mem_write_addr + m.lit(1u32, depth_bit_width))
-        }).else_({
-            (next_count, mem_write_addr)
-        });
+            (
+                next_count + m.lit(1u32, count_bits),
+                mem_write_addr + m.lit(1u32, depth_bit_width),
+            )
+        })
+        .else_((next_count, mem_write_addr));
 
         mem_write_addr.drive_next(next_mem_write_addr);
 
@@ -58,10 +65,12 @@ impl<'a> Fifo<'a> {
         let read_data = m.output("read_data", mem.read_port(mem_read_addr, read_accept));
 
         let (next_count, next_mem_read_addr) = if_(read_accept, {
-            (next_count - m.lit(1u32, count_bits), mem_read_addr + m.lit(1u32, depth_bit_width))
-        }).else_({
-            (next_count, mem_read_addr)
-        });
+            (
+                next_count - m.lit(1u32, count_bits),
+                mem_read_addr + m.lit(1u32, depth_bit_width),
+            )
+        })
+        .else_((next_count, mem_read_addr));
 
         mem_read_addr.drive_next(next_mem_read_addr);
 

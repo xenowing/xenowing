@@ -28,21 +28,25 @@ impl<'a> BitPusher<'a> {
         let reg_bus_ready = m.output("reg_bus_ready", m.lit(true, 1));
         let reg_bus_read_data_valid = m.output(
             "reg_bus_read_data_valid",
-            (reg_bus_enable & !reg_bus_write).reg_next_with_default("reg_bus_read_data_valid_reg", false),
+            (reg_bus_enable & !reg_bus_write)
+                .reg_next_with_default("reg_bus_read_data_valid_reg", false),
         );
 
         let reg_write = reg_bus_enable & reg_bus_write;
         let reg_addr = reg_bus_addr.bits(REG_BUS_ADDR_BIT_WIDTH - 1, 0);
 
         let direction_reg = m.reg("direction_reg", REG_DIRECTION_BITS);
-        direction_reg.drive_next(if_(reg_write & reg_addr.eq(m.lit(REG_DIRECTION_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
-            reg_bus_write_data.bits(REG_DIRECTION_BITS - 1, 0)
-        }).else_({
-            direction_reg
-        }));
+        direction_reg.drive_next(
+            if_(
+                reg_write & reg_addr.eq(m.lit(REG_DIRECTION_ADDR, REG_BUS_ADDR_BIT_WIDTH)),
+                reg_bus_write_data.bits(REG_DIRECTION_BITS - 1, 0),
+            )
+            .else_(direction_reg),
+        );
 
         let start_transfer = reg_write & reg_addr.eq(m.lit(REG_START_ADDR, REG_BUS_ADDR_BIT_WIDTH));
-        let write_num_words = reg_write & reg_addr.eq(m.lit(REG_NUM_WORDS_ADDR, REG_BUS_ADDR_BIT_WIDTH));
+        let write_num_words =
+            reg_write & reg_addr.eq(m.lit(REG_NUM_WORDS_ADDR, REG_BUS_ADDR_BIT_WIDTH));
 
         let sys_bus_write_byte_enable = m.output("sys_bus_write_byte_enable", m.lit(0xffffu32, 16));
         let sys_bus_ready = m.input("sys_bus_ready", 1);
@@ -57,19 +61,20 @@ impl<'a> BitPusher<'a> {
         let fifo_depth_bits = 5;
 
         let data_fifo = Fifo::new("data_fifo", fifo_depth_bits, 128, m);
-        data_fifo.write_enable.drive(sys_bus_read_data_valid | mem_bus_read_data_valid);
-        data_fifo.write_data.drive(if_(sys_bus_read_data_valid, {
-            sys_bus_read_data
-        }).else_({
-            mem_bus_read_data
-        }));
+        data_fifo
+            .write_enable
+            .drive(sys_bus_read_data_valid | mem_bus_read_data_valid);
+        data_fifo
+            .write_data
+            .drive(if_(sys_bus_read_data_valid, sys_bus_read_data).else_(mem_bus_read_data));
 
         let data_buffer = PeekBuffer::new("data_buffer", 128, m);
         data_fifo.read_enable.drive(data_buffer.ingress_read_enable);
         data_buffer.ingress_data.drive(data_fifo.read_data);
         data_buffer.ingress_data_valid.drive(
             (!data_fifo.empty & data_buffer.ingress_read_enable)
-            .reg_next_with_default("data_buffer_ingress_data_valid", false));
+                .reg_next_with_default("data_buffer_ingress_data_valid", false),
+        );
 
         let mem2sys = direction_reg.eq(m.lit(REG_DIRECTION_MEM2SYS, REG_DIRECTION_BITS));
 
@@ -77,66 +82,76 @@ impl<'a> BitPusher<'a> {
         read_issue.num_words.drive(reg_bus_write_data.bits(31, 0));
         read_issue.write_num_words.drive(write_num_words);
         read_issue.start_transfer.drive(start_transfer);
-        read_issue.bus_ready.drive(if_(mem2sys, {
-            mem_bus_ready
-        }).else_({
-            sys_bus_ready
-        }));
+        read_issue
+            .bus_ready
+            .drive(if_(mem2sys, mem_bus_ready).else_(sys_bus_ready));
 
         let write_issue = WriteIssue::new("write_issue", m);
         write_issue.num_words.drive(reg_bus_write_data.bits(31, 0));
         write_issue.write_num_words.drive(write_num_words);
         write_issue.start_transfer.drive(start_transfer);
         write_issue.data_ready.drive(data_buffer.egress_ready);
-        data_buffer.egress_read_enable.drive(write_issue.issue_accepted);
-        write_issue.bus_ready.drive(if_(mem2sys, {
-            sys_bus_ready
-        }).else_({
-            mem_bus_ready
-        }));
-        read_issue.credit_counter_inc.drive(write_issue.issue_accepted);
+        data_buffer
+            .egress_read_enable
+            .drive(write_issue.issue_accepted);
+        write_issue
+            .bus_ready
+            .drive(if_(mem2sys, sys_bus_ready).else_(mem_bus_ready));
+        read_issue
+            .credit_counter_inc
+            .drive(write_issue.issue_accepted);
 
-        let sys_bus_enable = m.output("sys_bus_enable", if_(mem2sys, {
-            write_issue.bus_enable
-        }).else_({
-            read_issue.bus_enable
-        }));
+        let sys_bus_enable = m.output(
+            "sys_bus_enable",
+            if_(mem2sys, write_issue.bus_enable).else_(read_issue.bus_enable),
+        );
         let sys_bus_write = m.output("sys_bus_write", mem2sys);
         let sys_bus_write_data = m.output("sys_bus_write_data", data_buffer.egress_data);
 
-        let mem_bus_enable = m.output("mem_bus_enable", if_(mem2sys, {
-            read_issue.bus_enable
-        }).else_({
-            write_issue.bus_enable
-        }));
+        let mem_bus_enable = m.output(
+            "mem_bus_enable",
+            if_(mem2sys, read_issue.bus_enable).else_(write_issue.bus_enable),
+        );
         let mem_bus_write = m.output("mem_bus_write", !mem2sys);
         let mem_bus_write_data = m.output("mem_bus_write_data", data_buffer.egress_data);
 
         let busy = read_issue.busy | write_issue.busy;
 
         let sys_addr_unit = AddrUnit::new("sys_addr_unit", m);
-        sys_addr_unit.write_data.drive(reg_bus_write_data.bits(31, 0));
-        sys_addr_unit.write_addr.drive(reg_write & reg_addr.eq(m.lit(REG_SYS_ADDR_ADDR, REG_BUS_ADDR_BIT_WIDTH)));
-        sys_addr_unit.write_words_per_span.drive(reg_write & reg_addr.eq(m.lit(REG_SYS_WORDS_PER_SPAN_ADDR, REG_BUS_ADDR_BIT_WIDTH)));
-        sys_addr_unit.write_span_stride.drive(reg_write & reg_addr.eq(m.lit(REG_SYS_SPAN_STRIDE_ADDR, REG_BUS_ADDR_BIT_WIDTH)));
+        sys_addr_unit
+            .write_data
+            .drive(reg_bus_write_data.bits(31, 0));
+        sys_addr_unit
+            .write_addr
+            .drive(reg_write & reg_addr.eq(m.lit(REG_SYS_ADDR_ADDR, REG_BUS_ADDR_BIT_WIDTH)));
+        sys_addr_unit.write_words_per_span.drive(
+            reg_write & reg_addr.eq(m.lit(REG_SYS_WORDS_PER_SPAN_ADDR, REG_BUS_ADDR_BIT_WIDTH)),
+        );
+        sys_addr_unit.write_span_stride.drive(
+            reg_write & reg_addr.eq(m.lit(REG_SYS_SPAN_STRIDE_ADDR, REG_BUS_ADDR_BIT_WIDTH)),
+        );
         sys_addr_unit.start_transfer.drive(start_transfer);
-        sys_addr_unit.step.drive(if_(mem2sys, {
-            write_issue.issue_accepted
-        }).else_({
-            read_issue.issue_accepted
-        }));
+        sys_addr_unit
+            .step
+            .drive(if_(mem2sys, write_issue.issue_accepted).else_(read_issue.issue_accepted));
 
         let mem_addr_unit = AddrUnit::new("mem_addr_unit", m);
-        mem_addr_unit.write_data.drive(reg_bus_write_data.bits(31, 0));
-        mem_addr_unit.write_addr.drive(reg_write & reg_addr.eq(m.lit(REG_MEM_ADDR_ADDR, REG_BUS_ADDR_BIT_WIDTH)));
-        mem_addr_unit.write_words_per_span.drive(reg_write & reg_addr.eq(m.lit(REG_MEM_WORDS_PER_SPAN_ADDR, REG_BUS_ADDR_BIT_WIDTH)));
-        mem_addr_unit.write_span_stride.drive(reg_write & reg_addr.eq(m.lit(REG_MEM_SPAN_STRIDE_ADDR, REG_BUS_ADDR_BIT_WIDTH)));
+        mem_addr_unit
+            .write_data
+            .drive(reg_bus_write_data.bits(31, 0));
+        mem_addr_unit
+            .write_addr
+            .drive(reg_write & reg_addr.eq(m.lit(REG_MEM_ADDR_ADDR, REG_BUS_ADDR_BIT_WIDTH)));
+        mem_addr_unit.write_words_per_span.drive(
+            reg_write & reg_addr.eq(m.lit(REG_MEM_WORDS_PER_SPAN_ADDR, REG_BUS_ADDR_BIT_WIDTH)),
+        );
+        mem_addr_unit.write_span_stride.drive(
+            reg_write & reg_addr.eq(m.lit(REG_MEM_SPAN_STRIDE_ADDR, REG_BUS_ADDR_BIT_WIDTH)),
+        );
         mem_addr_unit.start_transfer.drive(start_transfer);
-        mem_addr_unit.step.drive(if_(mem2sys, {
-            read_issue.issue_accepted
-        }).else_({
-            write_issue.issue_accepted
-        }));
+        mem_addr_unit
+            .step
+            .drive(if_(mem2sys, read_issue.issue_accepted).else_(write_issue.issue_accepted));
 
         let sys_bus_addr = m.output("sys_bus_addr", sys_addr_unit.addr);
 
@@ -196,7 +211,11 @@ struct ReadIssue<'a> {
 }
 
 impl<'a> ReadIssue<'a> {
-    pub fn new(instance_name: impl Into<String>, fifo_depth_bits: u32, p: &'a impl ModuleParent<'a>) -> ReadIssue<'a> {
+    pub fn new(
+        instance_name: impl Into<String>,
+        fifo_depth_bits: u32,
+        p: &'a impl ModuleParent<'a>,
+    ) -> ReadIssue<'a> {
         let m = p.module(instance_name, "ReadIssue");
 
         let busy_reg = m.reg("busy_reg", 1);
@@ -222,29 +241,30 @@ impl<'a> ReadIssue<'a> {
 
         let decremented_num_words = num_words_reg - m.lit(1u32, 32);
 
-        busy_reg.drive_next(if_(start_transfer, {
-            m.lit(true, 1)
-        }).else_if(issue_accepted & decremented_num_words.eq(m.lit(0u32, 32)), {
-            m.lit(false, 1)
-        }).else_({
-            busy_reg
-        }));
+        busy_reg.drive_next(
+            if_(start_transfer, m.lit(true, 1))
+                .else_if(
+                    issue_accepted & decremented_num_words.eq(m.lit(0u32, 32)),
+                    m.lit(false, 1),
+                )
+                .else_(busy_reg),
+        );
 
-        num_words_reg.drive_next(if_(write_num_words, {
-            num_words as &dyn Signal<'a>
-        }).else_if(issue_accepted, {
-            decremented_num_words
-        }).else_({
-            num_words_reg
-        }));
+        num_words_reg.drive_next(
+            if_(write_num_words, num_words as &dyn Signal<'a>)
+                .else_if(issue_accepted, decremented_num_words)
+                .else_(num_words_reg),
+        );
 
-        credit_counter.drive_next(if_(!issue_accepted & credit_counter_inc, {
-            credit_counter + m.lit(1u32, credit_counter_bits)
-        }).else_if(issue_accepted & !credit_counter_inc, {
-            credit_counter - m.lit(1u32, credit_counter_bits)
-        }).else_({
-            credit_counter
-        }));
+        credit_counter.drive_next(
+            if_(!issue_accepted & credit_counter_inc, {
+                credit_counter + m.lit(1u32, credit_counter_bits)
+            })
+            .else_if(issue_accepted & !credit_counter_inc, {
+                credit_counter - m.lit(1u32, credit_counter_bits)
+            })
+            .else_(credit_counter),
+        );
 
         let issue_accepted = m.output("issue_accepted", issue_accepted);
         let bus_enable = m.output("bus_enable", issue);
@@ -300,21 +320,20 @@ impl<'a> WriteIssue<'a> {
 
         let decremented_num_words = num_words_reg - m.lit(1u32, 32);
 
-        busy_reg.drive_next(if_(start_transfer, {
-            m.lit(true, 1)
-        }).else_if(issue_accepted & decremented_num_words.eq(m.lit(0u32, 32)), {
-            m.lit(false, 1)
-        }).else_({
-            busy_reg
-        }));
+        busy_reg.drive_next(
+            if_(start_transfer, m.lit(true, 1))
+                .else_if(
+                    issue_accepted & decremented_num_words.eq(m.lit(0u32, 32)),
+                    m.lit(false, 1),
+                )
+                .else_(busy_reg),
+        );
 
-        num_words_reg.drive_next(if_(write_num_words, {
-            num_words as &dyn Signal<'a>
-        }).else_if(issue_accepted, {
-            decremented_num_words
-        }).else_({
-            num_words_reg
-        }));
+        num_words_reg.drive_next(
+            if_(write_num_words, num_words as &dyn Signal<'a>)
+                .else_if(issue_accepted, decremented_num_words)
+                .else_(num_words_reg),
+        );
 
         let bus_enable = m.output("bus_enable", issue);
         let issue_accepted = m.output("issue_accepted", issue_accepted);
@@ -370,49 +389,37 @@ impl<'a> AddrUnit<'a> {
         let next_span = next_span_word_counter.eq(words_per_span_reg);
         let next_span_base = span_base_reg + span_stride_reg;
 
-        addr_reg.drive_next(if_(write_addr, {
-            write_data.bits(SYSTEM_BUS_ADDR_BITS + 4 - 1, 4)
-        }).else_if(step, {
-            if_(next_span, {
-                next_span_base
-            }).else_({
-                next_addr
+        addr_reg.drive_next(
+            if_(write_addr, {
+                write_data.bits(SYSTEM_BUS_ADDR_BITS + 4 - 1, 4)
             })
-        }).else_({
-            addr_reg
-        }));
+            .else_if(step, if_(next_span, next_span_base).else_(next_addr))
+            .else_(addr_reg),
+        );
 
-        words_per_span_reg.drive_next(if_(write_words_per_span, {
-            write_data
-        }).else_({
-            words_per_span_reg
-        }));
+        words_per_span_reg
+            .drive_next(if_(write_words_per_span, write_data).else_(words_per_span_reg));
 
-        span_stride_reg.drive_next(if_(write_span_stride, {
-            write_data.bits(SYSTEM_BUS_ADDR_BITS - 1, 0)
-        }).else_({
-            span_stride_reg
-        }));
-
-        span_base_reg.drive_next(if_(step & next_span, {
-            next_span_base
-        }).else_if(start_transfer, {
-            addr_reg
-        }).else_({
-            span_base_reg
-        }));
-
-        span_word_counter_reg.drive_next(if_(step, {
-            if_(next_span, {
-                m.lit(0u32, 32)
-            }).else_({
-                next_span_word_counter
+        span_stride_reg.drive_next(
+            if_(write_span_stride, {
+                write_data.bits(SYSTEM_BUS_ADDR_BITS - 1, 0)
             })
-        }).else_if(start_transfer, {
-            m.lit(0u32, 32)
-        }).else_({
-            span_word_counter_reg
-        }));
+            .else_(span_stride_reg),
+        );
+
+        span_base_reg.drive_next(
+            if_(step & next_span, next_span_base)
+                .else_if(start_transfer, addr_reg)
+                .else_(span_base_reg),
+        );
+
+        span_word_counter_reg.drive_next(
+            if_(step, {
+                if_(next_span, m.lit(0u32, 32)).else_(next_span_word_counter)
+            })
+            .else_if(start_transfer, m.lit(0u32, 32))
+            .else_(span_word_counter_reg),
+        );
 
         let addr = m.output("addr", addr_reg);
 

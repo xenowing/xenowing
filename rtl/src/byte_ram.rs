@@ -10,8 +10,16 @@ pub struct ByteRam<'a> {
 }
 
 impl<'a> ByteRam<'a> {
-    pub fn new(instance_name: impl Into<String>, addr_bit_width: u32, port_addr_bit_width: u32, p: &'a impl ModuleParent<'a>) -> ByteRam<'a> {
-        assert!(port_addr_bit_width >= addr_bit_width, "Port cannot reach all elements");
+    pub fn new(
+        instance_name: impl Into<String>,
+        addr_bit_width: u32,
+        port_addr_bit_width: u32,
+        p: &'a impl ModuleParent<'a>,
+    ) -> ByteRam<'a> {
+        assert!(
+            port_addr_bit_width >= addr_bit_width,
+            "Port cannot reach all elements"
+        );
 
         let m = p.module(instance_name, "ByteRam");
 
@@ -24,9 +32,20 @@ impl<'a> ByteRam<'a> {
         let mem = WordMem::new(m, "mem", addr_bit_width, 8, 128 / 8);
         // TODO: Consider a way to make port connection adapters to match widths instead of handling that ad-hoc for every port
         let truncated_bus_addr = bus_addr.bits(addr_bit_width - 1, 0);
-        mem.write_port(truncated_bus_addr, bus_write_data, bus_enable & bus_write, bus_write_byte_enable);
-        let bus_read_data = m.output("bus_read_data", mem.read_port(truncated_bus_addr, bus_enable & !bus_write));
-        let bus_read_data_valid = m.output("bus_read_data_valid", (bus_enable & !bus_write).reg_next_with_default("bus_read_data_valid", false));
+        mem.write_port(
+            truncated_bus_addr,
+            bus_write_data,
+            bus_enable & bus_write,
+            bus_write_byte_enable,
+        );
+        let bus_read_data = m.output(
+            "bus_read_data",
+            mem.read_port(truncated_bus_addr, bus_enable & !bus_write),
+        );
+        let bus_read_data_valid = m.output(
+            "bus_read_data_valid",
+            (bus_enable & !bus_write).reg_next_with_default("bus_read_data_valid", false),
+        );
 
         ByteRam {
             m,
@@ -49,7 +68,12 @@ pub struct CheekyByteRam<'a> {
 }
 
 impl<'a> CheekyByteRam<'a> {
-    pub fn new(instance_name: impl Into<String>, addr_bit_width: u32, port_addr_bit_width: u32, p: &'a impl ModuleParent<'a>) -> CheekyByteRam<'a> {
+    pub fn new(
+        instance_name: impl Into<String>,
+        addr_bit_width: u32,
+        port_addr_bit_width: u32,
+        p: &'a impl ModuleParent<'a>,
+    ) -> CheekyByteRam<'a> {
         let m = p.module(instance_name, "CheekyByteRam");
 
         // Gate client port ready and enable signals with a random signal
@@ -68,10 +92,16 @@ impl<'a> CheekyByteRam<'a> {
         let bus_write_data = m.input("bus_write_data", 128);
         byte_ram.client_port.bus_write_data.drive(bus_write_data);
         let bus_write_byte_enable = m.input("bus_write_byte_enable", 128 / 8);
-        byte_ram.client_port.bus_write_byte_enable.drive(bus_write_byte_enable);
+        byte_ram
+            .client_port
+            .bus_write_byte_enable
+            .drive(bus_write_byte_enable);
         let bus_ready = m.output("bus_ready", ready & byte_ram.client_port.bus_ready);
         let bus_read_data = m.output("bus_read_data", byte_ram.client_port.bus_read_data);
-        let bus_read_data_valid = m.output("bus_read_data_valid", byte_ram.client_port.bus_read_data_valid);
+        let bus_read_data_valid = m.output(
+            "bus_read_data_valid",
+            byte_ram.client_port.bus_read_data_valid,
+        );
 
         CheekyByteRam {
             client_port: ReplicaPort {

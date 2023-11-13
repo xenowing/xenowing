@@ -77,7 +77,10 @@ pub struct XenowingInner<'a> {
 }
 
 impl<'a> XenowingInner<'a> {
-    pub fn new(instance_name: impl Into<String>, p: &'a impl ModuleParent<'a>) -> XenowingInner<'a> {
+    pub fn new(
+        instance_name: impl Into<String>,
+        p: &'a impl ModuleParent<'a>,
+    ) -> XenowingInner<'a> {
         let m = p.module(instance_name, "XenowingInner");
 
         let marv = Marv::new("marv", m);
@@ -107,18 +110,27 @@ impl<'a> XenowingInner<'a> {
         // Interconnect
         let cpu_crossbar = Crossbar::new("cpu_crossbar", 2, 2, 28, 4, 128, 5, m);
         let marv_instruction_bridge = MarvSystemBridge::new("marv_instruction_bridge", m);
-        marv.instruction_port.connect(&marv_instruction_bridge.marv_port);
+        marv.instruction_port
+            .connect(&marv_instruction_bridge.marv_port);
         let marv_instruction_cache = ReadCache::new("marv_instruction_cache", 128, 28, 12 - 4, m);
         marv_instruction_cache.invalidate.drive(m.low()); // TODO: Expose this to the CPU somehow
-        marv_instruction_bridge.system_port.connect(&marv_instruction_cache.client_port);
-        marv_instruction_cache.system_port.connect(&cpu_crossbar.replica_ports[0]);
+        marv_instruction_bridge
+            .system_port
+            .connect(&marv_instruction_cache.client_port);
+        marv_instruction_cache
+            .system_port
+            .connect(&cpu_crossbar.replica_ports[0]);
         let marv_data_bridge = MarvSystemBridge::new("marv_data_bridge", m);
         marv.data_port.connect(&marv_data_bridge.marv_port);
-        marv_data_bridge.system_port.connect(&cpu_crossbar.replica_ports[1]);
+        marv_data_bridge
+            .system_port
+            .connect(&cpu_crossbar.replica_ports[1]);
 
         let mem_crossbar = Crossbar::new("mem_crossbar", 3, 1, 24, 0, 128, 5, m);
         cpu_crossbar.primary_ports[1].connect(&mem_crossbar.replica_ports[0]);
-        color_thrust.tex_cache_system_port.connect(&mem_crossbar.replica_ports[1]);
+        color_thrust
+            .tex_cache_system_port
+            .connect(&mem_crossbar.replica_ports[1]);
         bit_pusher.mem_port.connect(&mem_crossbar.replica_ports[2]);
         mem_crossbar.primary_ports[0].connect(&ddr3_bridge.client_port);
 

@@ -33,41 +33,69 @@ impl<'a> ColorThrust<'a> {
 
         let reg_bus_write_enable = reg_bus_enable & reg_bus_write;
 
-        let tex_cache_invalidate = reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(REG_TEX_CACHE_INVALIDATE_ADDR, REG_BUS_ADDR_BIT_WIDTH));
+        let tex_cache_invalidate = reg_bus_write_enable
+            & truncated_reg_bus_addr
+                .eq(m.lit(REG_TEX_CACHE_INVALIDATE_ADDR, REG_BUS_ADDR_BIT_WIDTH));
 
         let reg_depth_settings = m.reg("depth_settings", REG_DEPTH_SETTINGS_BITS);
-        reg_depth_settings.drive_next(if_(reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(REG_DEPTH_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
-            reg_bus_write_data.bits(REG_DEPTH_SETTINGS_BITS - 1, 0)
-        }).else_({
-            reg_depth_settings
-        }));
+        reg_depth_settings.drive_next(
+            if_(
+                reg_bus_write_enable
+                    & truncated_reg_bus_addr
+                        .eq(m.lit(REG_DEPTH_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)),
+                reg_bus_write_data.bits(REG_DEPTH_SETTINGS_BITS - 1, 0),
+            )
+            .else_(reg_depth_settings),
+        );
         let depth_test_enable = reg_depth_settings.bit(REG_DEPTH_TEST_ENABLE_BIT);
         let depth_write_mask_enable = reg_depth_settings.bit(REG_DEPTH_WRITE_MASK_ENABLE_BIT);
 
         let reg_texture_settings = m.reg("texture_settings", REG_TEXTURE_SETTINGS_BITS);
-        reg_texture_settings.drive_next(if_(reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(REG_TEXTURE_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
-            reg_bus_write_data.bits(REG_TEXTURE_SETTINGS_BITS - 1, 0)
-        }).else_({
-            reg_texture_settings
-        }));
-        let tex_filter_select = reg_texture_settings.bit(REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT_OFFSET);
-        let tex_dim = reg_texture_settings.bits(REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET + REG_TEXTURE_SETTINGS_DIM_BITS - 1, REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET);
+        reg_texture_settings.drive_next(
+            if_(
+                reg_bus_write_enable
+                    & truncated_reg_bus_addr
+                        .eq(m.lit(REG_TEXTURE_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)),
+                reg_bus_write_data.bits(REG_TEXTURE_SETTINGS_BITS - 1, 0),
+            )
+            .else_(reg_texture_settings),
+        );
+        let tex_filter_select =
+            reg_texture_settings.bit(REG_TEXTURE_SETTINGS_FILTER_SELECT_BIT_OFFSET);
+        let tex_dim = reg_texture_settings.bits(
+            REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET + REG_TEXTURE_SETTINGS_DIM_BITS - 1,
+            REG_TEXTURE_SETTINGS_DIM_BIT_OFFSET,
+        );
 
         let reg_texture_base = m.reg("texture_base", REG_TEXTURE_BASE_BITS);
-        reg_texture_base.drive_next(if_(reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(REG_TEXTURE_BASE_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
-            reg_bus_write_data.bits(6 + 4 + REG_TEXTURE_BASE_BITS - 1, 6 + 4)
-        }).else_({
-            reg_texture_base
-        }));
+        reg_texture_base.drive_next(
+            if_(
+                reg_bus_write_enable
+                    & truncated_reg_bus_addr
+                        .eq(m.lit(REG_TEXTURE_BASE_ADDR, REG_BUS_ADDR_BIT_WIDTH)),
+                reg_bus_write_data.bits(6 + 4 + REG_TEXTURE_BASE_BITS - 1, 6 + 4),
+            )
+            .else_(reg_texture_base),
+        );
 
         let reg_blend_settings = m.reg("blend_settings", REG_BLEND_SETTINGS_BITS);
-        reg_blend_settings.drive_next(if_(reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(REG_BLEND_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)), {
-            reg_bus_write_data.bits(REG_BLEND_SETTINGS_BITS - 1, 0)
-        }).else_({
-            reg_blend_settings
-        }));
-        let blend_src_factor = reg_blend_settings.bits(REG_BLEND_SETTINGS_SRC_FACTOR_BIT_OFFSET + REG_BLEND_SETTINGS_SRC_FACTOR_BITS - 1, REG_BLEND_SETTINGS_SRC_FACTOR_BIT_OFFSET);
-        let blend_dst_factor = reg_blend_settings.bits(REG_BLEND_SETTINGS_DST_FACTOR_BIT_OFFSET + REG_BLEND_SETTINGS_DST_FACTOR_BITS - 1, REG_BLEND_SETTINGS_DST_FACTOR_BIT_OFFSET);
+        reg_blend_settings.drive_next(
+            if_(
+                reg_bus_write_enable
+                    & truncated_reg_bus_addr
+                        .eq(m.lit(REG_BLEND_SETTINGS_ADDR, REG_BUS_ADDR_BIT_WIDTH)),
+                reg_bus_write_data.bits(REG_BLEND_SETTINGS_BITS - 1, 0),
+            )
+            .else_(reg_blend_settings),
+        );
+        let blend_src_factor = reg_blend_settings.bits(
+            REG_BLEND_SETTINGS_SRC_FACTOR_BIT_OFFSET + REG_BLEND_SETTINGS_SRC_FACTOR_BITS - 1,
+            REG_BLEND_SETTINGS_SRC_FACTOR_BIT_OFFSET,
+        );
+        let blend_dst_factor = reg_blend_settings.bits(
+            REG_BLEND_SETTINGS_DST_FACTOR_BIT_OFFSET + REG_BLEND_SETTINGS_DST_FACTOR_BITS - 1,
+            REG_BLEND_SETTINGS_DST_FACTOR_BIT_OFFSET,
+        );
 
         let input_generator_active = m.reg("input_generator_active", 1);
         input_generator_active.default_value(false);
@@ -77,14 +105,17 @@ impl<'a> ColorThrust<'a> {
         let tile_x_last = tile_x.eq(m.lit(TILE_DIM - 1, TILE_DIM_BITS));
         let tile_y_last = tile_y.eq(m.lit(TILE_DIM - 1, TILE_DIM_BITS));
 
-        let start = reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(REG_START_ADDR, REG_BUS_ADDR_BIT_WIDTH));
+        let start = reg_bus_write_enable
+            & truncated_reg_bus_addr.eq(m.lit(REG_START_ADDR, REG_BUS_ADDR_BIT_WIDTH));
 
         let pixel_pipe = PixelPipe::new("pixel_pipe", m);
 
         pixel_pipe.start.drive(start);
 
         pixel_pipe.depth_test_enable.drive(depth_test_enable);
-        pixel_pipe.depth_write_mask_enable.drive(depth_write_mask_enable);
+        pixel_pipe
+            .depth_write_mask_enable
+            .drive(depth_write_mask_enable);
 
         pixel_pipe.tex_filter_select.drive(tex_filter_select);
         pixel_pipe.tex_dim.drive(tex_dim);
@@ -103,30 +134,26 @@ impl<'a> ColorThrust<'a> {
             let next_tile_y = m.lit(0u32, TILE_DIM_BITS);
 
             (next_input_generator_active, next_tile_x, next_tile_y)
-        }).else_if(pixel_pipe.in_ready, {
+        })
+        .else_if(pixel_pipe.in_ready, {
             let next_input_generator_active = input_generator_active;
 
             let next_tile_x = tile_x + m.lit(1u32, TILE_DIM_BITS);
             let next_tile_y = tile_y;
 
             let (next_input_generator_active, next_tile_y) = if_(tile_x_last, {
-                let next_input_generator_active = if_(tile_y_last, {
-                    m.low()
-                }).else_({
-                    next_input_generator_active
-                });
+                let next_input_generator_active =
+                    if_(tile_y_last, m.low()).else_(next_input_generator_active);
 
                 let next_tile_y = tile_y + m.lit(1u32, TILE_DIM_BITS);
 
                 (next_input_generator_active, next_tile_y)
-            }).else_({
-                (next_input_generator_active, next_tile_y)
-            });
+            })
+            .else_((next_input_generator_active, next_tile_y));
 
             (next_input_generator_active, next_tile_x, next_tile_y)
-        }).else_({
-            (input_generator_active, tile_x, tile_y)
-        });
+        })
+        .else_((input_generator_active, tile_x, tile_y));
 
         input_generator_active.drive_next(next_input_generator_active);
 
@@ -135,52 +162,50 @@ impl<'a> ColorThrust<'a> {
 
         let interpolant = |name: &str, num_bits, min_addr: u32, dx_addr: u32, dy_addr: u32| {
             let min = m.reg(format!("{}_min", name), num_bits);
-            min.drive_next(if_(reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(min_addr, REG_BUS_ADDR_BIT_WIDTH)), {
-                reg_bus_write_data.bits(num_bits - 1, 0)
-            }).else_({
-                min
-            }));
+            min.drive_next(
+                if_(
+                    reg_bus_write_enable
+                        & truncated_reg_bus_addr.eq(m.lit(min_addr, REG_BUS_ADDR_BIT_WIDTH)),
+                    reg_bus_write_data.bits(num_bits - 1, 0),
+                )
+                .else_(min),
+            );
             let dx = m.reg(format!("{}_dx", name), num_bits);
-            dx.drive_next(if_(reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(dx_addr, REG_BUS_ADDR_BIT_WIDTH)), {
-                reg_bus_write_data.bits(num_bits - 1, 0)
-            }).else_({
-                dx
-            }));
+            dx.drive_next(
+                if_(
+                    reg_bus_write_enable
+                        & truncated_reg_bus_addr.eq(m.lit(dx_addr, REG_BUS_ADDR_BIT_WIDTH)),
+                    reg_bus_write_data.bits(num_bits - 1, 0),
+                )
+                .else_(dx),
+            );
             let dx_mirror = m.reg(format!("{}_dx_mirror", name), num_bits);
-            dx_mirror.drive_next(if_(start, {
-                dx
-            }).else_({
-                dx_mirror
-            }));
+            dx_mirror.drive_next(if_(start, dx).else_(dx_mirror));
             let dy = m.reg(format!("{}_dy", name), num_bits);
-            dy.drive_next(if_(reg_bus_write_enable & truncated_reg_bus_addr.eq(m.lit(dy_addr, REG_BUS_ADDR_BIT_WIDTH)), {
-                reg_bus_write_data.bits(num_bits - 1, 0)
-            }).else_({
-                dy
-            }));
+            dy.drive_next(
+                if_(
+                    reg_bus_write_enable
+                        & truncated_reg_bus_addr.eq(m.lit(dy_addr, REG_BUS_ADDR_BIT_WIDTH)),
+                    reg_bus_write_data.bits(num_bits - 1, 0),
+                )
+                .else_(dy),
+            );
             let dy_mirror = m.reg(format!("{}_dy_mirror", name), num_bits);
-            dy_mirror.drive_next(if_(start, {
-                dy
-            }).else_({
-                dy_mirror
-            }));
+            dy_mirror.drive_next(if_(start, dy).else_(dy_mirror));
 
             let row = m.reg(format!("{}_row", name), num_bits);
 
             let value = m.reg(name, num_bits);
 
-            let (next_row, next_value) = if_(start, {
-                (min.into(), min.into())
-            }).else_if(pixel_pipe.in_ready, {
-                if_(tile_x_last, {
-                    let next = row + dy_mirror;
-                    (next, next)
-                }).else_({
-                    (row, value + dx_mirror)
+            let (next_row, next_value) = if_(start, (min.into(), min.into()))
+                .else_if(pixel_pipe.in_ready, {
+                    if_(tile_x_last, {
+                        let next = row + dy_mirror;
+                        (next, next)
+                    })
+                    .else_((row, value + dx_mirror))
                 })
-            }).else_({
-                (row, value)
-            });
+                .else_((row, value));
 
             row.drive_next(next_row);
 
@@ -193,17 +218,29 @@ impl<'a> ColorThrust<'a> {
         let w1 = interpolant("w1", 32, REG_W1_MIN_ADDR, REG_W1_DX_ADDR, REG_W1_DY_ADDR).bit(31);
         let w2 = interpolant("w2", 32, REG_W2_MIN_ADDR, REG_W2_DX_ADDR, REG_W2_DY_ADDR).bit(31);
 
-        let r = interpolant("r", 24, REG_R_MIN_ADDR, REG_R_DX_ADDR, REG_R_DY_ADDR).bits(COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1, COLOR_FRACT_BITS);
-        let g = interpolant("g", 24, REG_G_MIN_ADDR, REG_G_DX_ADDR, REG_G_DY_ADDR).bits(COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1, COLOR_FRACT_BITS);
-        let b = interpolant("b", 24, REG_B_MIN_ADDR, REG_B_DX_ADDR, REG_B_DY_ADDR).bits(COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1, COLOR_FRACT_BITS);
-        let a = interpolant("a", 24, REG_A_MIN_ADDR, REG_A_DX_ADDR, REG_A_DY_ADDR).bits(COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1, COLOR_FRACT_BITS);
+        let r = interpolant("r", 24, REG_R_MIN_ADDR, REG_R_DX_ADDR, REG_R_DY_ADDR)
+            .bits(COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1, COLOR_FRACT_BITS);
+        let g = interpolant("g", 24, REG_G_MIN_ADDR, REG_G_DX_ADDR, REG_G_DY_ADDR)
+            .bits(COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1, COLOR_FRACT_BITS);
+        let b = interpolant("b", 24, REG_B_MIN_ADDR, REG_B_DX_ADDR, REG_B_DY_ADDR)
+            .bits(COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1, COLOR_FRACT_BITS);
+        let a = interpolant("a", 24, REG_A_MIN_ADDR, REG_A_DX_ADDR, REG_A_DY_ADDR)
+            .bits(COLOR_WHOLE_BITS + COLOR_FRACT_BITS - 1, COLOR_FRACT_BITS);
 
-        let w_inverse = interpolant("w_inverse", 32, REG_W_INVERSE_MIN_ADDR, REG_W_INVERSE_DX_ADDR, REG_W_INVERSE_DY_ADDR);
+        let w_inverse = interpolant(
+            "w_inverse",
+            32,
+            REG_W_INVERSE_MIN_ADDR,
+            REG_W_INVERSE_DX_ADDR,
+            REG_W_INVERSE_DY_ADDR,
+        );
 
         let z = interpolant("z", 32, REG_Z_MIN_ADDR, REG_Z_DX_ADDR, REG_Z_DY_ADDR).bits(31, 16);
 
-        let s = interpolant("s", 32, REG_S_MIN_ADDR, REG_S_DX_ADDR, REG_S_DY_ADDR).bits(31, RESTORED_W_FRACT_BITS);
-        let t = interpolant("t", 32, REG_T_MIN_ADDR, REG_T_DX_ADDR, REG_T_DY_ADDR).bits(31, RESTORED_W_FRACT_BITS);
+        let s = interpolant("s", 32, REG_S_MIN_ADDR, REG_S_DX_ADDR, REG_S_DY_ADDR)
+            .bits(31, RESTORED_W_FRACT_BITS);
+        let t = interpolant("t", 32, REG_T_MIN_ADDR, REG_T_DX_ADDR, REG_T_DY_ADDR)
+            .bits(31, RESTORED_W_FRACT_BITS);
 
         pixel_pipe.in_w0.drive(w0);
         pixel_pipe.in_w1.drive(w1);
@@ -221,8 +258,16 @@ impl<'a> ColorThrust<'a> {
         pixel_pipe.in_s.drive(s);
         pixel_pipe.in_t.drive(t);
 
-        let reg_bus_read_data = m.output("reg_bus_read_data", m.lit(0u32, 127).concat(input_generator_active | pixel_pipe.active));
-        let reg_bus_read_data_valid = m.output("reg_bus_read_data_valid", (reg_bus_enable & !reg_bus_write).reg_next_with_default("reg_bus_read_data_valid", false));
+        let reg_bus_read_data = m.output(
+            "reg_bus_read_data",
+            m.lit(0u32, 127)
+                .concat(input_generator_active | pixel_pipe.active),
+        );
+        let reg_bus_read_data_valid = m.output(
+            "reg_bus_read_data_valid",
+            (reg_bus_enable & !reg_bus_write)
+                .reg_next_with_default("reg_bus_read_data_valid", false),
+        );
 
         let color_buffer_bus_ready = m.output("color_buffer_bus_ready", m.high());
         let color_buffer_bus_enable = m.input("color_buffer_bus_enable", 1);
@@ -230,48 +275,55 @@ impl<'a> ColorThrust<'a> {
         let color_buffer_bus_write = m.input("color_buffer_bus_write", 1);
         let color_buffer_bus_write_data = m.input("color_buffer_bus_write_data", 128);
         let color_buffer_bus_write_byte_enable = m.input("color_buffer_bus_write_byte_enable", 16);
-        let color_buffer_bus_write_word_enable = (0..4).fold(None, |acc, x| {
-            let word_enable_bit = color_buffer_bus_write_byte_enable.bit(x * 4);
-            Some(if let Some(acc) = acc {
-                word_enable_bit.concat(acc)
-            } else {
-                word_enable_bit
+        let color_buffer_bus_write_word_enable = (0..4)
+            .fold(None, |acc, x| {
+                let word_enable_bit = color_buffer_bus_write_byte_enable.bit(x * 4);
+                Some(if let Some(acc) = acc {
+                    word_enable_bit.concat(acc)
+                } else {
+                    word_enable_bit
+                })
             })
-        }).unwrap();
+            .unwrap();
 
         let color_buffer = WordMem::new(m, "color_buffer", TILE_PIXELS_WORDS_BITS, 32, 4);
         let color_buffer_bus_write_enable = color_buffer_bus_enable & color_buffer_bus_write;
         color_buffer.write_port(
             if_(color_buffer_bus_write_enable, {
                 color_buffer_bus_addr.bits(TILE_PIXELS_WORDS_BITS - 1, 0)
-            }).else_({
-                pixel_pipe.color_buffer_write_port_addr
-            }),
+            })
+            .else_(pixel_pipe.color_buffer_write_port_addr),
             if_(color_buffer_bus_write_enable, {
                 color_buffer_bus_write_data
-            }).else_({
-                pixel_pipe.color_buffer_write_port_value
-            }),
+            })
+            .else_(pixel_pipe.color_buffer_write_port_value),
             color_buffer_bus_write_enable | pixel_pipe.color_buffer_write_port_enable,
             if_(color_buffer_bus_write_enable, {
                 color_buffer_bus_write_word_enable
-            }).else_({
-                pixel_pipe.color_buffer_write_port_word_enable
-            }));
+            })
+            .else_(pixel_pipe.color_buffer_write_port_word_enable),
+        );
 
         let color_buffer_bus_read_enable = color_buffer_bus_enable & !color_buffer_bus_write;
         let color_buffer_read_port_value = color_buffer.read_port(
             if_(color_buffer_bus_read_enable, {
                 color_buffer_bus_addr.bits(TILE_PIXELS_WORDS_BITS - 1, 0)
-            }).else_({
-                pixel_pipe.color_buffer_read_port_addr
-            }),
-            color_buffer_bus_read_enable | pixel_pipe.color_buffer_read_port_enable);
+            })
+            .else_(pixel_pipe.color_buffer_read_port_addr),
+            color_buffer_bus_read_enable | pixel_pipe.color_buffer_read_port_enable,
+        );
 
-        pixel_pipe.color_buffer_read_port_value.drive(color_buffer_read_port_value);
+        pixel_pipe
+            .color_buffer_read_port_value
+            .drive(color_buffer_read_port_value);
 
-        let color_buffer_bus_read_data = m.output("color_buffer_bus_read_data", color_buffer_read_port_value);
-        let color_buffer_bus_read_data_valid = m.output("color_buffer_bus_read_data_valid", color_buffer_bus_read_enable.reg_next_with_default("color_buffer_bus_read_data_valid", false));
+        let color_buffer_bus_read_data =
+            m.output("color_buffer_bus_read_data", color_buffer_read_port_value);
+        let color_buffer_bus_read_data_valid = m.output(
+            "color_buffer_bus_read_data_valid",
+            color_buffer_bus_read_enable
+                .reg_next_with_default("color_buffer_bus_read_data_valid", false),
+        );
 
         let depth_buffer_bus_ready = m.output("depth_buffer_bus_ready", m.high());
         let depth_buffer_bus_enable = m.input("depth_buffer_bus_enable", 1);
@@ -279,51 +331,60 @@ impl<'a> ColorThrust<'a> {
         let depth_buffer_bus_write = m.input("depth_buffer_bus_write", 1);
         let depth_buffer_bus_write_data = m.input("depth_buffer_bus_write_data", 128);
         let depth_buffer_bus_write_byte_enable = m.input("depth_buffer_bus_write_byte_enable", 16);
-        let depth_buffer_bus_write_word_enable = (0..8).fold(None, |acc, x| {
-            let word_enable_bit = depth_buffer_bus_write_byte_enable.bit(x * 2);
-            Some(if let Some(acc) = acc {
-                word_enable_bit.concat(acc)
-            } else {
-                word_enable_bit
+        let depth_buffer_bus_write_word_enable = (0..8)
+            .fold(None, |acc, x| {
+                let word_enable_bit = depth_buffer_bus_write_byte_enable.bit(x * 2);
+                Some(if let Some(acc) = acc {
+                    word_enable_bit.concat(acc)
+                } else {
+                    word_enable_bit
+                })
             })
-        }).unwrap();
+            .unwrap();
 
         let depth_buffer = WordMem::new(m, "depth_buffer", TILE_PIXELS_WORDS_BITS - 1, 16, 8);
         let depth_buffer_bus_write_enable = depth_buffer_bus_enable & depth_buffer_bus_write;
         depth_buffer.write_port(
             if_(depth_buffer_bus_write_enable, {
                 depth_buffer_bus_addr.bits(TILE_PIXELS_WORDS_BITS - 1 - 1, 0)
-            }).else_({
-                pixel_pipe.depth_buffer_write_port_addr
-            }),
+            })
+            .else_(pixel_pipe.depth_buffer_write_port_addr),
             if_(depth_buffer_bus_write_enable, {
                 depth_buffer_bus_write_data
-            }).else_({
-                pixel_pipe.depth_buffer_write_port_value
-            }),
+            })
+            .else_(pixel_pipe.depth_buffer_write_port_value),
             depth_buffer_bus_write_enable | pixel_pipe.depth_buffer_write_port_enable,
             if_(depth_buffer_bus_write_enable, {
                 depth_buffer_bus_write_word_enable
-            }).else_({
-                pixel_pipe.depth_buffer_write_port_word_enable
-            }));
+            })
+            .else_(pixel_pipe.depth_buffer_write_port_word_enable),
+        );
 
         let depth_buffer_bus_read_enable = depth_buffer_bus_enable & !depth_buffer_bus_write;
         let depth_buffer_read_port_value = depth_buffer.read_port(
             if_(depth_buffer_bus_read_enable, {
                 depth_buffer_bus_addr.bits(TILE_PIXELS_WORDS_BITS - 1 - 1, 0)
-            }).else_({
-                pixel_pipe.depth_buffer_read_port_addr
-            }),
-            depth_buffer_bus_read_enable | pixel_pipe.depth_buffer_read_port_enable);
+            })
+            .else_(pixel_pipe.depth_buffer_read_port_addr),
+            depth_buffer_bus_read_enable | pixel_pipe.depth_buffer_read_port_enable,
+        );
 
-        pixel_pipe.depth_buffer_read_port_value.drive(depth_buffer_read_port_value);
+        pixel_pipe
+            .depth_buffer_read_port_value
+            .drive(depth_buffer_read_port_value);
 
-        let depth_buffer_bus_read_data = m.output("depth_buffer_bus_read_data", depth_buffer_read_port_value);
-        let depth_buffer_bus_read_data_valid = m.output("depth_buffer_bus_read_data_valid", depth_buffer_bus_read_enable.reg_next_with_default("depth_buffer_bus_read_data_valid", false));
+        let depth_buffer_bus_read_data =
+            m.output("depth_buffer_bus_read_data", depth_buffer_read_port_value);
+        let depth_buffer_bus_read_data_valid = m.output(
+            "depth_buffer_bus_read_data_valid",
+            depth_buffer_bus_read_enable
+                .reg_next_with_default("depth_buffer_bus_read_data_valid", false),
+        );
 
         pixel_pipe.tex_cache_invalidate.drive(tex_cache_invalidate);
-        let tex_cache_system_port = pixel_pipe.tex_cache_system_port.forward("tex_cache_system", m);
+        let tex_cache_system_port = pixel_pipe
+            .tex_cache_system_port
+            .forward("tex_cache_system", m);
 
         ColorThrust {
             m,
@@ -475,9 +536,8 @@ impl<'a> PixelPipe<'a> {
         let clamp_comp = |comp: &'a dyn Signal<'a>| -> &'a dyn Signal<'a> {
             if_(comp.bit(COLOR_WHOLE_BITS - 1), {
                 m.lit(0u32, COLOR_WHOLE_BITS - 1)
-            }).else_({
-                comp.bits(COLOR_WHOLE_BITS - 2, 0)
             })
+            .else_(comp.bits(COLOR_WHOLE_BITS - 2, 0))
         };
         let r = clamp_comp(in_r);
         let g = clamp_comp(in_g);
@@ -498,51 +558,94 @@ impl<'a> PixelPipe<'a> {
             depth_test_pipe,
             2,
             depth_test_pipe_inner.in_valid,
-            depth_test_pipe_inner.out_valid);
+            depth_test_pipe_inner.out_valid,
+        );
 
         //  Aux
         let depth_test_enable = m.input("depth_test_enable", 1);
-        depth_test_pipe.aux_input("depth_test_enable", depth_test_pipe_inner.depth_test_enable).drive(depth_test_enable);
+        depth_test_pipe
+            .aux_input("depth_test_enable", depth_test_pipe_inner.depth_test_enable)
+            .drive(depth_test_enable);
 
-        let depth_buffer_read_port_addr = m.output("depth_buffer_read_port_addr", depth_test_pipe.aux_output("depth_buffer_read_port_addr", depth_test_pipe_inner.depth_buffer_read_port_addr));
-        let depth_buffer_read_port_enable = m.output("depth_buffer_read_port_enable", depth_test_pipe.aux_output("depth_buffer_read_port_enable", depth_test_pipe_inner.depth_buffer_read_port_enable));
+        let depth_buffer_read_port_addr = m.output(
+            "depth_buffer_read_port_addr",
+            depth_test_pipe.aux_output(
+                "depth_buffer_read_port_addr",
+                depth_test_pipe_inner.depth_buffer_read_port_addr,
+            ),
+        );
+        let depth_buffer_read_port_enable = m.output(
+            "depth_buffer_read_port_enable",
+            depth_test_pipe.aux_output(
+                "depth_buffer_read_port_enable",
+                depth_test_pipe_inner.depth_buffer_read_port_enable,
+            ),
+        );
 
         let depth_buffer_read_port_value = m.input("depth_buffer_read_port_value", 128);
-        depth_test_pipe.aux_input("depth_buffer_read_port_value", depth_test_pipe_inner.depth_buffer_read_port_value).drive(depth_buffer_read_port_value);
+        depth_test_pipe
+            .aux_input(
+                "depth_buffer_read_port_value",
+                depth_test_pipe_inner.depth_buffer_read_port_value,
+            )
+            .drive(depth_buffer_read_port_value);
 
         //  Inputs
         depth_test_pipe.in_valid.drive(valid);
 
-        depth_test_pipe.input("in_tile_addr", depth_test_pipe_inner.in_tile_addr).drive(tile_addr);
+        depth_test_pipe
+            .input("in_tile_addr", depth_test_pipe_inner.in_tile_addr)
+            .drive(tile_addr);
 
-        depth_test_pipe.input("in_r", depth_test_pipe_inner.in_r).drive(r);
-        depth_test_pipe.input("in_g", depth_test_pipe_inner.in_g).drive(g);
-        depth_test_pipe.input("in_b", depth_test_pipe_inner.in_b).drive(b);
-        depth_test_pipe.input("in_a", depth_test_pipe_inner.in_a).drive(a);
+        depth_test_pipe
+            .input("in_r", depth_test_pipe_inner.in_r)
+            .drive(r);
+        depth_test_pipe
+            .input("in_g", depth_test_pipe_inner.in_g)
+            .drive(g);
+        depth_test_pipe
+            .input("in_b", depth_test_pipe_inner.in_b)
+            .drive(b);
+        depth_test_pipe
+            .input("in_a", depth_test_pipe_inner.in_a)
+            .drive(a);
 
-        depth_test_pipe.input("in_w_inverse", depth_test_pipe_inner.in_w_inverse).drive(w_inverse);
+        depth_test_pipe
+            .input("in_w_inverse", depth_test_pipe_inner.in_w_inverse)
+            .drive(w_inverse);
 
-        depth_test_pipe.input("in_z", depth_test_pipe_inner.in_z).drive(z);
+        depth_test_pipe
+            .input("in_z", depth_test_pipe_inner.in_z)
+            .drive(z);
 
-        depth_test_pipe.input("in_s", depth_test_pipe_inner.in_s).drive(s);
-        depth_test_pipe.input("in_t", depth_test_pipe_inner.in_t).drive(t);
+        depth_test_pipe
+            .input("in_s", depth_test_pipe_inner.in_s)
+            .drive(s);
+        depth_test_pipe
+            .input("in_t", depth_test_pipe_inner.in_t)
+            .drive(t);
 
         //  Outputs
-        let tile_addr = depth_test_pipe.output("out_tile_addr", depth_test_pipe_inner.out_tile_addr);
+        let tile_addr =
+            depth_test_pipe.output("out_tile_addr", depth_test_pipe_inner.out_tile_addr);
 
         let r = depth_test_pipe.output("out_r", depth_test_pipe_inner.out_r);
         let g = depth_test_pipe.output("out_g", depth_test_pipe_inner.out_g);
         let b = depth_test_pipe.output("out_b", depth_test_pipe_inner.out_b);
         let a = depth_test_pipe.output("out_a", depth_test_pipe_inner.out_a);
 
-        let w_inverse = depth_test_pipe.output("out_w_inverse", depth_test_pipe_inner.out_w_inverse);
+        let w_inverse =
+            depth_test_pipe.output("out_w_inverse", depth_test_pipe_inner.out_w_inverse);
 
         let z = depth_test_pipe.output("out_z", depth_test_pipe_inner.out_z);
 
         let s = depth_test_pipe.output("out_s", depth_test_pipe_inner.out_s);
         let t = depth_test_pipe.output("out_t", depth_test_pipe_inner.out_t);
 
-        let depth_test_result = depth_test_pipe.output("out_depth_test_result", depth_test_pipe_inner.out_depth_test_result);
+        let depth_test_result = depth_test_pipe.output(
+            "out_depth_test_result",
+            depth_test_pipe_inner.out_depth_test_result,
+        );
 
         let in_ready = m.output("in_ready", depth_test_pipe.in_ready | edge_test_reject);
 
@@ -560,27 +663,38 @@ impl<'a> PixelPipe<'a> {
             front_pipe,
             15,
             front_pipe_inner.in_valid,
-            front_pipe_inner.out_valid);
+            front_pipe_inner.out_valid,
+        );
 
         //  Aux
         let tex_filter_select = m.input("tex_filter_select", 1);
-        front_pipe.aux_input("tex_filter_select", front_pipe_inner.tex_filter_select).drive(tex_filter_select);
+        front_pipe
+            .aux_input("tex_filter_select", front_pipe_inner.tex_filter_select)
+            .drive(tex_filter_select);
         let tex_dim = m.input("tex_dim", 2);
-        front_pipe.aux_input("tex_dim", front_pipe_inner.tex_dim).drive(tex_dim);
+        front_pipe
+            .aux_input("tex_dim", front_pipe_inner.tex_dim)
+            .drive(tex_dim);
         let tex_base = m.input("tex_base", REG_TEXTURE_BASE_BITS);
-        front_pipe.aux_input("tex_base", front_pipe_inner.tex_base).drive(tex_base);
+        front_pipe
+            .aux_input("tex_base", front_pipe_inner.tex_base)
+            .drive(tex_base);
 
         //  Inputs
         front_pipe.in_valid.drive(valid);
 
-        front_pipe.input("in_tile_addr", front_pipe_inner.in_tile_addr).drive(tile_addr);
+        front_pipe
+            .input("in_tile_addr", front_pipe_inner.in_tile_addr)
+            .drive(tile_addr);
 
         front_pipe.input("in_r", front_pipe_inner.in_r).drive(r);
         front_pipe.input("in_g", front_pipe_inner.in_g).drive(g);
         front_pipe.input("in_b", front_pipe_inner.in_b).drive(b);
         front_pipe.input("in_a", front_pipe_inner.in_a).drive(a);
 
-        front_pipe.input("in_w_inverse", front_pipe_inner.in_w_inverse).drive(w_inverse);
+        front_pipe
+            .input("in_w_inverse", front_pipe_inner.in_w_inverse)
+            .drive(w_inverse);
 
         front_pipe.input("in_z", front_pipe_inner.in_z).drive(z);
 
@@ -598,15 +712,26 @@ impl<'a> PixelPipe<'a> {
         let z = front_pipe.output("out_z", front_pipe_inner.out_z);
 
         let s_fract = front_pipe.output("out_s_fract", front_pipe_inner.out_s_fract);
-        let one_minus_s_fract = front_pipe.output("out_one_minus_s_fract", front_pipe_inner.out_one_minus_s_fract);
+        let one_minus_s_fract = front_pipe.output(
+            "out_one_minus_s_fract",
+            front_pipe_inner.out_one_minus_s_fract,
+        );
         let t_fract = front_pipe.output("out_t_fract", front_pipe_inner.out_t_fract);
-        let one_minus_t_fract = front_pipe.output("out_one_minus_t_fract", front_pipe_inner.out_one_minus_t_fract);
+        let one_minus_t_fract = front_pipe.output(
+            "out_one_minus_t_fract",
+            front_pipe_inner.out_one_minus_t_fract,
+        );
 
         for i in 0..4 {
-            front_pipe.output(format!("out_tex_buffer{}_read_addr", i), front_pipe_inner.out_tex_buffer_read_addrs[i]);
+            front_pipe.output(
+                format!("out_tex_buffer{}_read_addr", i),
+                front_pipe_inner.out_tex_buffer_read_addrs[i],
+            );
         }
 
-        depth_test_pipe.out_ready.drive(front_pipe.in_ready | depth_test_reject);
+        depth_test_pipe
+            .out_ready
+            .drive(front_pipe.in_ready | depth_test_reject);
 
         // TODO: I don't like that these valid signals have moved
         let valid = front_pipe.out_valid.unwrap();
@@ -639,7 +764,10 @@ impl<'a> PixelPipe<'a> {
         tex_cache.forward_inputs["one_minus_t_fract"].drive(one_minus_t_fract);
 
         for i in 0..4 {
-            let out_tex_buffer_read_addr = front_pipe.output(format!("out_tex_buffer_read_addr_{}", i), front_pipe_inner.out_tex_buffer_read_addrs[i]);
+            let out_tex_buffer_read_addr = front_pipe.output(
+                format!("out_tex_buffer_read_addr_{}", i),
+                front_pipe_inner.out_tex_buffer_read_addrs[i],
+            );
             tex_cache.in_tex_buffer_read_addrs[i].drive(out_tex_buffer_read_addr);
         }
 
@@ -664,28 +792,62 @@ impl<'a> PixelPipe<'a> {
 
         //  Aux
         let depth_write_mask_enable = m.input("depth_write_mask_enable", 1);
-        back_pipe.in_depth_write_mask_enable.drive(depth_write_mask_enable);
+        back_pipe
+            .in_depth_write_mask_enable
+            .drive(depth_write_mask_enable);
 
         let blend_src_factor = m.input("blend_src_factor", REG_BLEND_SETTINGS_SRC_FACTOR_BITS);
         back_pipe.in_blend_src_factor.drive(blend_src_factor);
         let blend_dst_factor = m.input("blend_dst_factor", REG_BLEND_SETTINGS_DST_FACTOR_BITS);
         back_pipe.in_blend_dst_factor.drive(blend_dst_factor);
 
-        let color_buffer_read_port_addr = m.output("color_buffer_read_port_addr", back_pipe.color_buffer_read_port_addr);
-        let color_buffer_read_port_enable = m.output("color_buffer_read_port_enable", back_pipe.color_buffer_read_port_enable);
+        let color_buffer_read_port_addr = m.output(
+            "color_buffer_read_port_addr",
+            back_pipe.color_buffer_read_port_addr,
+        );
+        let color_buffer_read_port_enable = m.output(
+            "color_buffer_read_port_enable",
+            back_pipe.color_buffer_read_port_enable,
+        );
 
         let color_buffer_read_port_value = m.input("color_buffer_read_port_value", 128);
-        back_pipe.color_buffer_read_port_value.drive(color_buffer_read_port_value);
+        back_pipe
+            .color_buffer_read_port_value
+            .drive(color_buffer_read_port_value);
 
-        let color_buffer_write_port_addr = m.output("color_buffer_write_port_addr", back_pipe.color_buffer_write_port_addr);
-        let color_buffer_write_port_value = m.output("color_buffer_write_port_value", back_pipe.color_buffer_write_port_value);
-        let color_buffer_write_port_enable = m.output("color_buffer_write_port_enable", back_pipe.color_buffer_write_port_enable);
-        let color_buffer_write_port_word_enable = m.output("color_buffer_write_port_word_enable", back_pipe.color_buffer_write_port_word_enable);
+        let color_buffer_write_port_addr = m.output(
+            "color_buffer_write_port_addr",
+            back_pipe.color_buffer_write_port_addr,
+        );
+        let color_buffer_write_port_value = m.output(
+            "color_buffer_write_port_value",
+            back_pipe.color_buffer_write_port_value,
+        );
+        let color_buffer_write_port_enable = m.output(
+            "color_buffer_write_port_enable",
+            back_pipe.color_buffer_write_port_enable,
+        );
+        let color_buffer_write_port_word_enable = m.output(
+            "color_buffer_write_port_word_enable",
+            back_pipe.color_buffer_write_port_word_enable,
+        );
 
-        let depth_buffer_write_port_addr = m.output("depth_buffer_write_port_addr", back_pipe.depth_buffer_write_port_addr);
-        let depth_buffer_write_port_value = m.output("depth_buffer_write_port_value", back_pipe.depth_buffer_write_port_value);
-        let depth_buffer_write_port_enable = m.output("depth_buffer_write_port_enable", back_pipe.depth_buffer_write_port_enable);
-        let depth_buffer_write_port_word_enable = m.output("depth_buffer_write_port_word_enable", back_pipe.depth_buffer_write_port_word_enable);
+        let depth_buffer_write_port_addr = m.output(
+            "depth_buffer_write_port_addr",
+            back_pipe.depth_buffer_write_port_addr,
+        );
+        let depth_buffer_write_port_value = m.output(
+            "depth_buffer_write_port_value",
+            back_pipe.depth_buffer_write_port_value,
+        );
+        let depth_buffer_write_port_enable = m.output(
+            "depth_buffer_write_port_enable",
+            back_pipe.depth_buffer_write_port_enable,
+        );
+        let depth_buffer_write_port_word_enable = m.output(
+            "depth_buffer_write_port_word_enable",
+            back_pipe.depth_buffer_write_port_word_enable,
+        );
 
         //  Inputs
         back_pipe.in_valid.drive(valid);
@@ -710,38 +872,44 @@ impl<'a> PixelPipe<'a> {
         //  Outputs
         let valid = back_pipe.out_valid;
 
-        active.drive_next(if_(start, {
-            m.high()
-        }).else_if(finished_pixel_acc.eq(m.lit(TILE_PIXELS, TILE_PIXELS_BITS + 1)), {
-            m.low()
-        }).else_({
-            active
-        }));
+        active.drive_next(
+            if_(start, m.high())
+                .else_if(
+                    finished_pixel_acc.eq(m.lit(TILE_PIXELS, TILE_PIXELS_BITS + 1)),
+                    m.low(),
+                )
+                .else_(active),
+        );
 
         // TODO: There's gotta be a simpler way to do this!
         let finished_pixel_bits = edge_test_reject.concat(depth_test_reject).concat(valid);
         let finished_pixel_count = if_(finished_pixel_bits.eq(m.lit(0b000u32, 3)), {
             m.lit(0u32, 2)
-        }).else_if(finished_pixel_bits.eq(m.lit(0b001u32, 3)), {
+        })
+        .else_if(finished_pixel_bits.eq(m.lit(0b001u32, 3)), {
             m.lit(1u32, 2)
-        }).else_if(finished_pixel_bits.eq(m.lit(0b010u32, 3)), {
+        })
+        .else_if(finished_pixel_bits.eq(m.lit(0b010u32, 3)), {
             m.lit(1u32, 2)
-        }).else_if(finished_pixel_bits.eq(m.lit(0b011u32, 3)), {
+        })
+        .else_if(finished_pixel_bits.eq(m.lit(0b011u32, 3)), {
             m.lit(2u32, 2)
-        }).else_if(finished_pixel_bits.eq(m.lit(0b100u32, 3)), {
+        })
+        .else_if(finished_pixel_bits.eq(m.lit(0b100u32, 3)), {
             m.lit(1u32, 2)
-        }).else_if(finished_pixel_bits.eq(m.lit(0b101u32, 3)), {
+        })
+        .else_if(finished_pixel_bits.eq(m.lit(0b101u32, 3)), {
             m.lit(2u32, 2)
-        }).else_if(finished_pixel_bits.eq(m.lit(0b110u32, 3)), {
+        })
+        .else_if(finished_pixel_bits.eq(m.lit(0b110u32, 3)), {
             m.lit(2u32, 2)
-        }).else_({
-            m.lit(3u32, 2)
-        });
+        })
+        .else_(m.lit(3u32, 2));
 
-        finished_pixel_acc.drive_next(if_(start, {
-            m.lit(0u32, TILE_PIXELS_BITS + 1)
-        }).else_({
-            finished_pixel_acc + m.lit(0u32, TILE_PIXELS_BITS - 1).concat(finished_pixel_count)
+        finished_pixel_acc.drive_next(if_(start, m.lit(0u32, TILE_PIXELS_BITS + 1)).else_({
+            finished_pixel_acc
+                + m.lit(0u32, TILE_PIXELS_BITS - 1)
+                    .concat(finished_pixel_count)
         }));
 
         PixelPipe {
@@ -859,7 +1027,10 @@ struct DepthTestPipe<'a> {
 }
 
 impl<'a> DepthTestPipe<'a> {
-    pub fn new(instance_name: impl Into<String>, p: &'a impl ModuleParent<'a>) -> DepthTestPipe<'a> {
+    pub fn new(
+        instance_name: impl Into<String>,
+        p: &'a impl ModuleParent<'a>,
+    ) -> DepthTestPipe<'a> {
         let m = p.module(instance_name, "DepthTestPipe");
 
         // Inputs
@@ -897,8 +1068,12 @@ impl<'a> DepthTestPipe<'a> {
         let t = in_t;
 
         //  Issue depth buffer read for prev_depth
-        let depth_buffer_read_port_addr = m.output("depth_buffer_read_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 3));
-        let depth_buffer_read_port_enable = m.output("depth_buffer_read_port_enable", valid & depth_test_enable);
+        let depth_buffer_read_port_addr = m.output(
+            "depth_buffer_read_port_addr",
+            tile_addr.bits(TILE_PIXELS_BITS - 1, 3),
+        );
+        let depth_buffer_read_port_enable =
+            m.output("depth_buffer_read_port_enable", valid & depth_test_enable);
 
         // Stage 1
         let valid = valid.reg_next_with_default("stage_1_valid", false);
@@ -921,21 +1096,26 @@ impl<'a> DepthTestPipe<'a> {
         let prev_depth = depth_buffer_read_port_value;
         let prev_depth = if_(tile_addr.bits(2, 0).eq(m.lit(0u32, 3)), {
             prev_depth.bits(15, 0)
-        }).else_if(tile_addr.bits(2, 0).eq(m.lit(1u32, 3)), {
+        })
+        .else_if(tile_addr.bits(2, 0).eq(m.lit(1u32, 3)), {
             prev_depth.bits(31, 16)
-        }).else_if(tile_addr.bits(2, 0).eq(m.lit(2u32, 3)), {
+        })
+        .else_if(tile_addr.bits(2, 0).eq(m.lit(2u32, 3)), {
             prev_depth.bits(47, 32)
-        }).else_if(tile_addr.bits(2, 0).eq(m.lit(3u32, 3)), {
+        })
+        .else_if(tile_addr.bits(2, 0).eq(m.lit(3u32, 3)), {
             prev_depth.bits(63, 48)
-        }).else_if(tile_addr.bits(2, 0).eq(m.lit(4u32, 3)), {
+        })
+        .else_if(tile_addr.bits(2, 0).eq(m.lit(4u32, 3)), {
             prev_depth.bits(79, 64)
-        }).else_if(tile_addr.bits(2, 0).eq(m.lit(5u32, 3)), {
+        })
+        .else_if(tile_addr.bits(2, 0).eq(m.lit(5u32, 3)), {
             prev_depth.bits(95, 80)
-        }).else_if(tile_addr.bits(2, 0).eq(m.lit(6u32, 3)), {
+        })
+        .else_if(tile_addr.bits(2, 0).eq(m.lit(6u32, 3)), {
             prev_depth.bits(111, 96)
-        }).else_({
-            prev_depth.bits(127, 112)
-        });
+        })
+        .else_(prev_depth.bits(127, 112));
 
         // Stage 2
         let valid = valid.reg_next_with_default("stage_2_valid", false);
@@ -1104,7 +1284,12 @@ impl<'a> FrontPipe<'a> {
         let mut s: &dyn Signal<'a> = in_s;
         let mut t: &dyn Signal<'a> = in_t;
 
-        let w_approx_reciprocal = ApproxReciprocal::new("WInverseReciprocal", W_INVERSE_FRACT_BITS - RESTORED_W_FRACT_BITS - 3, 4, m);
+        let w_approx_reciprocal = ApproxReciprocal::new(
+            "WInverseReciprocal",
+            W_INVERSE_FRACT_BITS - RESTORED_W_FRACT_BITS - 3,
+            4,
+            m,
+        );
         w_approx_reciprocal.x.drive(in_w_inverse);
 
         // Stages 1-13 (mostly just delay for w to arrive)
@@ -1161,8 +1346,12 @@ impl<'a> FrontPipe<'a> {
 
         let s_floor = s.bits(31, ST_FRACT_BITS);
         let t_floor = t.bits(31, ST_FRACT_BITS);
-        let s_fract = m.low().concat(s.bits(ST_FRACT_BITS - 1, ST_FRACT_BITS - ST_FILTER_FRACT_BITS));
-        let t_fract = m.low().concat(t.bits(ST_FRACT_BITS - 1, ST_FRACT_BITS - ST_FILTER_FRACT_BITS));
+        let s_fract = m
+            .low()
+            .concat(s.bits(ST_FRACT_BITS - 1, ST_FRACT_BITS - ST_FILTER_FRACT_BITS));
+        let t_fract = m
+            .low()
+            .concat(t.bits(ST_FRACT_BITS - 1, ST_FRACT_BITS - ST_FILTER_FRACT_BITS));
         let one_minus_s_fract = m.high().concat(m.lit(0u32, ST_FILTER_FRACT_BITS)) - s_fract;
         let one_minus_t_fract = m.high().concat(m.lit(0u32, ST_FILTER_FRACT_BITS)) - t_fract;
 
@@ -1171,21 +1360,14 @@ impl<'a> FrontPipe<'a> {
             let zero = m.low().concat(m.lit(0u32, ST_FILTER_FRACT_BITS));
             let one = m.high().concat(m.lit(0u32, ST_FILTER_FRACT_BITS));
             (zero, one, zero, one)
-        }).else_({
-            (s_fract, one_minus_s_fract, t_fract, one_minus_t_fract)
-        });
+        })
+        .else_((s_fract, one_minus_s_fract, t_fract, one_minus_t_fract));
 
         //  Swap weights depending on pixel offsets
-        let (s_fract, one_minus_s_fract) = if_(!s_floor.bit(0), {
-            (s_fract, one_minus_s_fract)
-        }).else_({
-            (one_minus_s_fract, s_fract)
-        });
-        let (t_fract, one_minus_t_fract) = if_(!t_floor.bit(0), {
-            (t_fract, one_minus_t_fract)
-        }).else_({
-            (one_minus_t_fract, t_fract)
-        });
+        let (s_fract, one_minus_s_fract) =
+            if_(!s_floor.bit(0), (s_fract, one_minus_s_fract)).else_((one_minus_s_fract, s_fract));
+        let (t_fract, one_minus_t_fract) =
+            if_(!t_floor.bit(0), (t_fract, one_minus_t_fract)).else_((one_minus_t_fract, t_fract));
 
         // Outputs
         let out_valid = m.output("out_valid", valid);
@@ -1213,38 +1395,62 @@ impl<'a> FrontPipe<'a> {
         let buffer3_t = buffer2_t;
         let read_addr = |s: &'a dyn Signal<'a>, t: &'a dyn Signal<'a>, buffer_index: u32| {
             let buffer_index = m.lit(buffer_index, 2);
-            if_(tex_dim.eq(m.lit(REG_TEXTURE_SETTINGS_DIM_16, REG_TEXTURE_SETTINGS_DIM_BITS)), {
-                tex_base
-                .bits(REG_TEXTURE_BASE_BITS - 1, 0)
-                .concat(buffer_index)
-                .concat(t.bits(2, 0))
-                .concat(s.bits(2, 0))
-            }).else_if(tex_dim.eq(m.lit(REG_TEXTURE_SETTINGS_DIM_32, REG_TEXTURE_SETTINGS_DIM_BITS)), {
-                tex_base
-                .bits(REG_TEXTURE_BASE_BITS - 1, 2)
-                .concat(buffer_index)
-                .concat(t.bits(3, 0))
-                .concat(s.bits(3, 0))
-            }).else_if(tex_dim.eq(m.lit(REG_TEXTURE_SETTINGS_DIM_64, REG_TEXTURE_SETTINGS_DIM_BITS)), {
-                tex_base
-                .bits(REG_TEXTURE_BASE_BITS - 1, 4)
-                .concat(buffer_index)
-                .concat(t.bits(4, 0))
-                .concat(s.bits(4, 0))
-            }).else_({
+            if_(
+                tex_dim.eq(m.lit(REG_TEXTURE_SETTINGS_DIM_16, REG_TEXTURE_SETTINGS_DIM_BITS)),
+                {
+                    tex_base
+                        .bits(REG_TEXTURE_BASE_BITS - 1, 0)
+                        .concat(buffer_index)
+                        .concat(t.bits(2, 0))
+                        .concat(s.bits(2, 0))
+                },
+            )
+            .else_if(
+                tex_dim.eq(m.lit(REG_TEXTURE_SETTINGS_DIM_32, REG_TEXTURE_SETTINGS_DIM_BITS)),
+                {
+                    tex_base
+                        .bits(REG_TEXTURE_BASE_BITS - 1, 2)
+                        .concat(buffer_index)
+                        .concat(t.bits(3, 0))
+                        .concat(s.bits(3, 0))
+                },
+            )
+            .else_if(
+                tex_dim.eq(m.lit(REG_TEXTURE_SETTINGS_DIM_64, REG_TEXTURE_SETTINGS_DIM_BITS)),
+                {
+                    tex_base
+                        .bits(REG_TEXTURE_BASE_BITS - 1, 4)
+                        .concat(buffer_index)
+                        .concat(t.bits(4, 0))
+                        .concat(s.bits(4, 0))
+                },
+            )
+            .else_({
                 // REG_TEXTURE_SETTINGS_DIM_128
                 tex_base
-                .bits(REG_TEXTURE_BASE_BITS - 1, 6)
-                .concat(buffer_index)
-                .concat(t)
-                .concat(s)
+                    .bits(REG_TEXTURE_BASE_BITS - 1, 6)
+                    .concat(buffer_index)
+                    .concat(t)
+                    .concat(s)
             })
         };
         let out_tex_buffer_read_addrs = vec![
-            m.output("out_tex_buffer0_read_addr", read_addr(buffer0_s, buffer0_t, 0)),
-            m.output("out_tex_buffer1_read_addr", read_addr(buffer1_s, buffer1_t, 1)),
-            m.output("out_tex_buffer2_read_addr", read_addr(buffer2_s, buffer2_t, 2)),
-            m.output("out_tex_buffer3_read_addr", read_addr(buffer3_s, buffer3_t, 3)),
+            m.output(
+                "out_tex_buffer0_read_addr",
+                read_addr(buffer0_s, buffer0_t, 0),
+            ),
+            m.output(
+                "out_tex_buffer1_read_addr",
+                read_addr(buffer1_s, buffer1_t, 1),
+            ),
+            m.output(
+                "out_tex_buffer2_read_addr",
+                read_addr(buffer2_s, buffer2_t, 2),
+            ),
+            m.output(
+                "out_tex_buffer3_read_addr",
+                read_addr(buffer3_s, buffer3_t, 3),
+            ),
         ];
 
         FrontPipe {
@@ -1367,8 +1573,10 @@ impl<'a> BackPipe<'a> {
         // Aux inputs
         let in_depth_write_mask_enable = m.input("in_depth_write_mask_enable", 1);
 
-        let in_blend_src_factor = m.input("in_blend_src_factor", REG_BLEND_SETTINGS_SRC_FACTOR_BITS);
-        let in_blend_dst_factor = m.input("in_blend_dst_factor", REG_BLEND_SETTINGS_DST_FACTOR_BITS);
+        let in_blend_src_factor =
+            m.input("in_blend_src_factor", REG_BLEND_SETTINGS_SRC_FACTOR_BITS);
+        let in_blend_dst_factor =
+            m.input("in_blend_dst_factor", REG_BLEND_SETTINGS_DST_FACTOR_BITS);
 
         let valid = in_valid;
         let tile_addr = in_tile_addr;
@@ -1409,7 +1617,8 @@ impl<'a> BackPipe<'a> {
         let mut tex_buffer_read_values = Vec::new();
         for i in 0..4 {
             tex_buffer_read_values.push(
-                in_tex_buffer_read_values[i].reg_next(format!("stage_1_tex_buffer{}_read_value", i))
+                in_tex_buffer_read_values[i]
+                    .reg_next(format!("stage_1_tex_buffer{}_read_value", i)),
             );
         }
 
@@ -1500,9 +1709,9 @@ impl<'a> BackPipe<'a> {
 
         let texel = Texel::new(texel.reg_next("stage_3_texel"));
 
-        let scale_comp = |color_comp: &'a dyn Signal<'a>, texel_comp: &'a dyn Signal<'a>| -> &'a dyn Signal<'a> {
-            (color_comp * texel_comp).bits(16, 8)
-        };
+        let scale_comp = |color_comp: &'a dyn Signal<'a>,
+                          texel_comp: &'a dyn Signal<'a>|
+         -> &'a dyn Signal<'a> { (color_comp * texel_comp).bits(16, 8) };
 
         let r = scale_comp(r, texel.r);
         let g = scale_comp(g, texel.g);
@@ -1510,7 +1719,10 @@ impl<'a> BackPipe<'a> {
         let a = scale_comp(a, texel.a);
 
         //  Issue color buffer read for prev_color
-        let color_buffer_read_port_addr = m.output("color_buffer_read_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
+        let color_buffer_read_port_addr = m.output(
+            "color_buffer_read_port_addr",
+            tile_addr.bits(TILE_PIXELS_BITS - 1, 2),
+        );
         let color_buffer_read_port_enable = m.output("color_buffer_read_port_enable", valid);
 
         // Stage 4
@@ -1527,38 +1739,65 @@ impl<'a> BackPipe<'a> {
         let zero = m.lit(0u32, 9);
         let one = m.high().concat(m.lit(0u32, 8));
 
-        let blend_src_factor = if_(blend_src_factor.eq(m.lit(REG_BLEND_SETTINGS_SRC_FACTOR_ZERO, REG_BLEND_SETTINGS_SRC_FACTOR_BITS)), {
-            zero
-        }).else_if(blend_src_factor.eq(m.lit(REG_BLEND_SETTINGS_SRC_FACTOR_ONE, REG_BLEND_SETTINGS_SRC_FACTOR_BITS)), {
-            one
-        }).else_if(blend_src_factor.eq(m.lit(REG_BLEND_SETTINGS_SRC_FACTOR_SRC_ALPHA, REG_BLEND_SETTINGS_SRC_FACTOR_BITS)), {
-            a
-        }).else_({
-            one - a
-        });
+        let blend_src_factor = if_(
+            blend_src_factor.eq(m.lit(
+                REG_BLEND_SETTINGS_SRC_FACTOR_ZERO,
+                REG_BLEND_SETTINGS_SRC_FACTOR_BITS,
+            )),
+            zero,
+        )
+        .else_if(
+            blend_src_factor.eq(m.lit(
+                REG_BLEND_SETTINGS_SRC_FACTOR_ONE,
+                REG_BLEND_SETTINGS_SRC_FACTOR_BITS,
+            )),
+            one,
+        )
+        .else_if(
+            blend_src_factor.eq(m.lit(
+                REG_BLEND_SETTINGS_SRC_FACTOR_SRC_ALPHA,
+                REG_BLEND_SETTINGS_SRC_FACTOR_BITS,
+            )),
+            a,
+        )
+        .else_(one - a);
 
-        let blend_dst_factor = if_(blend_dst_factor.eq(m.lit(REG_BLEND_SETTINGS_DST_FACTOR_ZERO, REG_BLEND_SETTINGS_DST_FACTOR_BITS)), {
-            zero
-        }).else_if(blend_dst_factor.eq(m.lit(REG_BLEND_SETTINGS_DST_FACTOR_ONE, REG_BLEND_SETTINGS_DST_FACTOR_BITS)), {
-            one
-        }).else_if(blend_dst_factor.eq(m.lit(REG_BLEND_SETTINGS_DST_FACTOR_SRC_ALPHA, REG_BLEND_SETTINGS_DST_FACTOR_BITS)), {
-            a
-        }).else_({
-            one - a
-        });
+        let blend_dst_factor = if_(
+            blend_dst_factor.eq(m.lit(
+                REG_BLEND_SETTINGS_DST_FACTOR_ZERO,
+                REG_BLEND_SETTINGS_DST_FACTOR_BITS,
+            )),
+            zero,
+        )
+        .else_if(
+            blend_dst_factor.eq(m.lit(
+                REG_BLEND_SETTINGS_DST_FACTOR_ONE,
+                REG_BLEND_SETTINGS_DST_FACTOR_BITS,
+            )),
+            one,
+        )
+        .else_if(
+            blend_dst_factor.eq(m.lit(
+                REG_BLEND_SETTINGS_DST_FACTOR_SRC_ALPHA,
+                REG_BLEND_SETTINGS_DST_FACTOR_BITS,
+            )),
+            a,
+        )
+        .else_(one - a);
 
         //  Returned from issue in previous stage
         let color_buffer_read_port_value = m.input("color_buffer_read_port_value", 128);
         let prev_color = color_buffer_read_port_value;
         let prev_color = if_(tile_addr.bits(1, 0).eq(m.lit(0u32, 2)), {
             prev_color.bits(31, 0)
-        }).else_if(tile_addr.bits(1, 0).eq(m.lit(1u32, 2)), {
+        })
+        .else_if(tile_addr.bits(1, 0).eq(m.lit(1u32, 2)), {
             prev_color.bits(63, 32)
-        }).else_if(tile_addr.bits(1, 0).eq(m.lit(2u32, 2)), {
+        })
+        .else_if(tile_addr.bits(1, 0).eq(m.lit(2u32, 2)), {
             prev_color.bits(95, 64)
-        }).else_({
-            prev_color.bits(127, 96)
-        });
+        })
+        .else_(prev_color.bits(127, 96));
 
         // Stage 5
         let valid = valid.reg_next_with_default("stage_5_valid", false);
@@ -1580,16 +1819,18 @@ impl<'a> BackPipe<'a> {
         let g = (g * blend_src_factor).bits(17, 8);
         let b = (b * blend_src_factor).bits(17, 8);
 
-        let prev_r = m.lit(0u32, 2).concat((prev_color.bits(23, 16) * blend_dst_factor).bits(16, 9));
-        let prev_g = m.lit(0u32, 2).concat((prev_color.bits(15, 8) * blend_dst_factor).bits(16, 9));
-        let prev_b = m.lit(0u32, 2).concat((prev_color.bits(7, 0) * blend_dst_factor).bits(16, 9));
+        let prev_r = m
+            .lit(0u32, 2)
+            .concat((prev_color.bits(23, 16) * blend_dst_factor).bits(16, 9));
+        let prev_g = m
+            .lit(0u32, 2)
+            .concat((prev_color.bits(15, 8) * blend_dst_factor).bits(16, 9));
+        let prev_b = m
+            .lit(0u32, 2)
+            .concat((prev_color.bits(7, 0) * blend_dst_factor).bits(16, 9));
 
         let clamp_comp = |comp: &'a dyn Signal<'a>| -> &'a dyn Signal<'a> {
-            if_(comp.bits(9, 8).eq(m.lit(0u32, 2)), {
-                comp.bits(7, 0)
-            }).else_({
-                m.lit(255u32, 8)
-            })
+            if_(comp.bits(9, 8).eq(m.lit(0u32, 2)), comp.bits(7, 0)).else_(m.lit(255u32, 8))
         };
 
         let r = clamp_comp(r + prev_r);
@@ -1607,29 +1848,49 @@ impl<'a> BackPipe<'a> {
 
         let color = color.reg_next("stage_6_color");
 
-        let color_buffer_write_port_addr = m.output("color_buffer_write_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 2));
-        let color_buffer_write_port_value = m.output("color_buffer_write_port_value", color.repeat(4));
+        let color_buffer_write_port_addr = m.output(
+            "color_buffer_write_port_addr",
+            tile_addr.bits(TILE_PIXELS_BITS - 1, 2),
+        );
+        let color_buffer_write_port_value =
+            m.output("color_buffer_write_port_value", color.repeat(4));
         let color_buffer_write_port_enable = m.output("color_buffer_write_port_enable", valid);
-        let color_buffer_write_port_word_enable = m.output("color_buffer_write_port_word_enable", (0u32..4).fold(None, |acc, x| {
-            let word_enable_bit = tile_addr.bits(1, 0).eq(m.lit(x, 2));
-            Some(if let Some(acc) = acc {
-                word_enable_bit.concat(acc)
-            } else {
-                word_enable_bit
-            })
-        }).unwrap());
+        let color_buffer_write_port_word_enable = m.output(
+            "color_buffer_write_port_word_enable",
+            (0u32..4)
+                .fold(None, |acc, x| {
+                    let word_enable_bit = tile_addr.bits(1, 0).eq(m.lit(x, 2));
+                    Some(if let Some(acc) = acc {
+                        word_enable_bit.concat(acc)
+                    } else {
+                        word_enable_bit
+                    })
+                })
+                .unwrap(),
+        );
 
-        let depth_buffer_write_port_addr = m.output("depth_buffer_write_port_addr", tile_addr.bits(TILE_PIXELS_BITS - 1, 3));
+        let depth_buffer_write_port_addr = m.output(
+            "depth_buffer_write_port_addr",
+            tile_addr.bits(TILE_PIXELS_BITS - 1, 3),
+        );
         let depth_buffer_write_port_value = m.output("depth_buffer_write_port_value", z.repeat(8));
-        let depth_buffer_write_port_enable = m.output("depth_buffer_write_port_enable", valid & depth_write_mask_enable);
-        let depth_buffer_write_port_word_enable = m.output("depth_buffer_write_port_word_enable", (0u32..8).fold(None, |acc, x| {
-            let word_enable_bit = tile_addr.bits(2, 0).eq(m.lit(x, 3));
-            Some(if let Some(acc) = acc {
-                word_enable_bit.concat(acc)
-            } else {
-                word_enable_bit
-            })
-        }).unwrap());
+        let depth_buffer_write_port_enable = m.output(
+            "depth_buffer_write_port_enable",
+            valid & depth_write_mask_enable,
+        );
+        let depth_buffer_write_port_word_enable = m.output(
+            "depth_buffer_write_port_word_enable",
+            (0u32..8)
+                .fold(None, |acc, x| {
+                    let word_enable_bit = tile_addr.bits(2, 0).eq(m.lit(x, 3));
+                    Some(if let Some(acc) = acc {
+                        word_enable_bit.concat(acc)
+                    } else {
+                        word_enable_bit
+                    })
+                })
+                .unwrap(),
+        );
 
         // Outputs
         let out_valid = m.output("out_valid", valid);

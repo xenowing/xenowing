@@ -8,7 +8,12 @@ pub struct UartRx<'a> {
 }
 
 impl<'a> UartRx<'a> {
-    pub fn new(instance_name: impl Into<String>, clock_freq: u32, baud_rate: u32, p: &'a impl ModuleParent<'a>) -> UartRx<'a> {
+    pub fn new(
+        instance_name: impl Into<String>,
+        clock_freq: u32,
+        baud_rate: u32,
+        p: &'a impl ModuleParent<'a>,
+    ) -> UartRx<'a> {
         let m = p.module(instance_name, "UartRx");
 
         // Requires external sync FF's
@@ -45,68 +50,122 @@ impl<'a> UartRx<'a> {
         let state = m.reg("state", state_bit_width);
         state.default_value(state_idle);
         let next_state = state;
-        let (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state) = if_(tick, {
-            let next_wait_counter = wait_counter + m.lit(1u32, wait_counter_bit_width);
+        let (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state) =
+            if_(tick, {
+                let next_wait_counter = wait_counter + m.lit(1u32, wait_counter_bit_width);
 
-            let (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state) = if_(state.eq(m.lit(state_idle, state_bit_width)), {
-                if_(!rx, {
-                    let next_wait_counter = m.lit(0u32, wait_counter_bit_width);
-                    let next_state = m.lit(state_start_bit_wait, state_bit_width);
+                let (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state) =
+                    if_(state.eq(m.lit(state_idle, state_bit_width)), {
+                        if_(!rx, {
+                            let next_wait_counter = m.lit(0u32, wait_counter_bit_width);
+                            let next_state = m.lit(state_start_bit_wait, state_bit_width);
 
-                    (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state)
-                }).else_({
-                    (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state)
-                })
-            }).else_if(state.eq(m.lit(state_start_bit_wait, state_bit_width)), {
-                let (next_wait_counter, next_state) = if_(wait_counter.eq(m.lit(1u32, wait_counter_bit_width)), {
-                    let next_wait_counter = m.lit(0u32, wait_counter_bit_width);
-                    let next_state = m.lit(state_input_bit, state_bit_width);
-
-                    (next_wait_counter, next_state)
-                }).else_({
-                    (next_wait_counter, next_state)
-                });
-
-                let next_state = if_(rx, {
-                    // Input is probably spurious; go back to idle state
-                    m.lit(state_idle, state_bit_width)
-                }).else_({
-                    next_state
-                });
-
-                (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state)
-            }).else_if(state.eq(m.lit(state_input_bit, state_bit_width)), {
-                let (next_data, next_data_valid, next_bit_counter, next_state) = if_(wait_counter.eq(m.lit(3u32, wait_counter_bit_width)), {
-                    let next_data = rx.concat(data.bits(7, 1));
-                    let next_bit_counter = bit_counter + m.lit(1u32, 3);
-
-                    if_(bit_counter.eq(m.lit(7u32, 3)), {
-                        let next_data_valid = m.high();
-                        let next_state = m.lit(state_stop_bit_wait, state_bit_width);
-
-                        (next_data, next_data_valid, next_bit_counter, next_state)
-                    }).else_({
-                        (next_data, next_data_valid, next_bit_counter, next_state)
+                            (
+                                next_wait_counter,
+                                next_data,
+                                next_data_valid,
+                                next_bit_counter,
+                                next_state,
+                            )
+                        })
+                        .else_({
+                            (
+                                next_wait_counter,
+                                next_data,
+                                next_data_valid,
+                                next_bit_counter,
+                                next_state,
+                            )
+                        })
                     })
-                }).else_({
-                    (next_data, next_data_valid, next_bit_counter, next_state)
-                });
+                    .else_if(state.eq(m.lit(state_start_bit_wait, state_bit_width)), {
+                        let (next_wait_counter, next_state) =
+                            if_(wait_counter.eq(m.lit(1u32, wait_counter_bit_width)), {
+                                let next_wait_counter = m.lit(0u32, wait_counter_bit_width);
+                                let next_state = m.lit(state_input_bit, state_bit_width);
 
-                (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state)
-            }).else_({
-                let next_state = if_(wait_counter.eq(m.lit(3u32, wait_counter_bit_width)), {
-                    m.lit(state_idle, state_bit_width)
-                }).else_({
-                    next_state
-                });
+                                (next_wait_counter, next_state)
+                            })
+                            .else_((next_wait_counter, next_state));
 
-                (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state)
+                        let next_state = if_(rx, {
+                            // Input is probably spurious; go back to idle state
+                            m.lit(state_idle, state_bit_width)
+                        })
+                        .else_(next_state);
+
+                        (
+                            next_wait_counter,
+                            next_data,
+                            next_data_valid,
+                            next_bit_counter,
+                            next_state,
+                        )
+                    })
+                    .else_if(state.eq(m.lit(state_input_bit, state_bit_width)), {
+                        let (next_data, next_data_valid, next_bit_counter, next_state) =
+                            if_(wait_counter.eq(m.lit(3u32, wait_counter_bit_width)), {
+                                let next_data = rx.concat(data.bits(7, 1));
+                                let next_bit_counter = bit_counter + m.lit(1u32, 3);
+
+                                if_(bit_counter.eq(m.lit(7u32, 3)), {
+                                    let next_data_valid = m.high();
+                                    let next_state = m.lit(state_stop_bit_wait, state_bit_width);
+
+                                    (next_data, next_data_valid, next_bit_counter, next_state)
+                                })
+                                .else_({
+                                    (next_data, next_data_valid, next_bit_counter, next_state)
+                                })
+                            })
+                            .else_((
+                                next_data,
+                                next_data_valid,
+                                next_bit_counter,
+                                next_state,
+                            ));
+
+                        (
+                            next_wait_counter,
+                            next_data,
+                            next_data_valid,
+                            next_bit_counter,
+                            next_state,
+                        )
+                    })
+                    .else_({
+                        let next_state =
+                            if_(wait_counter.eq(m.lit(3u32, wait_counter_bit_width)), {
+                                m.lit(state_idle, state_bit_width)
+                            })
+                            .else_(next_state);
+
+                        (
+                            next_wait_counter,
+                            next_data,
+                            next_data_valid,
+                            next_bit_counter,
+                            next_state,
+                        )
+                    });
+
+                (
+                    next_wait_counter,
+                    next_data,
+                    next_data_valid,
+                    next_bit_counter,
+                    next_state,
+                )
+            })
+            .else_({
+                (
+                    next_wait_counter,
+                    next_data,
+                    next_data_valid,
+                    next_bit_counter,
+                    next_state,
+                )
             });
-
-            (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state)
-        }).else_({
-            (next_wait_counter, next_data, next_data_valid, next_bit_counter, next_state)
-        });
 
         wait_counter.drive_next(next_wait_counter);
 
@@ -126,7 +185,6 @@ impl<'a> UartRx<'a> {
     }
 }
 
-
 pub struct UartTx<'a> {
     pub m: &'a Module<'a>,
     pub ready: &'a Output<'a>,
@@ -136,7 +194,12 @@ pub struct UartTx<'a> {
 }
 
 impl<'a> UartTx<'a> {
-    pub fn new(instance_name: impl Into<String>, clock_freq: u32, baud_rate: u32, p: &'a impl ModuleParent<'a>) -> UartTx<'a> {
+    pub fn new(
+        instance_name: impl Into<String>,
+        clock_freq: u32,
+        baud_rate: u32,
+        p: &'a impl ModuleParent<'a>,
+    ) -> UartTx<'a> {
         let m = p.module(instance_name, "UartTx");
 
         let state_bit_width = 2;
@@ -172,48 +235,97 @@ impl<'a> UartTx<'a> {
         bit_counter.default_value(0u32);
         let next_bit_counter = bit_counter.into();
 
-        let (next_state, next_tx, next_data_latch, next_tick_counter, next_bit_counter) = if_(state.eq(m.lit(state_idle, state_bit_width)), {
-            if_(enable, {
-                let next_state = m.lit(state_start_bit, state_bit_width);
-                let next_tx = m.low();
-                let next_data_latch = data;
-                let next_tick_counter = m.lit(0u32, 32);
+        let (next_state, next_tx, next_data_latch, next_tick_counter, next_bit_counter) =
+            if_(state.eq(m.lit(state_idle, state_bit_width)), {
+                if_(enable, {
+                    let next_state = m.lit(state_start_bit, state_bit_width);
+                    let next_tx = m.low();
+                    let next_data_latch = data;
+                    let next_tick_counter = m.lit(0u32, 32);
 
-                (next_state, next_tx, next_data_latch, next_tick_counter, next_bit_counter)
-            }).else_({
-                (next_state, next_tx, next_data_latch, next_tick_counter, next_bit_counter)
+                    (
+                        next_state,
+                        next_tx,
+                        next_data_latch,
+                        next_tick_counter,
+                        next_bit_counter,
+                    )
+                })
+                .else_({
+                    (
+                        next_state,
+                        next_tx,
+                        next_data_latch,
+                        next_tick_counter,
+                        next_bit_counter,
+                    )
+                })
             })
-        }).else_({
-            if_(tick, {
-                if_(state.eq(m.lit(state_start_bit, state_bit_width)), {
-                    let next_state = m.lit(state_bit, state_bit_width);
-                    let next_tx = data_latch.bit(0);
-                    let next_data_latch = m.low().concat(data_latch.bits(7, 1));
-
-                    (next_state, next_tx, next_data_latch, next_tick_counter, next_bit_counter)
-                }).else_if(state.eq(m.lit(state_bit, state_bit_width)), {
-                    let next_bit_counter = bit_counter + m.lit(1u32, 3);
-
-                    if_(bit_counter.eq(m.lit(7u32, 3)), {
-                        let next_state = m.lit(state_stop_bit, state_bit_width);
-                        let next_tx = m.high();
-
-                        (next_state, next_tx, next_data_latch, next_tick_counter, next_bit_counter)
-                    }).else_({
+            .else_({
+                if_(tick, {
+                    if_(state.eq(m.lit(state_start_bit, state_bit_width)), {
+                        let next_state = m.lit(state_bit, state_bit_width);
                         let next_tx = data_latch.bit(0);
                         let next_data_latch = m.low().concat(data_latch.bits(7, 1));
 
-                        (next_state, next_tx, next_data_latch, next_tick_counter, next_bit_counter)
+                        (
+                            next_state,
+                            next_tx,
+                            next_data_latch,
+                            next_tick_counter,
+                            next_bit_counter,
+                        )
                     })
-                }).else_({
-                    let next_state = m.lit(state_idle, state_bit_width);
+                    .else_if(state.eq(m.lit(state_bit, state_bit_width)), {
+                        let next_bit_counter = bit_counter + m.lit(1u32, 3);
 
-                    (next_state, next_tx, next_data_latch, next_tick_counter, next_bit_counter)
+                        if_(bit_counter.eq(m.lit(7u32, 3)), {
+                            let next_state = m.lit(state_stop_bit, state_bit_width);
+                            let next_tx = m.high();
+
+                            (
+                                next_state,
+                                next_tx,
+                                next_data_latch,
+                                next_tick_counter,
+                                next_bit_counter,
+                            )
+                        })
+                        .else_({
+                            let next_tx = data_latch.bit(0);
+                            let next_data_latch = m.low().concat(data_latch.bits(7, 1));
+
+                            (
+                                next_state,
+                                next_tx,
+                                next_data_latch,
+                                next_tick_counter,
+                                next_bit_counter,
+                            )
+                        })
+                    })
+                    .else_({
+                        let next_state = m.lit(state_idle, state_bit_width);
+
+                        (
+                            next_state,
+                            next_tx,
+                            next_data_latch,
+                            next_tick_counter,
+                            next_bit_counter,
+                        )
+                    })
                 })
-            }).else_({
-                (next_state, next_tx, next_data_latch, next_tick_counter, next_bit_counter)
-            })
-        });
+                .else_({
+                    (
+                        next_state,
+                        next_tx,
+                        next_data_latch,
+                        next_tick_counter,
+                        next_bit_counter,
+                    )
+                })
+            });
 
         state.drive_next(next_state);
 

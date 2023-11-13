@@ -29,7 +29,8 @@ impl<'a> ReadCache<'a> {
         let data_mem = m.mem("data", cache_addr_bit_width, data_bit_width);
 
         let valid_mem_read_port_value_wire = Wire::new("valid_mem_read_port_value_wire", 1, m);
-        let tag_mem_read_port_value_wire = Wire::new("tag_mem_read_port_value_wire", tag_bit_width, m);
+        let tag_mem_read_port_value_wire =
+            Wire::new("tag_mem_read_port_value_wire", tag_bit_width, m);
 
         let state_bit_width = 2;
         let state_invalidate = 0u32;
@@ -74,110 +75,119 @@ impl<'a> ReadCache<'a> {
         //  detecting a miss and issuing a redundant read to the system and waiting for it to return again - so at
         //  a system level, this fixes a performance bug, not a logical one... though, for a cache, this is probably
         //  not a useful distinction!
-        let internal_mem_bypass =
-            (system_bus_read_data_valid & client_bus_enable & client_bus_addr.eq(issue_buffer_addr))
-            .reg_next_with_default(
-                "internal_mem_bypass",
-                false);
+        let internal_mem_bypass = (system_bus_read_data_valid
+            & client_bus_enable
+            & client_bus_addr.eq(issue_buffer_addr))
+        .reg_next_with_default("internal_mem_bypass", false);
 
-        let issue_buffer_valid = (valid_mem_read_port_value_wire.o & tag_mem_read_port_value_wire.o.eq(issue_buffer_tag)) | internal_mem_bypass;
+        let issue_buffer_valid = (valid_mem_read_port_value_wire.o
+            & tag_mem_read_port_value_wire.o.eq(issue_buffer_tag))
+            | internal_mem_bypass;
 
         let hit = issue_buffer_occupied & issue_buffer_valid;
         let miss = issue_buffer_occupied & !issue_buffer_valid;
 
         // TODO: Simplify?
-        let can_accept_issue =
-            (state.eq(m.lit(state_active, state_bit_width)) & (!issue_buffer_occupied | hit)) |
-            (state.eq(m.lit(state_miss_return, state_bit_width)) & system_bus_read_data_valid);
+        let can_accept_issue = (state.eq(m.lit(state_active, state_bit_width))
+            & (!issue_buffer_occupied | hit))
+            | (state.eq(m.lit(state_miss_return, state_bit_width)) & system_bus_read_data_valid);
         let can_accept_issue = can_accept_issue & !will_invalidate;
 
         let client_bus_ready = m.output("client_bus_ready", can_accept_issue);
 
         let accept_issue = can_accept_issue & client_bus_enable;
 
-        valid_mem_read_port_value_wire.i.drive(valid_mem.read_port(cache_addr, accept_issue));
-        tag_mem_read_port_value_wire.i.drive(tag_mem.read_port(cache_addr, accept_issue));
+        valid_mem_read_port_value_wire
+            .i
+            .drive(valid_mem.read_port(cache_addr, accept_issue));
+        tag_mem_read_port_value_wire
+            .i
+            .drive(tag_mem.read_port(cache_addr, accept_issue));
 
-        issue_buffer_occupied.drive_next(if_(system_bus_read_data_valid | !miss, {
-            accept_issue
-        }).else_({
-            issue_buffer_occupied
-        }));
+        issue_buffer_occupied.drive_next(
+            if_(system_bus_read_data_valid | !miss, accept_issue).else_(issue_buffer_occupied),
+        );
 
-        issue_buffer_addr.drive_next(if_(accept_issue, {
-            client_bus_addr
-        }).else_({
-            issue_buffer_addr
-        }));
+        issue_buffer_addr.drive_next(if_(accept_issue, client_bus_addr).else_(issue_buffer_addr));
 
         let start_invalidate = will_invalidate & !issue_buffer_occupied;
 
-        invalidate_queued.drive_next(if_(start_invalidate | state.eq(m.lit(state_invalidate, state_bit_width)), {
-            m.low()
-        }).else_if(invalidate, {
-            m.high()
-        }).else_({
-            invalidate_queued
-        }));
+        invalidate_queued.drive_next(
+            if_(
+                start_invalidate | state.eq(m.lit(state_invalidate, state_bit_width)),
+                m.low(),
+            )
+            .else_if(invalidate, m.high())
+            .else_(invalidate_queued),
+        );
 
-        invalidate_addr.drive_next(if_(start_invalidate, {
-            m.lit(0u32, cache_addr_bit_width)
-        }).else_({
-            invalidate_addr + m.lit(1u32, cache_addr_bit_width)
-        }));
+        invalidate_addr.drive_next(
+            if_(start_invalidate, m.lit(0u32, cache_addr_bit_width))
+                .else_(invalidate_addr + m.lit(1u32, cache_addr_bit_width)),
+        );
 
-        let system_bus_enable = m.output("system_bus_enable", state.eq(m.lit(state_active, state_bit_width)) & miss);
+        let system_bus_enable = m.output(
+            "system_bus_enable",
+            state.eq(m.lit(state_active, state_bit_width)) & miss,
+        );
         let system_bus_addr = m.output("system_bus_addr", issue_buffer_addr);
-        let client_bus_read_data = m.output("client_bus_read_data", if_(system_bus_read_data_valid, {
-            system_bus_read_data.into()
-        }).else_if(internal_mem_bypass, {
-            system_bus_read_data.reg_next("internal_mem_bypass_data")
-        }).else_({
-            data_mem.read_port(cache_addr, accept_issue)
-        }));
-        let client_bus_read_data_valid = m.output("client_bus_read_data_valid", system_bus_read_data_valid | hit);
+        let client_bus_read_data = m.output(
+            "client_bus_read_data",
+            if_(system_bus_read_data_valid, system_bus_read_data.into())
+                .else_if(internal_mem_bypass, {
+                    system_bus_read_data.reg_next("internal_mem_bypass_data")
+                })
+                .else_(data_mem.read_port(cache_addr, accept_issue)),
+        );
+        let client_bus_read_data_valid = m.output(
+            "client_bus_read_data_valid",
+            system_bus_read_data_valid | hit,
+        );
 
-        state.drive_next(if_(start_invalidate, {
-            m.lit(state_invalidate, state_bit_width)
-        }).else_({
-            if_(state.eq(m.lit(state_invalidate, state_bit_width)), {
-                if_(invalidate_addr.eq(m.lit((1u32 << cache_addr_bit_width) - 1, cache_addr_bit_width)), {
-                    m.lit(state_active, state_bit_width)
-                }).else_({
-                    state
-                })
-            }).else_if(state.eq(m.lit(state_active, state_bit_width)), {
-                if_(miss & system_bus_ready, {
-                    m.lit(state_miss_return, state_bit_width)
-                }).else_({
-                    state
-                })
-            }).else_({
-                // state_miss_return
-                if_(system_bus_read_data_valid, {
-                    m.lit(state_active, state_bit_width)
-                }).else_({
-                    state
-                })
+        state.drive_next(
+            if_(start_invalidate, {
+                m.lit(state_invalidate, state_bit_width)
             })
-        }));
+            .else_({
+                if_(state.eq(m.lit(state_invalidate, state_bit_width)), {
+                    if_(
+                        invalidate_addr
+                            .eq(m.lit((1u32 << cache_addr_bit_width) - 1, cache_addr_bit_width)),
+                        m.lit(state_active, state_bit_width),
+                    )
+                    .else_(state)
+                })
+                .else_if(state.eq(m.lit(state_active, state_bit_width)), {
+                    if_(miss & system_bus_ready, {
+                        m.lit(state_miss_return, state_bit_width)
+                    })
+                    .else_(state)
+                })
+                .else_({
+                    // state_miss_return
+                    if_(system_bus_read_data_valid, {
+                        m.lit(state_active, state_bit_width)
+                    })
+                    .else_(state)
+                })
+            }),
+        );
 
         valid_mem.write_port(
-            if_(system_bus_read_data_valid, {
-                issue_buffer_cache_addr
-            }).else_({
-                invalidate_addr
-            }),
+            if_(system_bus_read_data_valid, issue_buffer_cache_addr).else_(invalidate_addr),
             system_bus_read_data_valid,
-            system_bus_read_data_valid | state.eq(m.lit(state_invalidate, state_bit_width)));
+            system_bus_read_data_valid | state.eq(m.lit(state_invalidate, state_bit_width)),
+        );
         tag_mem.write_port(
             issue_buffer_cache_addr,
             issue_buffer_tag,
-            system_bus_read_data_valid);
+            system_bus_read_data_valid,
+        );
         data_mem.write_port(
             issue_buffer_cache_addr,
             system_bus_read_data,
-            system_bus_read_data_valid);
+            system_bus_read_data_valid,
+        );
 
         ReadCache {
             m,
@@ -197,7 +207,10 @@ impl<'a> ReadCache<'a> {
                 bus_addr: system_bus_addr,
                 bus_write: m.output("system_bus_write", m.low()),
                 bus_write_data: m.output("system_bus_write_data", m.lit(0u32, data_bit_width)),
-                bus_write_byte_enable: m.output("system_bus_write_byte_enable", m.lit(0u32, data_bit_width / 8)),
+                bus_write_byte_enable: m.output(
+                    "system_bus_write_byte_enable",
+                    m.lit(0u32, data_bit_width / 8),
+                ),
                 bus_ready: system_bus_ready,
                 bus_read_data: system_bus_read_data,
                 bus_read_data_valid: system_bus_read_data_valid,

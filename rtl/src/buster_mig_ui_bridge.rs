@@ -28,18 +28,30 @@ impl<'a> MigUiPort<'a> {
     pub fn forward(&self, name_prefix: impl Into<String>, m: &'a Module<'a>) -> MigUiPort<'a> {
         let name_prefix = name_prefix.into();
 
-        let init_calib_complete = m.input(format!("{}_init_calib_complete", name_prefix), self.init_calib_complete.bit_width());
+        let init_calib_complete = m.input(
+            format!("{}_init_calib_complete", name_prefix),
+            self.init_calib_complete.bit_width(),
+        );
         self.init_calib_complete.drive(init_calib_complete);
 
         let app_rdy = m.input(format!("{}_app_rdy", name_prefix), self.app_rdy.bit_width());
         self.app_rdy.drive(app_rdy);
 
-        let app_wdf_rdy = m.input(format!("{}_app_wdf_rdy", name_prefix), self.app_wdf_rdy.bit_width());
+        let app_wdf_rdy = m.input(
+            format!("{}_app_wdf_rdy", name_prefix),
+            self.app_wdf_rdy.bit_width(),
+        );
         self.app_wdf_rdy.drive(app_wdf_rdy);
 
-        let app_rd_data = m.input(format!("{}_app_rd_data", name_prefix), self.app_rd_data.bit_width());
+        let app_rd_data = m.input(
+            format!("{}_app_rd_data", name_prefix),
+            self.app_rd_data.bit_width(),
+        );
         self.app_rd_data.drive(app_rd_data);
-        let app_rd_data_valid = m.input(format!("{}_app_rd_data_valid", name_prefix), self.app_rd_data_valid.bit_width());
+        let app_rd_data_valid = m.input(
+            format!("{}_app_rd_data_valid", name_prefix),
+            self.app_rd_data_valid.bit_width(),
+        );
         self.app_rd_data_valid.drive(app_rd_data_valid);
 
         MigUiPort {
@@ -69,7 +81,12 @@ pub struct BusterMigUiBridge<'a> {
 }
 
 impl<'a> BusterMigUiBridge<'a> {
-    pub fn new(instance_name: impl Into<String>, data_bit_width: u32, addr_bit_width: u32, p: &'a impl ModuleParent<'a>) -> BusterMigUiBridge<'a> {
+    pub fn new(
+        instance_name: impl Into<String>,
+        data_bit_width: u32,
+        addr_bit_width: u32,
+        p: &'a impl ModuleParent<'a>,
+    ) -> BusterMigUiBridge<'a> {
         let m = p.module(instance_name, "BusterMigUiBridge");
 
         let bus_enable = m.input("bus_enable", 1);
@@ -88,11 +105,8 @@ impl<'a> BusterMigUiBridge<'a> {
         let app_rd_data_valid = m.input("app_rd_data_valid", 1);
 
         let cmd_buf_write = m.reg("cmd_buf_write", 1);
-        let app_cmd = if_(cmd_buf_write, {
-            m.lit(UI_CMD_WRITE, UI_CMD_BIT_WIDTH)
-        }).else_({
-            m.lit(UI_CMD_READ, UI_CMD_BIT_WIDTH)
-        });
+        let app_cmd = if_(cmd_buf_write, m.lit(UI_CMD_WRITE, UI_CMD_BIT_WIDTH))
+            .else_(m.lit(UI_CMD_READ, UI_CMD_BIT_WIDTH));
         let cmd_buf_addr = m.reg("cmd_buf_addr", addr_bit_width);
         let cmd_buf_data = m.reg("cmd_buf_data", data_bit_width);
         let cmd_buf_write_byte_enable = m.reg("cmd_buf_write_byte_enable", data_bit_width / 8);
@@ -103,14 +117,9 @@ impl<'a> BusterMigUiBridge<'a> {
         cmd_buf_data_issue.default_value(false);
 
         let cmd_buf_issued = if_(cmd_buf_cmd_issue, {
-            if_(cmd_buf_data_issue, {
-                app_rdy & app_wdf_rdy
-            }).else_({
-                app_rdy
-            })
-        }).else_({
-            cmd_buf_data_issue & app_wdf_rdy
-        });
+            if_(cmd_buf_data_issue, app_rdy & app_wdf_rdy).else_(app_rdy)
+        })
+        .else_(cmd_buf_data_issue & app_wdf_rdy);
 
         let cmd_buf_occupied = cmd_buf_cmd_issue | cmd_buf_data_issue;
         // TODO: We might not actually need to wait for calibration to be complete
@@ -118,28 +127,15 @@ impl<'a> BusterMigUiBridge<'a> {
 
         let in_cmd_accepted = bus_enable & bus_ready;
 
-        cmd_buf_write.drive_next(if_(in_cmd_accepted, {
-            bus_write
-        }).else_({
-            cmd_buf_write
-        }));
-        cmd_buf_addr.drive_next(if_(in_cmd_accepted, {
-            bus_addr
-        }).else_({
-            cmd_buf_addr
-        }));
-        cmd_buf_data.drive_next(if_(in_cmd_accepted, {
-            bus_write_data
-        }).else_({
-            cmd_buf_data
-        }));
-        cmd_buf_write_byte_enable.drive_next(if_(in_cmd_accepted, {
-            bus_write_byte_enable
-        }).else_({
-            cmd_buf_write_byte_enable
-        }));
+        cmd_buf_write.drive_next(if_(in_cmd_accepted, bus_write).else_(cmd_buf_write));
+        cmd_buf_addr.drive_next(if_(in_cmd_accepted, bus_addr).else_(cmd_buf_addr));
+        cmd_buf_data.drive_next(if_(in_cmd_accepted, bus_write_data).else_(cmd_buf_data));
+        cmd_buf_write_byte_enable.drive_next(
+            if_(in_cmd_accepted, bus_write_byte_enable).else_(cmd_buf_write_byte_enable),
+        );
         cmd_buf_cmd_issue.drive_next(in_cmd_accepted | (cmd_buf_cmd_issue & !app_rdy));
-        cmd_buf_data_issue.drive_next((in_cmd_accepted & bus_write) | (cmd_buf_data_issue & !app_wdf_rdy));
+        cmd_buf_data_issue
+            .drive_next((in_cmd_accepted & bus_write) | (cmd_buf_data_issue & !app_wdf_rdy));
 
         BusterMigUiBridge {
             m,

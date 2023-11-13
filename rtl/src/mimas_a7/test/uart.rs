@@ -1,5 +1,5 @@
-use crate::uart::*;
 use super::lfsr::*;
+use crate::uart::*;
 
 use kaze::*;
 
@@ -39,11 +39,8 @@ impl<'a> Uart<'a> {
         let rx_lfsr = Lfsr::new("rx_lfsr", m);
         rx_lfsr.shift_enable.drive(read_data_valid);
 
-        has_errored.drive_next(if_(read_data_valid, {
-            read_data.ne(rx_lfsr.value)
-        }).else_({
-            has_errored
-        }));
+        has_errored
+            .drive_next(if_(read_data_valid, read_data.ne(rx_lfsr.value)).else_(has_errored));
 
         Uart {
             m,

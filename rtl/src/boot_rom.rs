@@ -15,7 +15,10 @@ impl<'a> BootRom<'a> {
         const CONTENTS_SIZE_BITS: u32 = 14;
         const CONTENTS_SIZE: u32 = 1 << CONTENTS_SIZE_BITS;
         let contents_bytes = {
-            let mut ret = include_bytes!("../../sw/boot-rom/target/boot-rom.bin").iter().cloned().collect::<Vec<u8>>();
+            let mut ret = include_bytes!("../../sw/boot-rom/target/boot-rom.bin")
+                .iter()
+                .cloned()
+                .collect::<Vec<u8>>();
             if ret.len() as u32 > CONTENTS_SIZE {
                 panic!("Boot ROM cannot be larger than {} bytes", CONTENTS_SIZE);
             }
@@ -47,8 +50,14 @@ impl<'a> BootRom<'a> {
         let bus_write_byte_enable = m.input("bus_write_byte_enable", 128 / 8);
         let bus_ready = m.output("bus_ready", m.high());
         let read_enable = bus_enable & !bus_write;
-        let bus_read_data = m.output("bus_read_data", mem.read_port(bus_addr.bits(CONTENTS_SIZE_BITS - 5, 0), read_enable));
-        let bus_read_data_valid = m.output("bus_read_data_valid", read_enable.reg_next_with_default("bus_read_data_valid", false));
+        let bus_read_data = m.output(
+            "bus_read_data",
+            mem.read_port(bus_addr.bits(CONTENTS_SIZE_BITS - 5, 0), read_enable),
+        );
+        let bus_read_data_valid = m.output(
+            "bus_read_data_valid",
+            read_enable.reg_next_with_default("bus_read_data_valid", false),
+        );
 
         BootRom {
             m,

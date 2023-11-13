@@ -22,13 +22,12 @@ impl<'a> LedInterface<'a> {
         let bus_write_byte_enable = m.input("bus_write_byte_enable", 16);
         let bus_ready = m.output("bus_ready", m.high());
         let bus_read_data = m.output("bus_read_data", m.lit(0u32, 120).concat(leds));
-        let bus_read_data_valid = m.output("bus_read_data_valid", (bus_enable & !bus_write).reg_next_with_default("bus_read_data_valid", false));
+        let bus_read_data_valid = m.output(
+            "bus_read_data_valid",
+            (bus_enable & !bus_write).reg_next_with_default("bus_read_data_valid", false),
+        );
 
-        leds.drive_next(if_(bus_enable & bus_write, {
-            bus_write_data.bits(7, 0)
-        }).else_({
-            leds
-        }));
+        leds.drive_next(if_(bus_enable & bus_write, bus_write_data.bits(7, 0)).else_(leds));
 
         LedInterface {
             m,

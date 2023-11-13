@@ -8,7 +8,12 @@ pub struct ApproxReciprocal<'a> {
 
 impl<'a> ApproxReciprocal<'a> {
     // 32 bit internal resolution, 32 - `fract_bits` integral bits, `fract_bits` fractional bits, 1 + 3 * `refinement_stages` cycles latency
-    pub fn new(instance_name: impl Into<String>, fract_bits: u32, refinement_stages: u32, p: &'a impl ModuleParent<'a>) -> ApproxReciprocal<'a> {
+    pub fn new(
+        instance_name: impl Into<String>,
+        fract_bits: u32,
+        refinement_stages: u32,
+        p: &'a impl ModuleParent<'a>,
+    ) -> ApproxReciprocal<'a> {
         let m = p.module(instance_name, "ApproxReciprocal");
 
         let x = m.input("x", 32);
@@ -57,11 +62,7 @@ impl<'a> ApproxReciprocal<'a> {
         // Output
         let quotient = m.output("quotient", res);
 
-        ApproxReciprocal {
-            m,
-            x,
-            quotient,
-        }
+        ApproxReciprocal { m, x, quotient }
     }
 }
 
@@ -69,11 +70,7 @@ fn leading_zeros<'a>(x: &'a dyn Signal<'a>, m: &'a Module<'a>) -> &'a dyn Signal
     let mut ret = m.lit(0u32, 5);
 
     for i in 0..31 {
-        ret = if_(x.bit(i), {
-            m.lit(31 - i, 5)
-        }).else_({
-            ret
-        });
+        ret = if_(x.bit(i), m.lit(31 - i, 5)).else_(ret);
     }
 
     ret

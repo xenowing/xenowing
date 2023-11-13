@@ -137,7 +137,12 @@ impl<'a> FlowControlledPipe<'a> {
 
         // FIFO
         let fifo_depth_bit_width = self.num_credits_bit_width - 1;
-        let fifo = Fifo::new(format!("{}_fifo", name), fifo_depth_bit_width, o.bit_width(), self.m);
+        let fifo = Fifo::new(
+            format!("{}_fifo", name),
+            fifo_depth_bit_width,
+            o.bit_width(),
+            self.m,
+        );
         fifo.write_enable.drive(self.inner_pipe_out_valid);
         fifo.write_data.drive(o);
 
@@ -147,7 +152,8 @@ impl<'a> FlowControlledPipe<'a> {
         peek_buffer.ingress_data.drive(fifo.read_data);
         peek_buffer.ingress_data_valid.drive(
             (!fifo.empty & peek_buffer.ingress_read_enable)
-            .reg_next_with_default(format!("{}_peek_buffer_ingress_data_valid", name), false));
+                .reg_next_with_default(format!("{}_peek_buffer_ingress_data_valid", name), false),
+        );
 
         // Egress
         let output = self.m.output(name, peek_buffer.egress_data);
@@ -163,19 +169,22 @@ impl<'a> FlowControlledPipe<'a> {
             let mut credit_inc = out_handshake;
 
             for i in 0..self.num_credit_stages {
-                credit_inc = credit_inc.reg_next_with_default(format!("stage{}_credit_inc", i), false);
+                credit_inc =
+                    credit_inc.reg_next_with_default(format!("stage{}_credit_inc", i), false);
             }
 
             // Credit adjustment
             let credit_dec = self.in_handshake;
             let credit_adjust_bits = credit_inc.concat(credit_dec);
-            self.num_credits.drive_next(if_(credit_adjust_bits.eq(self.m.lit(0b10u32, 2)), {
-                self.num_credits + self.m.lit(1u32, self.num_credits_bit_width)
-            }).else_if(credit_adjust_bits.eq(self.m.lit(0b01u32, 2)), {
-                self.num_credits - self.m.lit(1u32, self.num_credits_bit_width)
-            }).else_({
-                self.num_credits
-            }));
+            self.num_credits.drive_next(
+                if_(credit_adjust_bits.eq(self.m.lit(0b10u32, 2)), {
+                    self.num_credits + self.m.lit(1u32, self.num_credits_bit_width)
+                })
+                .else_if(credit_adjust_bits.eq(self.m.lit(0b01u32, 2)), {
+                    self.num_credits - self.m.lit(1u32, self.num_credits_bit_width)
+                })
+                .else_(self.num_credits),
+            );
 
             self.has_output = true;
         }
