@@ -5,34 +5,34 @@ RM=rm
 RM_FLAGS=-rf
 
 .PHONY: all
-all: boot-rom program rtl generated-rtl sim
+all: bootloader program rtl generated-rtl sim
 
 .PHONY: clean
-clean: boot-rom-clean program-clean rtl-clean generated-rtl-clean sim-clean test-clean
+clean: bootloader-clean program-clean rtl-clean generated-rtl-clean sim-clean test-clean
 
 # Boot ROM
 
-BOOT_ROM_RUST_DIR=sw/boot-rom
+BOOT_ROM_RUST_DIR=sw/bootloader
 BOOT_ROM_TARGET_DIR=$(BOOT_ROM_RUST_DIR)/target
-BOOT_ROM_BIN=$(BOOT_ROM_TARGET_DIR)/boot-rom.bin
-BOOT_ROM_ELF=$(BOOT_ROM_TARGET_DIR)/riscv32i-unknown-none-elf/release/boot-rom
+BOOT_ROM_BIN=$(BOOT_ROM_TARGET_DIR)/bootloader.bin
+BOOT_ROM_ELF=$(BOOT_ROM_TARGET_DIR)/riscv32i-unknown-none-elf/release/bootloader
 
-.PHONY: boot-rom
-boot-rom: $(BOOT_ROM_BIN) boot-rom-rust
+.PHONY: bootloader
+bootloader: $(BOOT_ROM_BIN) bootloader-rust
 
-.PHONY: boot-rom-clean
-boot-rom-clean: boot-rom-rust-clean
+.PHONY: bootloader-clean
+bootloader-clean: bootloader-rust-clean
 	$(RM) $(RM_FLAGS) $(BOOT_ROM_BIN)
 
-$(BOOT_ROM_BIN): boot-rom-rust
+$(BOOT_ROM_BIN): bootloader-rust
 	$(TARGET_PREFIX)objcopy -O binary $(BOOT_ROM_ELF) $@
 
-.PHONY: boot-rom-rust
-boot-rom-rust:
+.PHONY: bootloader-rust
+bootloader-rust:
 	cd $(BOOT_ROM_RUST_DIR) && cargo build --release
 
-.PHONY: boot-rom-rust-clean
-boot-rom-rust-clean:
+.PHONY: bootloader-rust-clean
+bootloader-rust-clean:
 	cd $(BOOT_ROM_RUST_DIR) && cargo clean
 
 # Program
@@ -65,7 +65,7 @@ program-rust-clean:
 RTL_DIR=rtl
 
 .PHONY: rtl
-rtl: boot-rom
+rtl: bootloader
 	cd $(RTL_DIR) && cargo build --release
 
 .PHONY: rtl-clean

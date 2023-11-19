@@ -1,7 +1,7 @@
 [workspace]
 
 exclude = [
-    "sw/boot-rom",
+    "sw/bootloader",
     "sw/program",
 ]
 

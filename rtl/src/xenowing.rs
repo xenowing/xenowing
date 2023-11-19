@@ -1,5 +1,5 @@
 use crate::bit_pusher::*;
-use crate::boot_rom::*;
+use crate::bootloader::*;
 use crate::buster::*;
 use crate::buster_mig_ui_bridge::*;
 use crate::color_thrust::*;
@@ -85,7 +85,7 @@ impl<'a> XenowingInner<'a> {
 
         let marv = Marv::new("marv", m);
 
-        let boot_rom = BootRom::new("boot_rom", m);
+        let bootloader = Bootloader::new("bootloader", m);
 
         let led_interface = LedInterface::new("led_interface", m);
         let leds = m.output("leds", led_interface.leds);
@@ -137,7 +137,7 @@ impl<'a> XenowingInner<'a> {
         let sys_crossbar = Crossbar::new("sys_crossbar", 2, 7, 24, 4, 128, 5, m);
         cpu_crossbar.primary_ports[0].connect(&sys_crossbar.replica_ports[0]);
         bit_pusher.sys_port.connect(&sys_crossbar.replica_ports[1]);
-        sys_crossbar.primary_ports[0].connect(&boot_rom.client_port);
+        sys_crossbar.primary_ports[0].connect(&bootloader.client_port);
         sys_crossbar.primary_ports[1].connect(&led_interface.client_port);
         sys_crossbar.primary_ports[2].connect(&uart_interface.client_port);
         sys_crossbar.primary_ports[3].connect(&color_thrust.reg_port);

@@ -1,26 +1,27 @@
 use crate::buster::*;
+use crate::word_mem::*;
 
 use kaze::*;
 
-pub struct BootRom<'a> {
+pub struct Bootloader<'a> {
     pub m: &'a Module<'a>,
     pub client_port: ReplicaPort<'a>,
 }
 
-impl<'a> BootRom<'a> {
-    pub fn new(instance_name: impl Into<String>, p: &'a impl ModuleParent<'a>) -> BootRom<'a> {
-        let m = p.module(instance_name, "BootRom");
+impl<'a> Bootloader<'a> {
+    pub fn new(instance_name: impl Into<String>, p: &'a impl ModuleParent<'a>) -> Bootloader<'a> {
+        let m = p.module(instance_name, "Bootloader");
 
         // TODO: Make this smaller :)
         const CONTENTS_SIZE_BITS: u32 = 14;
         const CONTENTS_SIZE: u32 = 1 << CONTENTS_SIZE_BITS;
-        let contents_bytes = {
-            let mut ret = include_bytes!("../../sw/boot-rom/target/boot-rom.bin")
+        let contents = {
+            let mut ret = include_bytes!("../../sw/bootloader/target/bootloader.bin")
                 .iter()
                 .cloned()
                 .collect::<Vec<u8>>();
             if ret.len() as u32 > CONTENTS_SIZE {
-                panic!("Boot ROM cannot be larger than {} bytes", CONTENTS_SIZE);
+                panic!("Bootloader cannot be larger than {} bytes", CONTENTS_SIZE);
             }
             // Zero-pad ROM to fill whole size
             while (ret.len() as u32) < CONTENTS_SIZE {
@@ -28,19 +29,8 @@ impl<'a> BootRom<'a> {
             }
             ret
         };
-        let contents = {
-            let mut ret = Vec::new();
-            for i in 0..CONTENTS_SIZE / 4 {
-                let mut value = 0;
-                for j in 0..4 {
-                    value |= (contents_bytes[(i * 4 + j) as usize] as u32) << (j * 8);
-                }
-                ret.push(value);
-            }
-            ret
-        };
 
-        let mem = m.mem("mem", CONTENTS_SIZE_BITS - 2, 32);
+        let mem = WordMem::new(m, "mem", CONTENTS_SIZE_BITS - 2, 8, 4);
         mem.initial_contents(&contents);
 
         let bus_enable = m.input("bus_enable", 1);
@@ -48,6 +38,12 @@ impl<'a> BootRom<'a> {
         let bus_write = m.input("bus_write", 1);
         let bus_write_data = m.input("bus_write_data", 32);
         let bus_write_byte_enable = m.input("bus_write_byte_enable", 32 / 8);
+        mem.write_port(
+            bus_addr.bits(CONTENTS_SIZE_BITS - 3, 0),
+            bus_write_data,
+            bus_enable & bus_write,
+            bus_write_byte_enable,
+        );
         let bus_ready = m.output("bus_ready", m.high());
         let read_enable = bus_enable & !bus_write;
         let bus_read_data = m.output(
@@ -59,7 +55,7 @@ impl<'a> BootRom<'a> {
             read_enable.reg_next_with_default("bus_read_data_valid", false),
         );
 
-        BootRom {
+        Bootloader {
             m,
             client_port: ReplicaPort {
                 bus_enable,

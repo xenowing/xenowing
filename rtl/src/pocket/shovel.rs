@@ -1,4 +1,3 @@
-use crate::boot_rom::*;
 use crate::buster::*;
 use crate::byte_ram::*;
 use crate::marv::*;
@@ -15,6 +14,8 @@ pub struct Shovel<'a> {
 
     pub video_line_buffer_write_enable: &'a Output<'a>,
     pub video_line_buffer_write_data: &'a Output<'a>,
+
+    pub bootloader: PrimaryPort<'a>,
 }
 
 impl<'a> Shovel<'a> {
@@ -22,8 +23,6 @@ impl<'a> Shovel<'a> {
         let m = p.module(instance_name, "Shovel");
 
         let marv = Marv::new("marv", m);
-
-        let boot_rom = BootRom::new("boot_rom", m);
 
         let char_display = CharDisplay::new("char_display", m);
         let system_write_vsync_pulse = m.input("system_write_vsync_pulse", 1);
@@ -57,7 +56,7 @@ impl<'a> Shovel<'a> {
         let sys_crossbar = Crossbar::new("sys_crossbar", 1, 2, 26, 4, 32, 2, m);
         cpu_crossbar.primary_ports[0]
             .connect(&sys_crossbar.replica_ports[0].skid_buffer("cpu_crossbar_to_sys_crossbar", m));
-        sys_crossbar.primary_ports[0].connect(&boot_rom.client_port);
+        let bootloader = sys_crossbar.primary_ports[0].forward("bootloader", m);
         sys_crossbar.primary_ports[1].connect(&char_display.client_port);
 
         Shovel {
@@ -74,6 +73,8 @@ impl<'a> Shovel<'a> {
                 "video_line_buffer_write_data",
                 char_display.video_line_buffer_write_data,
             ),
+
+            bootloader,
         }
     }
 }

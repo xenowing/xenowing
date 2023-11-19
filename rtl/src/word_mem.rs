@@ -2,6 +2,7 @@ use kaze::*;
 
 pub struct WordMem<'a> {
     element_bit_width: u32,
+    elements_per_word: u32,
 
     mems: Vec<&'a Mem<'a>>,
 }
@@ -18,6 +19,7 @@ impl<'a> WordMem<'a> {
 
         WordMem {
             element_bit_width,
+            elements_per_word,
 
             mems: (0..elements_per_word)
                 .map(|element_index| {
@@ -28,6 +30,20 @@ impl<'a> WordMem<'a> {
                     )
                 })
                 .collect(),
+        }
+    }
+
+    pub fn initial_contents<C: Clone + Into<Constant>>(&self, contents: &[C]) {
+        for (i, mem) in self.mems.iter().enumerate() {
+            let mut element_contents = Vec::new();
+            for j in 0..contents.len() / self.elements_per_word as usize {
+                element_contents.push(
+                    contents[j * self.elements_per_word as usize + i]
+                        .clone()
+                        .into(),
+                );
+            }
+            mem.initial_contents(&element_contents);
         }
     }
 

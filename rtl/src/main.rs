@@ -1,6 +1,6 @@
 mod approx_reciprocal;
 mod bit_pusher;
-mod boot_rom;
+mod bootloader;
 mod buster;
 mod buster_mig_ui_bridge;
 mod byte_ram;

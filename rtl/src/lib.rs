@@ -1,6 +1,6 @@
 pub mod approx_reciprocal;
 pub mod bit_pusher;
-pub mod boot_rom;
+pub mod bootloader;
 pub mod buster;
 pub mod buster_mig_ui_bridge;
 pub mod byte_ram;

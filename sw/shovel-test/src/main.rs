@@ -71,7 +71,7 @@ fn main() {
 
     let mut video_timing_generator = VideoTimingGenerator::default();
 
-    let mut shovel = Shovel::new();
+    let mut shovel = Top::new();
     shovel.reset();
 
     let mut video_test_pattern_generator = VideoTestPatternGenerator::new();

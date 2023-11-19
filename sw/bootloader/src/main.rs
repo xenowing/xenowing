@@ -7,7 +7,7 @@ use core::fmt::Write;
 
 #[no_mangle]
 fn main() -> ! {
-    writeln!(stdio::stdout(), "Hello from MARV/BRAM!").unwrap();
+    writeln!(stdio::stdout(), "Hello from the bootloader asset!").unwrap();
     writeln!(stdio::stdout()).unwrap();
     writeln!(
         stdio::stdout(),
