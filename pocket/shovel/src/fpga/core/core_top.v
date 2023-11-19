@@ -724,6 +724,15 @@ end
     end
 
     // Shovel
+    // TODO: Figure out a good way to keep this consistent with kaze rtl
+    localparam SHOVEL_BOOTLOADER_ADDR_BIT_WIDTH = 12;
+    wire shovel_bootloader_bus_enable;
+    wire [SHOVEL_BOOTLOADER_ADDR_BIT_WIDTH - 1:0] shovel_bootloader_bus_addr;
+    wire shovel_bootloader_bus_write;
+    wire [31:0] shovel_bootloader_bus_write_data;
+    wire [3:0] shovel_bootloader_bus_write_byte_enable;
+    wire [31:0] shovel_bootloader_bus_read_data;
+    reg shovel_bootloader_bus_read_data_valid;
     Shovel shovel(
         .reset_n(clk_sdram_reset_n),
         .clk(clk_sdram),
@@ -733,7 +742,20 @@ end
 
         .video_line_buffer_write_enable(shovel_line_buffer_write_enable),
         .video_line_buffer_write_data(shovel_line_buffer_write_data),
+
+        .bootloader_bus_ready(1'b1),
+        .bootloader_bus_enable(shovel_bootloader_bus_enable),
+        .bootloader_bus_addr(shovel_bootloader_bus_addr),
+        .bootloader_bus_write(shovel_bootloader_bus_write),
+        .bootloader_bus_write_data(shovel_bootloader_bus_write_data),
+        .bootloader_bus_write_byte_enable(shovel_bootloader_bus_write_byte_enable),
+        .bootloader_bus_read_data(shovel_bootloader_bus_read_data),
+        .bootloader_bus_read_data_valid(shovel_bootloader_bus_read_data_valid)
     );
+
+    always @(posedge clk_sdram) begin
+        shovel_bootloader_bus_read_data_valid <= shovel_bootloader_bus_enable && !shovel_bootloader_bus_write;
+    end
 
     // Test pattern line buffer
     wire test_pattern_line_buffer_write_enable;
@@ -776,7 +798,30 @@ end
         .system_write_line_pulse(system_write_line_pulse),
 
         .video_line_buffer_write_enable(test_pattern_line_buffer_write_enable),
-        .video_line_buffer_write_data(test_pattern_line_buffer_write_data),
+        .video_line_buffer_write_data(test_pattern_line_buffer_write_data)
+    );
+
+    // Bootloader memory
+    bootloader_mem shovel_bootloader_mem(
+        .clock_a(clk_sdram),
+        .address_a(shovel_bootloader_bus_addr),
+        .rden_a(shovel_bootloader_bus_enable && !shovel_bootloader_bus_write),
+        .wren_a(shovel_bootloader_bus_enable && shovel_bootloader_bus_write),
+        .data_a(shovel_bootloader_bus_write_data),
+        .byteena_a(shovel_bootloader_bus_write_byte_enable),
+        .q_a(shovel_bootloader_bus_read_data),
+
+        .clock_b(clk_74a),
+        .address_b(bridge_addr[SHOVEL_BOOTLOADER_ADDR_BIT_WIDTH - 1 + 2:2]),
+        .rden_b(1'b0),
+        .wren_b(bridge_wr && bridge_addr[31:24] == 8'h10),
+        // bridge_wr_data is big-endian
+        .data_b({
+            bridge_wr_data[7:0],
+            bridge_wr_data[15:8],
+            bridge_wr_data[23:16],
+            bridge_wr_data[31:24]
+        })
     );
 
 

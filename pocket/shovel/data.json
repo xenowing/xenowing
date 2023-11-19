@@ -1,6 +1,19 @@
 {
     "data": {
         "magic": "APF_VER_1",
-        "data_slots": []
+        "data_slots": [
+            {
+                "name": "Bootloader",
+                "id": 1,
+                "required": true,
+                "parameters": 139,
+                "filename": "bootloader.bin",
+                "extensions": [
+                    "bin"
+                ],
+                "size_maximum": 16384,
+                "address": "0x10000000"
+            }
+        ]
     }
 }
