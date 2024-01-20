@@ -135,19 +135,19 @@ impl<'a> Marv<'a> {
 
         let decode_instruction = Instruction::new(decode.instruction);
 
-        let execute_instruction = m.reg("execute_instruction", 32);
-        execute_instruction.drive_next(
+        let execute_0_instruction = m.reg("execute_0_instruction", 32);
+        execute_0_instruction.drive_next(
             control
                 .decode_enable
-                .mux(decode_instruction.value, execute_instruction),
+                .mux(decode_instruction.value, execute_0_instruction),
         );
-        let execute_instruction = Instruction::new(execute_instruction);
+        let execute_0_instruction = Instruction::new(execute_0_instruction);
 
         let alu = Alu::new("alu", m);
 
         let execute_0 = Execute::new("execute", m);
         execute_0.pc.drive(pc);
-        execute_0.instruction.drive(execute_instruction.value);
+        execute_0.instruction.drive(execute_0_instruction.value);
         execute_0
             .reg1
             .drive(register_file.read_port(decode_instruction.rs1(), control.decode_enable));
@@ -175,26 +175,53 @@ impl<'a> Marv<'a> {
         mem.bus_enable_in.drive(
             execute_0
                 .bus_enable
+                .reg_next_with_default("execute_1_bus_enable", false)
+                .reg_next_with_default("execute_2_bus_enable", false)
+                .reg_next_with_default("execute_3_bus_enable", false)
                 .reg_next_with_default("mem_bus_enable", false),
         );
-        mem.bus_addr_in
-            .drive(execute_0.bus_addr.reg_next("mem_bus_addr"));
-        mem.bus_write_data_in
-            .drive(execute_0.bus_write_data.reg_next("mem_bus_write_data"));
+        mem.bus_addr_in.drive(
+            execute_0
+                .bus_addr
+                .reg_next("execute_1_mem_bus_addr")
+                .reg_next("execute_2_mem_bus_addr")
+                .reg_next("execute_3_mem_bus_addr")
+                .reg_next("mem_bus_addr"),
+        );
+        mem.bus_write_data_in.drive(
+            execute_0
+                .bus_write_data
+                .reg_next("execute_1_bus_write_data")
+                .reg_next("execute_2_bus_write_data")
+                .reg_next("execute_3_bus_write_data")
+                .reg_next("mem_bus_write_data"),
+        );
         mem.bus_write_byte_enable_in.drive(
             execute_0
                 .bus_write_byte_enable
+                .reg_next("execute_1_bus_write_byte_enable")
+                .reg_next("execute_2_bus_write_byte_enable")
+                .reg_next("execute_3_bus_write_byte_enable")
                 .reg_next("mem_bus_write_byte_enable"),
         );
-        mem.bus_write_in
-            .drive(execute_0.bus_write.reg_next("mem_bus_write"));
+        mem.bus_write_in.drive(
+            execute_0
+                .bus_write
+                .reg_next("execute_1_bus_write")
+                .reg_next("execute_2_bus_write")
+                .reg_next("execute_3_bus_write")
+                .reg_next("mem_bus_write"),
+        );
 
         let writeback = Writeback::new("writeback", m);
         control.writeback_ready.drive(writeback.ready);
         writeback.enable.drive(control.writeback_enable);
         writeback.instruction.drive(
-            execute_instruction
+            execute_0_instruction
                 .value
+                .reg_next("execute_1_instruction")
+                .reg_next("execute_2_instruction")
+                .reg_next("execute_3_instruction")
                 .reg_next("mem_instruction")
                 .reg_next("writeback_instruction"),
         );
@@ -202,18 +229,27 @@ impl<'a> Marv<'a> {
         writeback.next_pc.drive(
             execute_0
                 .next_pc
+                .reg_next("execute_1_next_pc")
+                .reg_next("execute_2_next_pc")
+                .reg_next("execute_3_next_pc")
                 .reg_next("mem_next_pc")
                 .reg_next("writeback_next_pc"),
         );
         writeback.rd_value_write_enable.drive(
             execute_0
                 .rd_value_write_enable
+                .reg_next("execute_1_rd_value_write_enable")
+                .reg_next("execute_2_rd_value_write_enable")
+                .reg_next("execute_3_rd_value_write_enable")
                 .reg_next("mem_rd_value_write_enable")
                 .reg_next("writeback_rd_value_write_enable"),
         );
         writeback.rd_value_write_data.drive(
             execute_0
                 .rd_value_write_data
+                .reg_next("execute_1_rd_valud_write_data")
+                .reg_next("execute_2_rd_valud_write_data")
+                .reg_next("execute_3_rd_valud_write_data")
                 .reg_next("mem_rd_value_write_data")
                 .reg_next("writeback_rd_value_write_data"),
         );
