@@ -145,22 +145,22 @@ impl<'a> Marv<'a> {
 
         let alu = Alu::new("alu", m);
 
-        let execute = Execute::new("execute", m);
-        execute.pc.drive(pc);
-        execute.instruction.drive(execute_instruction.value);
-        execute
+        let execute_0 = Execute::new("execute", m);
+        execute_0.pc.drive(pc);
+        execute_0.instruction.drive(execute_instruction.value);
+        execute_0
             .reg1
             .drive(register_file.read_port(decode_instruction.rs1(), control.decode_enable));
-        execute
+        execute_0
             .reg2
             .drive(register_file.read_port(decode_instruction.rs2(), control.decode_enable));
-        alu.op.drive(execute.alu_op);
-        alu.op_mod.drive(execute.alu_op_mod);
-        alu.lhs.drive(execute.alu_lhs);
-        alu.rhs.drive(execute.alu_rhs);
-        execute.alu_res.drive(alu.res);
-        execute.cycle_counter_value.drive(cycle_counter);
-        execute
+        alu.op.drive(execute_0.alu_op);
+        alu.op_mod.drive(execute_0.alu_op_mod);
+        alu.lhs.drive(execute_0.alu_lhs);
+        alu.rhs.drive(execute_0.alu_rhs);
+        execute_0.alu_res.drive(alu.res);
+        execute_0.cycle_counter_value.drive(cycle_counter);
+        execute_0
             .instructions_retired_counter_value
             .drive(instructions_retired_counter);
 
@@ -172,12 +172,22 @@ impl<'a> Marv<'a> {
         control.mem_ready.drive(mem.ready);
         mem.enable.drive(control.mem_enable);
         mem.bus_ready_in.drive(data_bus_ready);
-        mem.bus_enable_in.drive(execute.bus_enable);
-        mem.bus_addr_in.drive(execute.bus_addr);
-        mem.bus_write_data_in.drive(execute.bus_write_data);
-        mem.bus_write_byte_enable_in
-            .drive(execute.bus_write_byte_enable);
-        mem.bus_write_in.drive(execute.bus_write);
+        mem.bus_enable_in.drive(
+            execute_0
+                .bus_enable
+                .reg_next_with_default("mem_bus_enable", false),
+        );
+        mem.bus_addr_in
+            .drive(execute_0.bus_addr.reg_next("mem_bus_addr"));
+        mem.bus_write_data_in
+            .drive(execute_0.bus_write_data.reg_next("mem_bus_write_data"));
+        mem.bus_write_byte_enable_in.drive(
+            execute_0
+                .bus_write_byte_enable
+                .reg_next("mem_bus_write_byte_enable"),
+        );
+        mem.bus_write_in
+            .drive(execute_0.bus_write.reg_next("mem_bus_write"));
 
         let writeback = Writeback::new("writeback", m);
         control.writeback_ready.drive(writeback.ready);
@@ -190,19 +200,19 @@ impl<'a> Marv<'a> {
         );
         writeback.bus_addr_low.drive(mem.bus_addr_out.bits(1, 0));
         writeback.next_pc.drive(
-            execute
+            execute_0
                 .next_pc
                 .reg_next("mem_next_pc")
                 .reg_next("writeback_next_pc"),
         );
         writeback.rd_value_write_enable.drive(
-            execute
+            execute_0
                 .rd_value_write_enable
                 .reg_next("mem_rd_value_write_enable")
                 .reg_next("writeback_rd_value_write_enable"),
         );
         writeback.rd_value_write_data.drive(
-            execute
+            execute_0
                 .rd_value_write_data
                 .reg_next("mem_rd_value_write_data")
                 .reg_next("writeback_rd_value_write_data"),
@@ -778,20 +788,14 @@ impl<'a> Mem<'a> {
         let bus_write_byte_enable_in = m.input("bus_write_byte_enable_in", 4);
         let bus_write_in = m.input("bus_write_in", 1);
 
-        let bus_enable = bus_enable_in.reg_next_with_default("bus_enable", false);
-        let bus_enable_out = m.output("bus_enable_out", enable & bus_enable);
-        let bus_addr_out = m.output("bus_addr_out", bus_addr_in.reg_next("bus_addr"));
-        let bus_write_data_out = m.output(
-            "bus_write_data_out",
-            bus_write_data_in.reg_next("bus_write_data"),
-        );
-        let bus_write_byte_enable_out = m.output(
-            "bus_write_byte_enable_out",
-            bus_write_byte_enable_in.reg_next("bus_write_byte_enable"),
-        );
-        let bus_write_out = m.output("bus_write_out", bus_write_in.reg_next("bus_write"));
+        let bus_enable_out = m.output("bus_enable_out", enable & bus_enable_in);
+        let bus_addr_out = m.output("bus_addr_out", bus_addr_in);
+        let bus_write_data_out = m.output("bus_write_data_out", bus_write_data_in);
+        let bus_write_byte_enable_out =
+            m.output("bus_write_byte_enable_out", bus_write_byte_enable_in);
+        let bus_write_out = m.output("bus_write_out", bus_write_in);
 
-        let ready = m.output("ready", bus_enable.mux(bus_ready_in, m.high()));
+        let ready = m.output("ready", bus_enable_in.mux(bus_ready_in, m.high()));
 
         Mem {
             m,
