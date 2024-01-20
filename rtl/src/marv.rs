@@ -280,9 +280,12 @@ impl<'a> Control<'a> {
         let state_bit_width = 3;
         let state_instruction_fetch = 0u32;
         let state_decode = 1u32;
-        let state_execute = 2u32;
-        let state_mem = 3u32;
-        let state_writeback = 4u32;
+        let state_execute_0 = 2u32;
+        let state_execute_1 = 3u32;
+        let state_execute_2 = 4u32;
+        let state_execute_3 = 5u32;
+        let state_mem = 6u32;
+        let state_writeback = 7u32;
         let state = m.reg("state", state_bit_width);
         state.default_value(state_instruction_fetch);
         // TODO: (Enum) matching sugar
@@ -293,9 +296,18 @@ impl<'a> Control<'a> {
             )
             .else_if(
                 state.eq(m.lit(state_decode, state_bit_width)) & decode_ready,
-                m.lit(state_execute, state_bit_width),
+                m.lit(state_execute_0, state_bit_width),
             )
-            .else_if(state.eq(m.lit(state_execute, state_bit_width)), {
+            .else_if(state.eq(m.lit(state_execute_0, state_bit_width)), {
+                m.lit(state_execute_1, state_bit_width)
+            })
+            .else_if(state.eq(m.lit(state_execute_1, state_bit_width)), {
+                m.lit(state_execute_2, state_bit_width)
+            })
+            .else_if(state.eq(m.lit(state_execute_2, state_bit_width)), {
+                m.lit(state_execute_3, state_bit_width)
+            })
+            .else_if(state.eq(m.lit(state_execute_3, state_bit_width)), {
                 m.lit(state_mem, state_bit_width)
             })
             .else_if(state.eq(m.lit(state_mem, state_bit_width)) & mem_ready, {
