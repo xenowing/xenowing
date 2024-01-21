@@ -11,8 +11,9 @@ pub fn putc(c: char) {
     unsafe {
         if c == '\n' {
             MAP_OFFSET += CHARS_WIDTH;
-            while (MAP_OFFSET % CHARS_WIDTH) != 0 {
-                MAP_OFFSET -= 1;
+            let rem = MAP_OFFSET % CHARS_WIDTH;
+            if rem != 0 {
+                MAP_OFFSET -= rem;
             }
         } else {
             // TODO: This shouldn't actually be safe... :)
@@ -29,7 +30,10 @@ pub fn putc(c: char) {
                 }
             }
             for x in 0..CHARS_WIDTH {
-                ptr::write_volatile(MAP.offset((x * 4) as _), 0);
+                ptr::write_volatile(
+                    MAP.offset((((CHARS_HEIGHT - 1) * CHARS_WIDTH + x) * 4) as _),
+                    0,
+                );
             }
 
             MAP_OFFSET -= CHARS_WIDTH;
