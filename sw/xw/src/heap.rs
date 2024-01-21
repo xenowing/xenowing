@@ -11,7 +11,9 @@ use segregated_list_allocator::*;
 
 #[global_allocator]
 static mut ALLOCATOR: SystemAllocator<SegregatedListAllocator<ExplicitFreeListAllocator>> =
-    SystemAllocator::new(SegregatedListAllocator::new(ExplicitFreeListAllocator::new()));
+    SystemAllocator::new(SegregatedListAllocator::new(
+        ExplicitFreeListAllocator::new(),
+    ));
 
 pub fn init() {
     unsafe {

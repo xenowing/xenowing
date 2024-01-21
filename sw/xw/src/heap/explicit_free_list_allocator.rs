@@ -22,7 +22,8 @@ impl BlockHeader {
 
     // Explicit lifetimes to work around the compiler inferring that `self` must outlive the return value
     fn additional_header<'a, 'b>(&'a self) -> &'b mut FreeBlockAdditionalHeader {
-        let additional_header_ptr = (self.block_start() + mem::size_of::<Self>()) as *mut FreeBlockAdditionalHeader;
+        let additional_header_ptr =
+            (self.block_start() + mem::size_of::<Self>()) as *mut FreeBlockAdditionalHeader;
         unsafe { &mut *additional_header_ptr }
     }
 
@@ -90,27 +91,30 @@ struct FreeBlockFooter {
     header: NonNull<BlockHeader>,
 }
 
-const MIN_FREE_BLOCK_SIZE
-    : usize
-    = mem::size_of::<BlockHeader>()
+const MIN_FREE_BLOCK_SIZE: usize = mem::size_of::<BlockHeader>()
     + mem::size_of::<FreeBlockAdditionalHeader>()
-    + mem::size_of::<FreeBlockFooter>()
-    ;
+    + mem::size_of::<FreeBlockFooter>();
 
 // This is unused at runtime, but is required by const asserts
 #[allow(dead_code)]
-const MIN_ALLOCATED_BLOCK_SIZE
-    : usize
-    = mem::size_of::<BlockHeader>()
-    + mem::size_of::<NonNull<BlockHeader>>()
-    ;
+const MIN_ALLOCATED_BLOCK_SIZE: usize =
+    mem::size_of::<BlockHeader>() + mem::size_of::<NonNull<BlockHeader>>();
 
 const MIN_BLOCK_SIZE: usize = MIN_FREE_BLOCK_SIZE;
 
 const_assert!(mem::align_of::<BlockHeader>() >= 4);
-const_assert_eq!(mem::align_of::<BlockHeader>(), mem::align_of::<FreeBlockAdditionalHeader>());
-const_assert_eq!(mem::align_of::<BlockHeader>(), mem::align_of::<FreeBlockFooter>());
-const_assert_eq!(mem::align_of::<BlockHeader>(), mem::align_of::<NonNull<BlockHeader>>());
+const_assert_eq!(
+    mem::align_of::<BlockHeader>(),
+    mem::align_of::<FreeBlockAdditionalHeader>()
+);
+const_assert_eq!(
+    mem::align_of::<BlockHeader>(),
+    mem::align_of::<FreeBlockFooter>()
+);
+const_assert_eq!(
+    mem::align_of::<BlockHeader>(),
+    mem::align_of::<NonNull<BlockHeader>>()
+);
 const_assert!(MIN_FREE_BLOCK_SIZE >= MIN_ALLOCATED_BLOCK_SIZE);
 
 pub struct ExplicitFreeListAllocator {
@@ -184,11 +188,27 @@ impl ExplicitFreeListAllocator {
 
 impl Allocator for ExplicitFreeListAllocator {
     fn init(&mut self, heap_start: usize, heap_end: usize) {
-        assert!(self.free_head.is_none(), "Heap has already been initialized");
+        assert!(
+            self.free_head.is_none(),
+            "Heap has already been initialized"
+        );
         assert!(heap_end >= heap_start, "Heap end is less than heap start");
-        assert!(heap_end - heap_start >= MIN_BLOCK_SIZE, "Heap is not large enough to fit the minimum block size");
-        assert_eq!(heap_start % mem::align_of::<BlockHeader>(), 0, "Heap start is not aligned to the block header alignment ({})", mem::align_of::<BlockHeader>());
-        assert_eq!(heap_end % mem::align_of::<BlockHeader>(), 0, "Heap end is not aligned to the block header alignment ({})", mem::align_of::<BlockHeader>());
+        assert!(
+            heap_end - heap_start >= MIN_BLOCK_SIZE,
+            "Heap is not large enough to fit the minimum block size"
+        );
+        assert_eq!(
+            heap_start % mem::align_of::<BlockHeader>(),
+            0,
+            "Heap start is not aligned to the block header alignment ({})",
+            mem::align_of::<BlockHeader>()
+        );
+        assert_eq!(
+            heap_end % mem::align_of::<BlockHeader>(),
+            0,
+            "Heap end is not aligned to the block header alignment ({})",
+            mem::align_of::<BlockHeader>()
+        );
 
         //writeln!(stdio::stdout(), "heap start: 0x{:08x}", heap_start).unwrap();
         //writeln!(stdio::stdout(), "heap end:   0x{:08x}", heap_end).unwrap();
@@ -221,11 +241,12 @@ impl Allocator for ExplicitFreeListAllocator {
             let prev_header_ptr = header_ptr;
             block_ptr = additional_header.free_next;
 
-            let min_payload_start = header.end() + if header_pointer_required {
-                mem::size_of::<NonNull<BlockHeader>>()
-            } else {
-                0
-            };
+            let min_payload_start = header.end()
+                + if header_pointer_required {
+                    mem::size_of::<NonNull<BlockHeader>>()
+                } else {
+                    0
+                };
 
             // TODO: Do we need to handle a possible overflow here?
             let payload_start = align_up(min_payload_start, layout.align());
@@ -245,7 +266,8 @@ impl Allocator for ExplicitFreeListAllocator {
             header.set_allocated();
             let next_block_start = header.block_end();
             if next_block_start != self.heap_end {
-                let mut next_block_ptr = unsafe { NonNull::new_unchecked(next_block_start as *mut BlockHeader) };
+                let mut next_block_ptr =
+                    unsafe { NonNull::new_unchecked(next_block_start as *mut BlockHeader) };
                 let next_header = unsafe { next_block_ptr.as_mut() };
                 next_header.set_prev_allocated();
             }
@@ -264,10 +286,13 @@ impl Allocator for ExplicitFreeListAllocator {
             // If possible, split the current block so unused space will be covered by a new block
             let min_new_block_start = header.block_start() + MIN_BLOCK_SIZE;
             let new_block_start = payload_end.max(min_new_block_start);
-            if new_block_start < header.block_end() && header.block_end() - new_block_start >= MIN_BLOCK_SIZE {
+            if new_block_start < header.block_end()
+                && header.block_end() - new_block_start >= MIN_BLOCK_SIZE
+            {
                 //writeln!(stdio::stdout(), "   splitting block; new block start: {:?}", new_block_start as *mut u8).unwrap();
                 // Build new header for unused block, splice into block list
-                let mut new_header_ptr = initialize_free_block(new_block_start, header.block_end(), true);
+                let mut new_header_ptr =
+                    initialize_free_block(new_block_start, header.block_end(), true);
                 let new_header = unsafe { new_header_ptr.as_mut() };
 
                 // Adjust allocated block header
@@ -302,11 +327,14 @@ impl Allocator for ExplicitFreeListAllocator {
         //writeln!(stdio::stdout(), "   header pointer required: {}", header_pointer_required).unwrap();
 
         let mut header_ptr = if header_pointer_required {
-            let header_pointer = (ptr as usize - mem::size_of::<NonNull<BlockHeader>>()) as *const NonNull<BlockHeader>;
+            let header_pointer = (ptr as usize - mem::size_of::<NonNull<BlockHeader>>())
+                as *const NonNull<BlockHeader>;
             //writeln!(stdio::stdout(), "   header pointer: {:?}", header_pointer).unwrap();
             unsafe { ptr::read(header_pointer) }
         } else {
-            unsafe { NonNull::new_unchecked((ptr as usize - mem::size_of::<BlockHeader>()) as *mut _) }
+            unsafe {
+                NonNull::new_unchecked((ptr as usize - mem::size_of::<BlockHeader>()) as *mut _)
+            }
         };
         let mut header = unsafe { header_ptr.as_mut() };
 
@@ -318,7 +346,8 @@ impl Allocator for ExplicitFreeListAllocator {
         header.clear_allocated();
         let next_block_start = header.block_end();
         if next_block_start != self.heap_end {
-            let mut next_block_ptr = unsafe { NonNull::new_unchecked(next_block_start as *mut BlockHeader) };
+            let mut next_block_ptr =
+                unsafe { NonNull::new_unchecked(next_block_start as *mut BlockHeader) };
             let next_header = unsafe { next_block_ptr.as_mut() };
             next_header.clear_prev_allocated();
         }
@@ -327,7 +356,12 @@ impl Allocator for ExplicitFreeListAllocator {
         self.push_onto_free_list(header);
 
         if header.block_start() != self.heap_start && !header.is_prev_allocated() {
-            let mut prev_footer_ptr = unsafe { NonNull::new_unchecked((header.block_start() - mem::size_of::<FreeBlockFooter>()) as *mut FreeBlockFooter) };
+            let mut prev_footer_ptr = unsafe {
+                NonNull::new_unchecked(
+                    (header.block_start() - mem::size_of::<FreeBlockFooter>())
+                        as *mut FreeBlockFooter,
+                )
+            };
             let prev_footer = unsafe { prev_footer_ptr.as_mut() };
             let prev_header = unsafe { prev_footer.header.as_mut() };
             self.coalesce_blocks(prev_header, header);
@@ -347,7 +381,11 @@ impl Allocator for ExplicitFreeListAllocator {
     }
 }
 
-fn initialize_free_block(block_start: usize, block_end: usize, is_prev_allocated: bool) -> NonNull<BlockHeader> {
+fn initialize_free_block(
+    block_start: usize,
+    block_end: usize,
+    is_prev_allocated: bool,
+) -> NonNull<BlockHeader> {
     let header_ptr = block_start as _;
     let header = BlockHeader::new(block_end, is_prev_allocated);
     unsafe {
@@ -372,9 +410,7 @@ fn initialize_free_block(block_start: usize, block_end: usize, is_prev_allocated
 
 fn initialize_footer(header: NonNull<BlockHeader>, block_end: usize) {
     let footer_ptr = (block_end - mem::size_of::<FreeBlockFooter>()) as _;
-    let footer = FreeBlockFooter {
-        header,
-    };
+    let footer = FreeBlockFooter { header };
     unsafe {
         ptr::write(footer_ptr, footer);
     }

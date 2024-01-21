@@ -70,11 +70,12 @@ impl<T: Allocator> Allocator for SegregatedListAllocator<T> {
                 _ => {
                     let block_size = SIZE_CLASS_BLOCK_SIZES[class];
                     let block_align = block_size;
-                    let layout = unsafe { Layout::from_size_align_unchecked(block_size, block_align) };
+                    let layout =
+                        unsafe { Layout::from_size_align_unchecked(block_size, block_align) };
                     self.fallback_allocator.alloc(layout)
                 }
-            }
-            _ => self.fallback_allocator.alloc(layout)
+            },
+            _ => self.fallback_allocator.alloc(layout),
         }
     }
 
@@ -98,5 +99,7 @@ impl<T: Allocator> Allocator for SegregatedListAllocator<T> {
 
 fn size_class(layout: Layout) -> Option<usize> {
     let block_size = layout.size().max(layout.align());
-    SIZE_CLASS_BLOCK_SIZES.iter().position(|&size| size >= block_size)
+    SIZE_CLASS_BLOCK_SIZES
+        .iter()
+        .position(|&size| size >= block_size)
 }
