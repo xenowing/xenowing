@@ -38,9 +38,6 @@ _copy_data_loop_end:
 
     lui sp, %hi(_stack_start)
     addi sp, sp, %lo(_stack_start)
-    lui t0, %hi(_stack_size)
-    add t0, t0, %lo(_stack_size)
-    sub sp, sp, t0
 
     add s0, sp, zero
 
